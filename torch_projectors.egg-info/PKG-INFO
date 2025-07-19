@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: torch-projectors
+Version: 0.1.0
+Summary: Differentiable forward and backward projectors for cryo-EM.
+Author: [Your Name]
+Author-email: [Your Email]
+Dynamic: author
+Dynamic: author-email
+Dynamic: summary

@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+setup.py
+csrc/torch_projectors.cpp
+csrc/cpu/cpu_kernels.cpp
+tests/test_ops.py
+torch_projectors/__init__.py
+torch_projectors/ops.py
+torch_projectors.egg-info/PKG-INFO
+torch_projectors.egg-info/SOURCES.txt
+torch_projectors.egg-info/dependency_links.txt
+torch_projectors.egg-info/top_level.txt
