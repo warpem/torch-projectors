@@ -1,28 +1,133 @@
 # torch_projectors/ops.py
 
 import torch
+from typing import Optional
 
-# This is the user-facing Python function.
-def add_tensors(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    """
-    Adds two tensors using a custom C++ kernel for the forward pass.
-    The backward pass is also a C++ kernel, linked via the Python registration below.
-    """
-    # This calls our C++ FORWARD kernel.
-    return torch.ops.torch_projectors.add_tensors_forward(a, b)
+def forward_project_2d(
+    reconstruction: torch.Tensor,
+    rotations: torch.Tensor,
+    shifts: Optional[torch.Tensor] = None,
+    output_shape: Optional[tuple[int, ...]] = None,
+    interpolation: str = 'linear',
+    oversampling: float = 1.0,
+    fourier_radius_cutoff: Optional[float] = None
+) -> torch.Tensor:
+    # Validate reconstruction dimensions
+    if reconstruction.dim() < 2:
+        raise ValueError("Reconstruction must have at least 2 dimensions")
+    
+    boxsize = reconstruction.shape[-2] 
+    boxsize_half = reconstruction.shape[-1]
+    
+    # Enforce square, even dimensions
+    if boxsize % 2 != 0:
+        raise ValueError(f"Boxsize ({boxsize}) must be even. Only even dimensions are supported.")
+    if boxsize != (boxsize_half - 1) * 2:
+        raise ValueError(f"Reconstruction shape mismatch: expected boxsize {boxsize} to match 2*(boxsize_half-1) = {(boxsize_half - 1) * 2}")
+    
+    # Set default output shape to square
+    if output_shape is None:
+        output_shape = (boxsize, boxsize)
+    else:
+        # Validate output shape is also square and even
+        if len(output_shape) != 2 or output_shape[0] != output_shape[1]:
+            raise ValueError(f"Output shape {output_shape} must be square (height == width)")
+        if output_shape[0] % 2 != 0:
+            raise ValueError(f"Output boxsize {output_shape[0]} must be even")
+    
+    return _ForwardProject2D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
 
-# --- Modern Autograd Registration ---
+def backward_project_2d(
+    projections: torch.Tensor,
+    rotations: torch.Tensor,
+    shifts: Optional[torch.Tensor] = None,
+    reconstruction_shape: Optional[tuple[int, ...]] = None,
+    interpolation: str = 'linear',
+    oversampling: float = 1.0
+) -> torch.Tensor:
+    # Validate projection dimensions
+    if projections.dim() < 2:
+        raise ValueError("Projections must have at least 2 dimensions")
+        
+    proj_boxsize = projections.shape[-2]
+    proj_boxsize_half = projections.shape[-1]
+    
+    # Enforce square, even dimensions for projections
+    if proj_boxsize % 2 != 0:
+        raise ValueError(f"Projection boxsize ({proj_boxsize}) must be even")
+    if proj_boxsize != (proj_boxsize_half - 1) * 2:
+        raise ValueError(f"Projection shape mismatch: expected boxsize {proj_boxsize} to match 2*(boxsize_half-1) = {(proj_boxsize_half - 1) * 2}")
+    
+    if reconstruction_shape is None:
+        reconstruction_shape = (proj_boxsize, proj_boxsize_half)
+    else:
+        # Validate reconstruction shape
+        if len(reconstruction_shape) != 2:
+            raise ValueError(f"Reconstruction shape {reconstruction_shape} must have 2 dimensions")
+        rec_boxsize, rec_boxsize_half = reconstruction_shape
+        if rec_boxsize % 2 != 0:
+            raise ValueError(f"Reconstruction boxsize ({rec_boxsize}) must be even")
+        if rec_boxsize != (rec_boxsize_half - 1) * 2:
+            raise ValueError(f"Reconstruction shape mismatch: expected boxsize {rec_boxsize} to match 2*(boxsize_half-1) = {(rec_boxsize_half - 1) * 2}")
+    
+    return torch.ops.torch_projectors.backward_project_2d(projections, rotations, shifts, reconstruction_shape, interpolation, oversampling)
 
-def _add_tensors_backward(ctx, grad_output):
-    """
-    This Python function is the backward formula.
-    It simply calls our C++ BACKWARD kernel.
-    """
-    grad_a, grad_b = torch.ops.torch_projectors.add_tensors_backward(grad_output)
-    return grad_a, grad_b
+# --- Autograd Registration ---
 
-# Link the backward formula to the FORWARD operator.
+class _ForwardProject2D(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff):
+        # Unsqueeze if single reconstruction/pose set
+        if reconstruction.dim() == 2:
+            reconstruction = reconstruction.unsqueeze(0)
+        if rotations.dim() == 2:
+            rotations = rotations.unsqueeze(0)
+        if rotations.dim() == 3:
+            rotations = rotations.unsqueeze(0)
+        if shifts is not None:
+            if shifts.dim() == 1:
+                shifts = shifts.unsqueeze(0)
+            if shifts.dim() == 2:
+                shifts = shifts.unsqueeze(0)
+
+        # Let C++ handle batch size mismatches (1 vs N)
+        if rotations.size(0) != reconstruction.size(0) and rotations.size(0) != 1:
+            raise ValueError("Batch size of rotations must be 1 or match reconstruction")
+        
+        projection = torch.ops.torch_projectors.forward_project_2d(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+        
+        ctx.save_for_backward(reconstruction, rotations, shifts)
+        ctx.interpolation = interpolation
+        ctx.oversampling = oversampling
+        ctx.fourier_radius_cutoff = fourier_radius_cutoff
+        return projection
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        reconstruction, rotations, shifts = ctx.saved_tensors
+        
+        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_project_2d_adj(
+            grad_output.contiguous(),
+            reconstruction,
+            rotations,
+            shifts,
+            ctx.interpolation,
+            ctx.oversampling,
+            ctx.fourier_radius_cutoff
+        )
+        
+        # If shifts was None in the forward pass, return None for its gradient
+        if shifts is None:
+            grad_shifts = None
+        
+        return grad_reconstruction, grad_rotations, grad_shifts, None, None, None, None
+
+def _backward_project_2d_backward(ctx, grad_output):
+    # No-op placeholder
+    return None
+
 torch.library.register_autograd(
-    "torch_projectors::add_tensors_forward",
-    _add_tensors_backward
+    "torch_projectors::backward_project_2d", 
+    _backward_project_2d_backward,
+    setup_context=lambda ctx, inputs, output: None
 ) 

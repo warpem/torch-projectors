@@ -1,27 +1,370 @@
 #include "cpu_kernels.h"
 #include <torch/extension.h>
+#include <complex>
+#include <algorithm>
 
-at::Tensor add_tensors_forward_cpu(const at::Tensor& a, const at::Tensor& b) {
-    TORCH_CHECK(a.sizes() == b.sizes(), "Input tensors must have the same shape");
-    TORCH_CHECK(a.device().is_cpu() && b.device().is_cpu(), "Input tensors must be on the CPU");
+// Helper function for sampling from FFTW-formatted Fourier space
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+inline scalar_t sample_fftw_with_conjugate(
+    const torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec,
+    const int64_t b, const int64_t boxsize, const int64_t boxsize_half,
+    int64_t r, int64_t c
+) {
+    bool need_conjugate = false;
 
-    auto result = torch::empty_like(a);
-    
-    AT_DISPATCH_ALL_TYPES_AND_COMPLEX(a.scalar_type(), "add_tensors_forward_cpu", [&] {
-        const auto* a_ptr = a.data_ptr<scalar_t>();
-        const auto* b_ptr = b.data_ptr<scalar_t>();
-        auto* result_ptr = result.data_ptr<scalar_t>();
-        for (int64_t i = 0; i < a.numel(); ++i) {
-            result_ptr[i] = a_ptr[i] + b_ptr[i];
-        }
-    });
-    
-    return result;
+    // Handle negative kx via Friedel symmetry (c < 0)
+    if (c < 0) {
+        c = -c;          // mirror to positive kx
+        r = -r;          // ky must be mirrored as well
+        need_conjugate = !need_conjugate;
+    }
+
+    c = std::min(c, boxsize_half - 1);
+    r = std::min(boxsize / 2, std::max(r, -boxsize / 2 + 1));
+
+    if (r < 0)
+        r = boxsize + r;
+
+    r = std::min(r, boxsize - 1);
+
+    if (need_conjugate)
+        return std::conj(rec[b][r][c]);
+    else
+        return rec[b][r][c];
 }
 
-std::tuple<at::Tensor, at::Tensor> add_tensors_backward_cpu(const at::Tensor& grad_output) {
-    // The backward of addition is just passing the gradient through.
-    // A manual implementation isn't very interesting here, but for more
-    // complex operators, this function would contain significant logic.
-    return {grad_output.clone(), grad_output.clone()};
+
+// Helper function for bilinear interpolation with per-point conjugate handling
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+inline scalar_t sample_bilinear_with_conjugate(
+    const torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec,
+    const int64_t b, const int64_t boxsize, const int64_t boxsize_half,
+    real_t r, real_t c
+) {
+    const int64_t c_floor = floor(c);
+    const int64_t r_floor = floor(r);
+
+    const real_t c_frac = c - c_floor;
+    const real_t r_frac = r - r_floor;
+
+    const scalar_t p00 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, r_floor, c_floor);
+    const scalar_t p01 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, r_floor, c_floor + 1);
+    const scalar_t p10 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, r_floor + 1, c_floor);
+    const scalar_t p11 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, r_floor + 1, c_floor + 1);
+
+    const scalar_t p0 = p00 + (p01 - p00) * c_frac;
+    const scalar_t p1 = p10 + (p11 - p10) * c_frac;
+    scalar_t val = p0 + (p1 - p0) * r_frac;
+
+    return val;
+}
+
+
+at::Tensor forward_project_2d_cpu(
+    const at::Tensor& reconstruction,
+    const at::Tensor& rotations,
+    const c10::optional<at::Tensor>& shifts,
+    const at::IntArrayRef output_shape,
+    const std::string& interpolation,
+    const double oversampling,
+    const c10::optional<double>& fourier_radius_cutoff
+) {
+    TORCH_CHECK(interpolation == "linear", "Only 'linear' interpolation is supported for now.");
+    TORCH_CHECK(reconstruction.is_complex(), "Reconstruction must be a complex tensor");
+    TORCH_CHECK(reconstruction.dim() == 3, "Reconstruction must be a 3D tensor (B, boxsize, boxsize/2+1)");
+    TORCH_CHECK(rotations.dim() == 4 && rotations.size(2) == 2 && rotations.size(3) == 2, "Rotations must be (B_rot, P, 2, 2)");
+
+    const auto B = reconstruction.size(0);
+    const auto boxsize = reconstruction.size(1);
+    const auto boxsize_half = reconstruction.size(2);
+    
+    const auto B_rot = rotations.size(0);
+    const auto P = rotations.size(1);
+    TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as reconstruction");
+
+    const auto proj_boxsize = output_shape[0];
+    const auto proj_boxsize_half = output_shape[0] / 2 + 1;
+    
+    auto projection = torch::zeros({B, P, proj_boxsize, proj_boxsize_half}, reconstruction.options());
+
+    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "forward_project_2d_cpu_rotations", ([&] {
+        using rot_real_t = scalar_t;
+        auto rot_acc = rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
+        
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
+        if (shifts.has_value()) {
+            TORCH_CHECK(shifts->dim() == 3, "Shifts must be (B_shift, P, 2)");
+            TORCH_CHECK(shifts->size(0) == B || shifts->size(0) == 1, "Batch size of shifts must be 1 or same as reconstruction");
+            TORCH_CHECK(shifts->size(1) == P, "Number of poses in shifts must match rotations");
+            TORCH_CHECK(shifts->scalar_type() == rotations.scalar_type(), "Shifts and rotations must have the same dtype");
+            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+        }
+        
+        AT_DISPATCH_COMPLEX_TYPES(reconstruction.scalar_type(), "forward_project_2d_cpu", ([&] {
+            using real_t = typename scalar_t::value_type;
+            auto rec_acc = reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
+            auto proj_acc = projection.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
+
+            const real_t default_radius = proj_boxsize / 2.0;
+            const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
+            const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
+
+            for (int64_t b = 0; b < B; ++b) {
+                for (int64_t p = 0; p < P; ++p) {
+                    const int64_t rot_b_idx = (B_rot == 1) ? 0 : b;
+                    for (int64_t i = 0; i < proj_boxsize; ++i) {
+                        for (int64_t j = 0; j < proj_boxsize_half; ++j) {
+                            real_t proj_coord_c = j;
+                            real_t proj_coord_r = (i <= proj_boxsize / 2) ? i : i - proj_boxsize;
+
+                            if (proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r > radius_cutoff_sq) {
+                                continue;
+                            }
+                            
+                            real_t sample_c = proj_coord_c * oversampling;
+                            real_t sample_r = proj_coord_r * oversampling;
+                            
+                            real_t rot_c = rot_acc[rot_b_idx][p][0][0] * sample_c + rot_acc[rot_b_idx][p][0][1] * sample_r;
+                            real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
+
+                            scalar_t val = sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, boxsize, boxsize_half, rot_r, rot_c);
+                            
+                            if (shifts_acc.has_value()) {
+                                const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
+                                real_t phase = -2.0 * M_PI * (proj_coord_r * (*shifts_acc)[shift_b_idx][p][0] / boxsize + proj_coord_c * (*shifts_acc)[shift_b_idx][p][1] / boxsize);
+                                scalar_t phase_factor = scalar_t(cos(phase), sin(phase));
+                                val = val * phase_factor;
+                            }
+                            
+                            proj_acc[b][p][i][j] = val;
+                        }
+                    }
+                }
+            }
+        }));
+    }));
+
+    return projection;
+}
+
+at::Tensor backward_project_2d_cpu(
+    const at::Tensor& grad_projections,
+    const at::Tensor& rotations,
+    const c10::optional<at::Tensor>& shifts,
+    const at::IntArrayRef reconstruction_shape,
+    const std::string& interpolation,
+    const double oversampling
+) {
+    TORCH_CHECK(interpolation == "linear", "Only 'linear' interpolation is supported for now.");
+    TORCH_CHECK(grad_projections.is_complex(), "Projections must be a complex tensor");
+    TORCH_CHECK(grad_projections.dim() == 4, "Projections must be a 4D tensor (B, P, boxsize, boxsize/2+1)");
+    TORCH_CHECK(rotations.dim() == 4 && rotations.size(2) == 2 && rotations.size(3) == 2, "Rotations must be (B_rot, P, 2, 2)");
+
+    const auto B = grad_projections.size(0);
+    const auto P = grad_projections.size(1);
+    const auto proj_boxsize = grad_projections.size(2);
+    const auto proj_boxsize_half = grad_projections.size(3);
+    
+    const auto boxsize = reconstruction_shape[0];
+    const auto boxsize_half = reconstruction_shape[1];
+
+    auto grad_reconstruction = torch::zeros({B, boxsize, boxsize_half}, grad_projections.options());
+
+    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "backward_project_2d_cpu_rotations", ([&] {
+        using rot_real_t = scalar_t;
+        auto rot_acc = rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
+        
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
+        if (shifts.has_value()) {
+            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+        }
+        
+        AT_DISPATCH_COMPLEX_TYPES(grad_projections.scalar_type(), "backward_project_2d_cpu", ([&] {
+            using real_t = typename scalar_t::value_type;
+            auto grad_rec_acc = grad_reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
+            auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
+
+            const real_t default_radius = proj_boxsize / 2.0;
+            const real_t radius_cutoff_sq = default_radius * default_radius;
+            
+            for (int64_t b = 0; b < B; ++b) {
+                auto accumulate_grad = [&](int64_t r, int64_t c, scalar_t grad) {
+                    bool needs_conj = false;
+                    if (c < 0) { c = -c; r = -r; needs_conj = true; }
+                    
+                    if (c >= boxsize_half) return;
+                    if (r > boxsize / 2 || r < -boxsize / 2 + 1) return;
+
+                    int64_t r_eff = r < 0 ? boxsize + r : r;
+                    
+                    if (r_eff >= boxsize) return;
+
+                    grad_rec_acc[b][r_eff][c] += needs_conj ? std::conj(grad) : grad;
+                };
+
+                for (int64_t p = 0; p < P; ++p) {
+                    const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
+                    for (int64_t i = 0; i < proj_boxsize; ++i) {
+                        for (int64_t j = 0; j < proj_boxsize_half; ++j) {
+                            real_t proj_coord_c = j;
+                            real_t proj_coord_r = (i <= proj_boxsize / 2) ? i : i - proj_boxsize;
+
+                            if (proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r > radius_cutoff_sq) {
+                                continue;
+                            }
+
+                            real_t sample_c = proj_coord_c * oversampling;
+                            real_t sample_r = proj_coord_r * oversampling;
+
+                            real_t rot_c = rot_acc[rot_b_idx][p][0][0] * sample_c + rot_acc[rot_b_idx][p][0][1] * sample_r;
+                            real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
+
+                            scalar_t grad_val = grad_proj_acc[b][p][i][j];
+                            
+                            if (shifts_acc.has_value()) {
+                                const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
+                                real_t phase = 2.0 * M_PI * (proj_coord_r * (*shifts_acc)[shift_b_idx][p][0] / boxsize + proj_coord_c * (*shifts_acc)[shift_b_idx][p][1] / boxsize);
+                                scalar_t phase_factor = scalar_t(cos(phase), sin(phase));
+                                grad_val = grad_val * phase_factor;
+                            }
+
+                            const int64_t c_floor = floor(rot_c);
+                            const int64_t r_floor = floor(rot_r);
+                            const real_t c_frac = rot_c - c_floor;
+                            const real_t r_frac = rot_r - r_floor;
+
+                            accumulate_grad(r_floor, c_floor, grad_val * (1 - r_frac) * (1 - c_frac));
+                            accumulate_grad(r_floor, c_floor + 1, grad_val * (1 - r_frac) * c_frac);
+                            accumulate_grad(r_floor + 1, c_floor, grad_val * r_frac * (1 - c_frac));
+                            accumulate_grad(r_floor + 1, c_floor + 1, grad_val * r_frac * c_frac);
+                        }
+                    }
+                }
+            }
+        }));
+    }));
+
+    return grad_reconstruction;
+} 
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu_adj(
+    const at::Tensor& grad_projections,
+    const at::Tensor& reconstruction,
+    const at::Tensor& rotations,
+    const c10::optional<at::Tensor>& shifts,
+    const std::string& interpolation,
+    const double oversampling,
+    const c10::optional<double>& fourier_radius_cutoff
+) {
+    auto grad_reconstruction = backward_project_2d_cpu(
+        grad_projections,
+        rotations,
+        shifts,
+        {reconstruction.size(1), reconstruction.size(2)},
+        interpolation,
+        oversampling
+    );
+
+    const auto B = grad_projections.size(0);
+    const auto P = grad_projections.size(1);
+    const auto proj_boxsize = grad_projections.size(2);
+    const auto proj_boxsize_half = grad_projections.size(3);
+    
+    const auto rec_boxsize = reconstruction.size(1);
+    const auto rec_boxsize_half = reconstruction.size(2);
+    
+    auto grad_rotations = torch::zeros_like(rotations);
+    auto grad_shifts = shifts.has_value() ? torch::zeros_like(*shifts) : torch::empty({0});
+
+    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "backward_project_2d_cpu_adj_rotations", ([&] {
+        using rot_real_t = scalar_t;
+        auto rot_acc = rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
+        auto grad_rot_acc = grad_rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
+        
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> grad_shifts_acc;
+        if (shifts.has_value()) {
+            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+            grad_shifts_acc.emplace(grad_shifts.packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+        }
+
+        AT_DISPATCH_COMPLEX_TYPES(grad_projections.scalar_type(), "backward_project_2d_cpu_adj", ([&] {
+            using real_t = typename scalar_t::value_type;
+            auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
+            auto rec_acc = reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
+
+            const real_t default_radius = proj_boxsize / 2.0;
+            const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
+            const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
+
+            for (int64_t b = 0; b < B; ++b) {
+                for (int64_t p = 0; p < P; ++p) {
+                    const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
+                    for (int64_t i = 0; i < proj_boxsize; ++i) {
+                        for (int64_t j = 0; j < proj_boxsize_half; ++j) {
+                            real_t proj_coord_c = j;
+                            real_t proj_coord_r = (i <= proj_boxsize / 2) ? i : i - proj_boxsize;
+
+                            if (proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r > radius_cutoff_sq) {
+                                continue;
+                            }
+
+                            real_t sample_c = proj_coord_c * oversampling;
+                            real_t sample_r = proj_coord_r * oversampling;
+                            
+                            real_t rot_c = rot_acc[rot_b_idx][p][0][0] * sample_c + rot_acc[rot_b_idx][p][0][1] * sample_r;
+                            real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
+                            
+                            scalar_t rec_val = sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
+                            scalar_t grad_proj = grad_proj_acc[b][p][i][j];
+
+                            if (shifts_acc.has_value()) {
+                               const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
+                               real_t phase = 2.0 * M_PI * (proj_coord_r * (*shifts_acc)[shift_b_idx][p][0] / rec_boxsize + proj_coord_c * (*shifts_acc)[shift_b_idx][p][1] / rec_boxsize);
+                               scalar_t phase_factor = scalar_t(cos(phase), sin(phase));
+                               grad_proj = grad_proj * phase_factor;
+                            }
+
+                            if (grad_shifts_acc.has_value()) {
+                                const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
+                                
+                                // The rec_val needs to be modulated with the phase factor for correct gradients
+                                scalar_t modulated_rec_val = rec_val;
+                                if (shifts_acc.has_value()) {
+                                    real_t phase = -2.0 * M_PI * (proj_coord_r * (*shifts_acc)[shift_b_idx][p][0] / rec_boxsize + proj_coord_c * (*shifts_acc)[shift_b_idx][p][1] / rec_boxsize);
+                                    scalar_t phase_factor = scalar_t(cos(phase), sin(phase));
+                                    modulated_rec_val = rec_val * phase_factor;
+                                }
+                                
+                                scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / rec_boxsize) * modulated_rec_val;
+                                scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / rec_boxsize) * modulated_rec_val;
+                                
+                                // Use the original grad_proj_acc, not the phase-modulated grad_proj
+                                scalar_t original_grad_proj = grad_proj_acc[b][p][i][j];
+                                (*grad_shifts_acc)[shift_b_idx][p][0] += (original_grad_proj * std::conj(phase_grad_r)).real();
+                                (*grad_shifts_acc)[shift_b_idx][p][1] += (original_grad_proj * std::conj(phase_grad_c)).real();
+                            }
+
+                            const real_t eps = 1e-4;
+                            scalar_t grad_rec_r00 = (sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c + eps * sample_c) - 
+                                                     sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c - eps * sample_c)) / (2 * eps);
+                            scalar_t grad_rec_r01 = (sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c + eps * sample_r) - 
+                                                     sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c - eps * sample_r)) / (2 * eps);
+                            scalar_t grad_rec_r10 = (sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r + eps * sample_c, rot_c) - 
+                                                     sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r - eps * sample_c, rot_c)) / (2 * eps);
+                            scalar_t grad_rec_r11 = (sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r + eps * sample_r, rot_c) - 
+                                                     sample_bilinear_with_conjugate<scalar_t>(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r - eps * sample_r, rot_c)) / (2 * eps);
+
+                            grad_rot_acc[rot_b_idx][p][0][0] += (grad_proj * std::conj(grad_rec_r00)).real();
+                            grad_rot_acc[rot_b_idx][p][0][1] += (grad_proj * std::conj(grad_rec_r01)).real();
+                            grad_rot_acc[rot_b_idx][p][1][0] += (grad_proj * std::conj(grad_rec_r10)).real();
+                            grad_rot_acc[rot_b_idx][p][1][1] += (grad_proj * std::conj(grad_rec_r11)).real();
+                        }
+                    }
+                }
+            }
+        }));
+    }));
+
+    return std::make_tuple(grad_reconstruction, grad_rotations, grad_shifts);
 } 

@@ -15,6 +15,6 @@ torch.ops.load_library(_lib_path)
 from . import ops
 
 # 3. Expose the user-facing function.
-from .ops import add_tensors
+from .ops import forward_project_2d, backward_project_2d
 
-__all__ = ["add_tensors"] 
+__all__ = ["forward_project_2d", "backward_project_2d"] 

@@ -55,3 +55,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/ 
+
+# Test outputs
+test_outputs/ 
