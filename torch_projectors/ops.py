@@ -39,38 +39,24 @@ def forward_project_2d(
 
 def backward_project_2d(
     projections: torch.Tensor,
+    reconstruction: torch.Tensor,
     rotations: torch.Tensor,
     shifts: Optional[torch.Tensor] = None,
-    reconstruction_shape: Optional[tuple[int, ...]] = None,
     interpolation: str = 'linear',
     oversampling: float = 1.0
 ) -> torch.Tensor:
-    # Validate projection dimensions
-    if projections.dim() < 2:
-        raise ValueError("Projections must have at least 2 dimensions")
-        
-    proj_boxsize = projections.shape[-2]
-    proj_boxsize_half = projections.shape[-1]
+    """
+    Backward project 2D projections to reconstruction (returns only reconstruction gradients)
     
-    # Enforce square, even dimensions for projections
-    if proj_boxsize % 2 != 0:
-        raise ValueError(f"Projection boxsize ({proj_boxsize}) must be even")
-    if proj_boxsize != (proj_boxsize_half - 1) * 2:
-        raise ValueError(f"Projection shape mismatch: expected boxsize {proj_boxsize} to match 2*(boxsize_half-1) = {(proj_boxsize_half - 1) * 2}")
+    This function computes only the reconstruction gradients from the unified backward
+    projection operation, discarding rotation and shift gradients for convenience.
+    """
+    # Call the unified backward function and return only reconstruction gradients
+    grad_reconstruction, _, _ = torch.ops.torch_projectors.backward_project_2d(
+        projections, reconstruction, rotations, shifts, interpolation, oversampling, None
+    )
     
-    if reconstruction_shape is None:
-        reconstruction_shape = (proj_boxsize, proj_boxsize_half)
-    else:
-        # Validate reconstruction shape
-        if len(reconstruction_shape) != 2:
-            raise ValueError(f"Reconstruction shape {reconstruction_shape} must have 2 dimensions")
-        rec_boxsize, rec_boxsize_half = reconstruction_shape
-        if rec_boxsize % 2 != 0:
-            raise ValueError(f"Reconstruction boxsize ({rec_boxsize}) must be even")
-        if rec_boxsize != (rec_boxsize_half - 1) * 2:
-            raise ValueError(f"Reconstruction shape mismatch: expected boxsize {rec_boxsize} to match 2*(boxsize_half-1) = {(rec_boxsize_half - 1) * 2}")
-    
-    return torch.ops.torch_projectors.backward_project_2d(projections, rotations, shifts, reconstruction_shape, interpolation, oversampling)
+    return grad_reconstruction
 
 # --- Autograd Registration ---
 
@@ -106,7 +92,7 @@ class _ForwardProject2D(torch.autograd.Function):
     def backward(ctx, grad_output):
         reconstruction, rotations, shifts = ctx.saved_tensors
         
-        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_project_2d_adj(
+        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_project_2d(
             grad_output.contiguous(),
             reconstruction,
             rotations,

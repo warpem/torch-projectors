@@ -367,6 +367,145 @@ std::unique_ptr<InterpolationKernel<scalar_t, real_t>> get_interpolation_kernel(
     }
 }
 
+/**
+ * Abstract base class for backward projection (gradient distribution) kernels
+ * 
+ * These kernels implement the adjoint (transpose) operations of the forward
+ * interpolation kernels. They distribute gradients from a single point to
+ * the appropriate neighborhood in the reconstruction.
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct BackwardKernel {
+    virtual ~BackwardKernel() = default;
+    
+    /**
+     * Distribute gradient from a single point to reconstruction neighborhood
+     * 
+     * This is the adjoint operation of forward interpolation. The gradient
+     * from one projection pixel is distributed to multiple reconstruction
+     * voxels with appropriate weights.
+     * 
+     * @param accumulate_func: Function to accumulate gradients: f(r, c, grad_value)
+     * @param grad_val: Gradient value to distribute
+     * @param r: Row coordinate (floating point)
+     * @param c: Column coordinate (floating point)
+     */
+    virtual void distribute_gradient(
+        std::function<void(int64_t, int64_t, scalar_t)> accumulate_func,
+        scalar_t grad_val,
+        real_t r, real_t c
+    ) const = 0;
+};
+
+/**
+ * Bilinear backward kernel - distributes gradients to 2x2 neighborhood
+ * 
+ * This implements the adjoint of bilinear interpolation. Each gradient
+ * is distributed to the 4 nearest neighbors with bilinear weights.
+ * 
+ * Mathematical relationship:
+ * If forward: val = Σ w_i * data_i (sum over 4 neighbors)
+ * Then backward: grad_data_i += w_i * grad_val (for each neighbor)
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct BilinearBackwardKernel : public BackwardKernel<scalar_t, real_t> {
+    void distribute_gradient(
+        std::function<void(int64_t, int64_t, scalar_t)> accumulate_func,
+        scalar_t grad_val,
+        real_t r, real_t c
+    ) const override {
+        // Extract integer and fractional parts
+        const int64_t c_floor = floor(c);
+        const int64_t r_floor = floor(r);
+        const real_t c_frac = c - c_floor;
+        const real_t r_frac = r - r_floor;
+
+        // Distribute gradient to 2x2 neighborhood with bilinear weights
+        // These are exactly the same weights used in forward bilinear interpolation
+        accumulate_func(r_floor,     c_floor,     grad_val * (1 - r_frac) * (1 - c_frac)); // Bottom-left
+        accumulate_func(r_floor,     c_floor + 1, grad_val * (1 - r_frac) * c_frac);       // Bottom-right
+        accumulate_func(r_floor + 1, c_floor,     grad_val * r_frac * (1 - c_frac));       // Top-left
+        accumulate_func(r_floor + 1, c_floor + 1, grad_val * r_frac * c_frac);             // Top-right
+    }
+};
+
+/**
+ * Bicubic backward kernel - distributes gradients to 4x4 neighborhood
+ * 
+ * This implements the adjoint of bicubic interpolation. Each gradient
+ * is distributed to a 4x4 grid of neighbors using the same bicubic weights
+ * that were used in the forward pass.
+ * 
+ * This ensures mathematical consistency: the backward pass is the true
+ * adjoint of the forward pass, which is critical for correct gradients
+ * in optimization and machine learning applications.
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct BicubicBackwardKernel : public BackwardKernel<scalar_t, real_t> {
+private:
+    // Reuse the same bicubic kernel function from the forward implementation
+    inline real_t bicubic_kernel(real_t s) const {
+        const real_t a = -0.5;  // Catmull-Rom parameter
+        s = std::abs(s);
+        
+        if (s <= 1.0) {
+            return (a + 2.0) * s * s * s - (a + 3.0) * s * s + 1.0;
+        } else if (s <= 2.0) {
+            return a * s * s * s - 5.0 * a * s * s + 8.0 * a * s - 4.0 * a;
+        } else {
+            return 0.0;
+        }
+    }
+
+public:
+    void distribute_gradient(
+        std::function<void(int64_t, int64_t, scalar_t)> accumulate_func,
+        scalar_t grad_val,
+        real_t r, real_t c
+    ) const override {
+        // Extract integer and fractional parts
+        const int64_t c_floor = floor(c);
+        const int64_t r_floor = floor(r);
+        const real_t c_frac = c - c_floor;
+        const real_t r_frac = r - r_floor;
+        
+        // Distribute gradient to 4x4 neighborhood using bicubic weights
+        // These are exactly the same weights used in forward bicubic interpolation
+        for (int i = -1; i <= 2; ++i) {      // Row offset: covers 4 rows
+            for (int j = -1; j <= 2; ++j) {  // Column offset: covers 4 columns
+                const real_t weight_r = bicubic_kernel(r_frac - i);
+                const real_t weight_c = bicubic_kernel(c_frac - j);
+                const real_t total_weight = weight_r * weight_c;
+                
+                // Only distribute if weight is non-zero (bicubic has finite support)
+                if (total_weight != 0.0) {
+                    accumulate_func(r_floor + i, c_floor + j, grad_val * total_weight);
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Factory function to create backward projection kernels
+ * 
+ * Returns the appropriate backward kernel that implements the adjoint
+ * of the corresponding forward interpolation method.
+ * 
+ * @param interpolation: String specifying method ("linear" or "cubic")
+ * @return: Unique pointer to the appropriate backward kernel implementation
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+std::unique_ptr<BackwardKernel<scalar_t, real_t>> get_backward_kernel(const std::string& interpolation) {
+    if (interpolation == "linear") {
+        return std::make_unique<BilinearBackwardKernel<scalar_t, real_t>>();
+    } else if (interpolation == "cubic") {
+        return std::make_unique<BicubicBackwardKernel<scalar_t, real_t>>();
+    } else {
+        throw std::runtime_error("Unsupported interpolation method: " + interpolation);
+    }
+}
+
 
 
 /**
@@ -507,40 +646,34 @@ at::Tensor forward_project_2d_cpu(
     return projection;
 }
 
+
 /**
- * Backward projection from 2D projections to 3D Fourier reconstruction
+ * Unified backward projection function with smart gradient computation
  * 
- * This is the main "scatter" operation that takes gradients from 2D projections
- * and accumulates them into a 3D reconstruction. This is the adjoint (transpose)
- * of the forward projection operation.
+ * This function computes gradients w.r.t. reconstruction, rotations, and shifts
+ * based on what actually requires gradients. It automatically detects which
+ * parameters need gradients using requires_grad() and only computes those,
+ * avoiding unnecessary computation.
  * 
- * Algorithm:
- * 1. For each projection pixel with gradient grad_val
- * 2. Convert to Fourier coordinates and apply rotation
- * 3. For bilinear: distribute grad_val to 4 nearest neighbors with bilinear weights
- * 4. For bicubic: would distribute to 16 neighbors (currently uses bilinear fallback)
- * 5. Handle Friedel symmetry when accumulating gradients
+ * Features:
+ * 1. Always computes reconstruction gradients (main scatter operation)
+ * 2. Only computes rotation gradients if rotations.requires_grad() is true
+ * 3. Only computes shift gradients if shifts exist and require gradients
+ * 4. Uses proper adjoint operations for mathematical consistency
  * 
- * Note: This function currently only implements bilinear backward projection,
- * even when cubic interpolation is requested. This is a limitation that should
- * be addressed for full bicubic support.
- * 
- * @param grad_projections: 4D complex tensor [B, P, H, W/2+1] - projection gradients
- * @param rotations: 4D real tensor [B_rot, P, 2, 2] - rotation matrices
- * @param shifts: Optional shifts (used for phase correction)
- * @param reconstruction_shape: Shape of output reconstruction [H, W/2+1]
- * @param interpolation: Interpolation method (currently only affects validation)
- * @param oversampling: Coordinate scaling factor
- * @return: 3D complex tensor [B, H, W/2+1] - accumulated reconstruction gradients
+ * @return: Tuple of (grad_reconstruction, grad_rotations, grad_shifts)
+ *          Empty tensors are returned for gradients that aren't needed
  */
-at::Tensor backward_project_2d_cpu(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
     const at::Tensor& grad_projections,
+    const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
-    const at::IntArrayRef reconstruction_shape,
     const std::string& interpolation,
-    const double oversampling
+    const double oversampling,
+    const c10::optional<double>& fourier_radius_cutoff
 ) {
+    // Input validation
     TORCH_CHECK(interpolation == "linear" || interpolation == "cubic", 
                 "Supported interpolation methods: 'linear', 'cubic'");
     TORCH_CHECK(grad_projections.is_complex(), "Projections must be a complex tensor");
@@ -552,27 +685,59 @@ at::Tensor backward_project_2d_cpu(
     const auto proj_boxsize = grad_projections.size(2);
     const auto proj_boxsize_half = grad_projections.size(3);
     
-    const auto boxsize = reconstruction_shape[0];
-    const auto boxsize_half = reconstruction_shape[1];
+    const auto rec_boxsize = reconstruction.size(1);
+    const auto rec_boxsize_half = reconstruction.size(2);
+    
+    // Always compute reconstruction gradients (this is the main scatter operation)
+    auto grad_reconstruction = torch::zeros({B, rec_boxsize, rec_boxsize_half}, grad_projections.options());
+    
+    // Initialize gradient tensors based on what's actually needed
+    at::Tensor grad_rotations;
+    at::Tensor grad_shifts;
+    
+    const bool need_rotation_grads = rotations.requires_grad();
+    const bool need_shift_grads = shifts.has_value() && shifts->requires_grad();
+    
+    if (need_rotation_grads) {
+        grad_rotations = torch::zeros_like(rotations);
+    } else {
+        grad_rotations = torch::empty({0}, rotations.options());
+    }
+    
+    if (need_shift_grads) {
+        grad_shifts = torch::zeros_like(*shifts);
+    } else {
+        grad_shifts = torch::empty({0}, grad_projections.options().dtype(rotations.scalar_type()));
+    }
 
-    auto grad_reconstruction = torch::zeros({B, boxsize, boxsize_half}, grad_projections.options());
-
-    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "backward_project_2d_cpu_rotations", ([&] {
+    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "backward_project_2d_cpu", ([&] {
         using rot_real_t = scalar_t;
         auto rot_acc = rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
         
-        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
-        if (shifts.has_value()) {
-            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+        // Only create accessors for gradients that are actually needed
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> grad_rot_acc;
+        if (need_rotation_grads) {
+            grad_rot_acc.emplace(grad_rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>());
         }
         
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
+        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> grad_shifts_acc;
+        if (shifts.has_value()) {
+            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+            if (need_shift_grads) {
+                grad_shifts_acc.emplace(grad_shifts.packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+            }
+        }
+
         AT_DISPATCH_COMPLEX_TYPES(grad_projections.scalar_type(), "backward_project_2d_cpu", ([&] {
             using real_t = typename scalar_t::value_type;
-            auto grad_rec_acc = grad_reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
             auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
+            auto grad_rec_acc = grad_reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
+            auto rec_acc = reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
 
             const real_t default_radius = proj_boxsize / 2.0;
-            const real_t radius_cutoff_sq = default_radius * default_radius;
+            const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
+            const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
             
             for (int64_t b = 0; b < B; ++b) {
                 // Lambda function to safely accumulate gradients with Friedel symmetry
@@ -587,135 +752,16 @@ at::Tensor backward_project_2d_cpu(
                     }
                     
                     // Bounds checking
-                    if (c >= boxsize_half) return;  // Beyond stored frequency range
-                    if (r > boxsize / 2 || r < -boxsize / 2 + 1) return;  // Beyond valid row range
+                    if (c >= rec_boxsize_half) return;  // Beyond stored frequency range
+                    if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return;  // Beyond valid row range
 
                     // Convert negative row indices to positive (FFTW wrapping)
-                    int64_t r_eff = r < 0 ? boxsize + r : r;
-                    if (r_eff >= boxsize) return;  // Final bounds check
+                    int64_t r_eff = r < 0 ? rec_boxsize + r : r;
+                    if (r_eff >= rec_boxsize) return;  // Final bounds check
 
                     // Accumulate gradient (with conjugation if needed for Friedel symmetry)
                     grad_rec_acc[b][r_eff][c] += needs_conj ? std::conj(grad) : grad;
                 };
-
-                for (int64_t p = 0; p < P; ++p) {
-                    const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
-                    for (int64_t i = 0; i < proj_boxsize; ++i) {
-                        for (int64_t j = 0; j < proj_boxsize_half; ++j) {
-                            real_t proj_coord_c = j;
-                            real_t proj_coord_r = (i <= proj_boxsize / 2) ? i : i - proj_boxsize;
-
-                            if (proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r > radius_cutoff_sq) {
-                                continue;
-                            }
-
-                            real_t sample_c = proj_coord_c * oversampling;
-                            real_t sample_r = proj_coord_r * oversampling;
-
-                            real_t rot_c = rot_acc[rot_b_idx][p][0][0] * sample_c + rot_acc[rot_b_idx][p][0][1] * sample_r;
-                            real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
-
-                            scalar_t grad_val = grad_proj_acc[b][p][i][j];
-                            
-                            // Apply phase correction for shifts (adjoint of forward phase modulation)
-                            if (shifts_acc.has_value()) {
-                                const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
-                                // Note: opposite sign compared to forward projection
-                                real_t phase = 2.0 * M_PI * (proj_coord_r * (*shifts_acc)[shift_b_idx][p][0] / boxsize + 
-                                                              proj_coord_c * (*shifts_acc)[shift_b_idx][p][1] / boxsize);
-                                scalar_t phase_factor = scalar_t(cos(phase), sin(phase));
-                                grad_val = grad_val * phase_factor;
-                            }
-
-                            // Bilinear distribution of gradients to 4 nearest neighbors
-                            // This implements the adjoint of bilinear interpolation
-                            const int64_t c_floor = floor(rot_c);
-                            const int64_t r_floor = floor(rot_r);
-                            const real_t c_frac = rot_c - c_floor;
-                            const real_t r_frac = rot_r - r_floor;
-
-                            // Distribute gradient with bilinear weights (adjoint operation)
-                            accumulate_grad(r_floor, c_floor, grad_val * (1 - r_frac) * (1 - c_frac));        // Bottom-left
-                            accumulate_grad(r_floor, c_floor + 1, grad_val * (1 - r_frac) * c_frac);          // Bottom-right
-                            accumulate_grad(r_floor + 1, c_floor, grad_val * r_frac * (1 - c_frac));          // Top-left
-                            accumulate_grad(r_floor + 1, c_floor + 1, grad_val * r_frac * c_frac);            // Top-right
-                        }
-                    }
-                }
-            }
-        }));
-    }));
-
-    return grad_reconstruction;
-} 
-
-/**
- * Compute gradients w.r.t. reconstruction, rotations, and shifts
- * 
- * This function computes the full set of gradients needed for backpropagation
- * through the forward projection operation. It combines:
- * 1. Gradient w.r.t. reconstruction (via backward_project_2d_cpu)
- * 2. Gradients w.r.t. rotation matrices (via chain rule with interpolation gradients)
- * 3. Gradients w.r.t. shift parameters (via phase derivative)
- * 
- * The rotation gradients use analytical derivatives of the interpolation kernels,
- * which is more accurate and efficient than finite differences.
- * 
- * @return: Tuple of (grad_reconstruction, grad_rotations, grad_shifts)
- */
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu_adj(
-    const at::Tensor& grad_projections,
-    const at::Tensor& reconstruction,
-    const at::Tensor& rotations,
-    const c10::optional<at::Tensor>& shifts,
-    const std::string& interpolation,
-    const double oversampling,
-    const c10::optional<double>& fourier_radius_cutoff
-) {
-    // Compute gradient w.r.t. reconstruction using standard backward projection
-    auto grad_reconstruction = backward_project_2d_cpu(
-        grad_projections,
-        rotations,
-        shifts,
-        {reconstruction.size(1), reconstruction.size(2)},
-        interpolation,
-        oversampling
-    );
-
-    const auto B = grad_projections.size(0);
-    const auto P = grad_projections.size(1);
-    const auto proj_boxsize = grad_projections.size(2);
-    const auto proj_boxsize_half = grad_projections.size(3);
-    
-    const auto rec_boxsize = reconstruction.size(1);
-    const auto rec_boxsize_half = reconstruction.size(2);
-    
-    // Initialize gradient tensors for rotation matrices and shifts
-    auto grad_rotations = torch::zeros_like(rotations);
-    auto grad_shifts = shifts.has_value() ? torch::zeros_like(*shifts) : torch::empty({0});
-
-    AT_DISPATCH_FLOATING_TYPES(rotations.scalar_type(), "backward_project_2d_cpu_adj_rotations", ([&] {
-        using rot_real_t = scalar_t;
-        auto rot_acc = rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
-        auto grad_rot_acc = grad_rotations.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>();
-        
-        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> shifts_acc;
-        c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> grad_shifts_acc;
-        if (shifts.has_value()) {
-            shifts_acc.emplace(shifts->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
-            grad_shifts_acc.emplace(grad_shifts.packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
-        }
-
-        AT_DISPATCH_COMPLEX_TYPES(grad_projections.scalar_type(), "backward_project_2d_cpu_adj", ([&] {
-            using real_t = typename scalar_t::value_type;
-            auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
-            auto rec_acc = reconstruction.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
-
-            const real_t default_radius = proj_boxsize / 2.0;
-            const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
-            const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
-
-            for (int64_t b = 0; b < B; ++b) {
                 for (int64_t p = 0; p < P; ++p) {
                     const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
                     for (int64_t i = 0; i < proj_boxsize; ++i) {
@@ -745,8 +791,13 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu_adj(
                                grad_proj = grad_proj * phase_factor;
                             }
 
-                            // Compute gradients w.r.t. shift parameters
-                            if (grad_shifts_acc.has_value()) {
+                            // Use abstracted backward kernel for gradient distribution
+                            // This ensures the backward pass is the proper adjoint of the forward interpolation
+                            auto backward_kernel = get_backward_kernel<scalar_t>(interpolation);
+                            backward_kernel->distribute_gradient(accumulate_grad, grad_proj, rot_r, rot_c);
+
+                            // Compute gradients w.r.t. shift parameters (only if needed)
+                            if (need_shift_grads && grad_shifts_acc.has_value()) {
                                 const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
                                 
                                 // Apply phase modulation to reconstruction value for correct gradient
@@ -768,22 +819,24 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu_adj(
                                 (*grad_shifts_acc)[shift_b_idx][p][1] += (original_grad_proj * std::conj(phase_grad_c)).real();
                             }
 
-                            // Compute gradients w.r.t. rotation matrix elements using chain rule
-                            auto kernel_grad = get_interpolation_kernel<scalar_t>(interpolation);
-                            auto [rec_val_unused, grad_r, grad_c] = kernel_grad->interpolate_with_gradients(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
-                            
-                            // Chain rule: ∂f/∂R[i][j] = (∂f/∂rot_coord) * (∂rot_coord/∂R[i][j])
-                            // 
-                            // Rotation transformation: [rot_r; rot_c] = R * [sample_r; sample_c]
-                            // Therefore:
-                            // ∂rot_r/∂R[1][0] = sample_c,  ∂rot_r/∂R[1][1] = sample_r
-                            // ∂rot_c/∂R[0][0] = sample_c,  ∂rot_c/∂R[0][1] = sample_r
-                            //
-                            // Final gradients (taking real part for real-valued rotation matrices):
-                            grad_rot_acc[rot_b_idx][p][0][0] += (grad_proj * std::conj(grad_c * sample_c)).real();  // ∂f/∂R[0][0]
-                            grad_rot_acc[rot_b_idx][p][0][1] += (grad_proj * std::conj(grad_c * sample_r)).real();  // ∂f/∂R[0][1]
-                            grad_rot_acc[rot_b_idx][p][1][0] += (grad_proj * std::conj(grad_r * sample_c)).real();  // ∂f/∂R[1][0]
-                            grad_rot_acc[rot_b_idx][p][1][1] += (grad_proj * std::conj(grad_r * sample_r)).real();  // ∂f/∂R[1][1]
+                            // Compute gradients w.r.t. rotation matrix elements (only if needed)
+                            if (need_rotation_grads && grad_rot_acc.has_value()) {
+                                auto kernel_grad = get_interpolation_kernel<scalar_t>(interpolation);
+                                auto [rec_val_unused, grad_r, grad_c] = kernel_grad->interpolate_with_gradients(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
+                                
+                                // Chain rule: ∂f/∂R[i][j] = (∂f/∂rot_coord) * (∂rot_coord/∂R[i][j])
+                                // 
+                                // Rotation transformation: [rot_r; rot_c] = R * [sample_r; sample_c]
+                                // Therefore:
+                                // ∂rot_r/∂R[1][0] = sample_c,  ∂rot_r/∂R[1][1] = sample_r
+                                // ∂rot_c/∂R[0][0] = sample_c,  ∂rot_c/∂R[0][1] = sample_r
+                                //
+                                // Final gradients (taking real part for real-valued rotation matrices):
+                                (*grad_rot_acc)[rot_b_idx][p][0][0] += (grad_proj * std::conj(grad_c * sample_c)).real();  // ∂f/∂R[0][0]
+                                (*grad_rot_acc)[rot_b_idx][p][0][1] += (grad_proj * std::conj(grad_c * sample_r)).real();  // ∂f/∂R[0][1]
+                                (*grad_rot_acc)[rot_b_idx][p][1][0] += (grad_proj * std::conj(grad_r * sample_c)).real();  // ∂f/∂R[1][0]
+                                (*grad_rot_acc)[rot_b_idx][p][1][1] += (grad_proj * std::conj(grad_r * sample_r)).real();  // ∂f/∂R[1][1]
+                            }
                         }
                     }
                 }

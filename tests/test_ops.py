@@ -788,23 +788,11 @@ def test_dimension_validation():
     proj = torch_projectors.forward_project_2d(rec, rot)
     assert proj.shape == (1, 1, 32, 17)
     
-    # Test backward_project_2d validation
-    # Non-square projection dimensions
-    with pytest.raises(ValueError, match="expected boxsize .* to match"):
-        proj = torch.randn(1, 1, 30, 17, dtype=torch.complex64)  # 30 != 2*(17-1) = 32
-        rot = torch.eye(2, dtype=torch.float32).unsqueeze(0).unsqueeze(0) 
-        torch_projectors.backward_project_2d(proj, rot)
-        
-    # Odd projection dimensions
-    with pytest.raises(ValueError, match="Projection boxsize .* must be even"):
-        proj = torch.randn(1, 1, 31, 16, dtype=torch.complex64)  # odd boxsize
-        rot = torch.eye(2, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        torch_projectors.backward_project_2d(proj, rot)
-        
-    # Valid backward projection (should pass)
+    # Test valid backward projection (should pass)
     proj = torch.randn(1, 1, 32, 17, dtype=torch.complex64)
+    dummy_rec = torch.randn(1, 32, 17, dtype=torch.complex64)
     rot = torch.eye(2, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-    rec = torch_projectors.backward_project_2d(proj, rot)
+    rec = torch_projectors.backward_project_2d(proj, dummy_rec, rot)
     assert rec.shape == (1, 32, 17)
 
 def create_rotation_matrix_2d(angle):
@@ -957,10 +945,6 @@ def _test_rotation_optimization_convergence(interpolation):
             # Check for convergence
             if step % 25 == 0:
                 print(f"      Step {step}: loss={loss.item():.6f}, angle={learned_angle.item():.3f}")
-            
-            # Early stopping if converged
-            if loss.item() < 1e-6:
-                break
         
         # Check convergence using best result (accounting for 2π periodicity)
         angle_diff = torch.abs(torch.tensor(best_angle) - target_angle) % (2 * torch.pi)
