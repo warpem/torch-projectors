@@ -112,18 +112,89 @@ struct BilinearKernel : public InterpolationKernel<scalar_t, real_t> {
     }
 };
 
-// Bicubic interpolation kernel (placeholder for future implementation)
+// Bicubic interpolation kernel using standard bicubic basis functions
 template <typename scalar_t, typename real_t = typename scalar_t::value_type>
 struct BicubicKernel : public InterpolationKernel<scalar_t, real_t> {
+private:
+    // Standard bicubic interpolation kernel with a = -0.5
+    inline real_t bicubic_kernel(real_t s) const {
+        const real_t a = -0.5;
+        s = std::abs(s);
+        
+        if (s <= 1.0) {
+            // (a+2)|s|³ - (a+3)|s|² + 1
+            return (a + 2.0) * s * s * s - (a + 3.0) * s * s + 1.0;
+        } else if (s <= 2.0) {
+            // a|s|³ - 5a|s|² + 8a|s| - 4a
+            return a * s * s * s - 5.0 * a * s * s + 8.0 * a * s - 4.0 * a;
+        } else {
+            return 0.0;
+        }
+    }
+    
+    // Derivative of bicubic interpolation kernel
+    inline real_t bicubic_kernel_derivative(real_t s) const {
+        const real_t a = -0.5;
+        real_t sign = (s < 0) ? -1.0 : 1.0;
+        s = std::abs(s);
+        
+        if (s <= 1.0) {
+            // d/ds[(a+2)|s|³ - (a+3)|s|² + 1] = 3(a+2)|s|² - 2(a+3)|s|
+            return sign * (3.0 * (a + 2.0) * s * s - 2.0 * (a + 3.0) * s);
+        } else if (s <= 2.0) {
+            // d/ds[a|s|³ - 5a|s|² + 8a|s| - 4a] = 3a|s|² - 10a|s| + 8a
+            return sign * (3.0 * a * s * s - 10.0 * a * s + 8.0 * a);
+        } else {
+            return 0.0;
+        }
+    }
+    
+    // Safe sampling with edge clamping for out-of-bounds coordinates
+    inline scalar_t sample_with_edge_clamping(
+        const torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec,
+        const int64_t b, const int64_t boxsize, const int64_t boxsize_half,
+        int64_t r, int64_t c
+    ) const {
+        // Let sample_fftw_with_conjugate handle Friedel symmetry for c < 0
+        // Only clamp if we're beyond the valid range after symmetry considerations
+        
+        // For c: after Friedel symmetry, clamp |c| to valid range
+        if (std::abs(c) >= boxsize_half) {
+            c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
+        }
+        
+        // For r: clamp to valid range [-boxsize/2 + 1, boxsize/2]
+        r = std::max(-boxsize / 2 + 1, std::min(r, boxsize / 2));
+        
+        return sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, r, c);
+    }
+
+public:
     scalar_t interpolate(
         const torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec,
         const int64_t b, const int64_t boxsize, const int64_t boxsize_half,
         real_t r, real_t c
     ) const override {
-        // TODO: Implement bicubic interpolation
-        // For now, fall back to bilinear
-        BilinearKernel<scalar_t, real_t> bilinear;
-        return bilinear.interpolate(rec, b, boxsize, boxsize_half, r, c);
+        const int64_t c_floor = floor(c);
+        const int64_t r_floor = floor(r);
+        
+        const real_t c_frac = c - c_floor;
+        const real_t r_frac = r - r_floor;
+        
+        scalar_t result = scalar_t(0);
+        
+        // Sample 4x4 grid around the point
+        for (int i = -1; i <= 2; ++i) {
+            for (int j = -1; j <= 2; ++j) {
+                const scalar_t sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
+                                                     r_floor + i, c_floor + j);
+                const real_t weight_r = bicubic_kernel(r_frac - i);
+                const real_t weight_c = bicubic_kernel(c_frac - j);
+                result += sample * weight_r * weight_c;
+            }
+        }
+        
+        return result;
     }
     
     std::tuple<scalar_t, scalar_t, scalar_t> interpolate_with_gradients(
@@ -131,10 +202,35 @@ struct BicubicKernel : public InterpolationKernel<scalar_t, real_t> {
         const int64_t b, const int64_t boxsize, const int64_t boxsize_half,
         real_t r, real_t c
     ) const override {
-        // TODO: Implement bicubic gradients
-        // For now, fall back to bilinear
-        BilinearKernel<scalar_t, real_t> bilinear;
-        return bilinear.interpolate_with_gradients(rec, b, boxsize, boxsize_half, r, c);
+        const int64_t c_floor = floor(c);
+        const int64_t r_floor = floor(r);
+        
+        const real_t c_frac = c - c_floor;
+        const real_t r_frac = r - r_floor;
+        
+        scalar_t val = scalar_t(0);
+        scalar_t grad_r = scalar_t(0);
+        scalar_t grad_c = scalar_t(0);
+        
+        // Sample 4x4 grid and compute gradients simultaneously
+        for (int i = -1; i <= 2; ++i) {
+            for (int j = -1; j <= 2; ++j) {
+                const scalar_t sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
+                                                     r_floor + i, c_floor + j);
+                
+                const real_t weight_r = bicubic_kernel(r_frac - i);
+                const real_t weight_c = bicubic_kernel(c_frac - j);
+                
+                const real_t dweight_r = bicubic_kernel_derivative(r_frac - i);
+                const real_t dweight_c = bicubic_kernel_derivative(c_frac - j);
+                
+                val += sample * weight_r * weight_c;
+                grad_r += sample * dweight_r * weight_c;
+                grad_c += sample * weight_r * dweight_c;
+            }
+        }
+        
+        return std::make_tuple(val, grad_r, grad_c);
     }
 };
 
