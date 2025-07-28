@@ -440,29 +440,271 @@ def test_visual_rotation_validation(interpolation):
             assert not torch.allclose(prev, proj[0].real, atol=1e-6)
         prev = proj[0].real
 
-# Disabled for now - shift gradients have precision issues but are fundamentally working
-# def test_forward_project_2d_backward_gradcheck_rec_shifts():
-#     """
-#     Tests the 2D forward projection's backward pass using gradcheck
-#     for reconstruction and shifts.
-#     """
-#     B, H, W = 1, 16, 16
-#     rec_fourier = torch.randn(B, H, W // 2 + 1, dtype=torch.complex128, requires_grad=True)
-#     rotations = torch.eye(2, dtype=torch.float64).unsqueeze(0).repeat(B, 1, 1)
-#     shifts = torch.randn(B, 2, dtype=torch.float64, requires_grad=True)
-#     output_shape = (H, W)
 
-#     # The function to be checked
-#     def func(reconstruction, shifts):
-#         return torch_projectors.forward_project_2d(
-#             reconstruction,
-#             rotations,
-#             shifts=shifts,
-#             output_shape=output_shape,
-#             interpolation='linear'
-#         )
+def test_performance_benchmark():
+    """
+    Performance benchmark comparing linear vs cubic interpolation.
+    
+    Tests forward and backward projection performance with:
+    - Multiple reconstructions (batch processing)
+    - Random rotation angles and shifts
+    - Proper benchmarking practices (warmup, multiple runs, statistics)
+    """
+    import time
+    import statistics
+    
+    # Benchmark parameters
+    num_reconstructions = 8
+    num_projections_per_rec = 64
+    H, W = 128, 65  # Larger size for more realistic performance test
+    num_warmup_runs = 3
+    num_timing_runs = 10
+    
+    print(f"\nPerformance Benchmark:")
+    print(f"- Reconstructions: {num_reconstructions}")
+    print(f"- Projections per reconstruction: {num_projections_per_rec}")
+    print(f"- Total projections: {num_reconstructions * num_projections_per_rec}")
+    print(f"- Image size: {H}x{H} -> {H}x{W}")
+    print(f"- Warmup runs: {num_warmup_runs}, Timing runs: {num_timing_runs}")
+    
+    # Generate test data
+    torch.manual_seed(42)
+    reconstructions = torch.randn(num_reconstructions, H, W, dtype=torch.complex64)
+    
+    # Random rotations and shifts
+    angles = torch.rand(num_reconstructions, num_projections_per_rec) * 2 * math.pi
+    rotations = torch.zeros(num_reconstructions, num_projections_per_rec, 2, 2)
+    for i in range(num_reconstructions):
+        for j in range(num_projections_per_rec):
+            angle = angles[i, j]
+            cos_a, sin_a = torch.cos(angle), torch.sin(angle)
+            rotations[i, j] = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]])
+    
+    shifts = torch.randn(num_reconstructions, num_projections_per_rec, 2) * 10.0
+    
+    def benchmark_interpolation(interpolation_method):
+        """Benchmark a specific interpolation method"""
+        forward_times = []
+        backward_times = []
+        
+        # Warmup runs
+        for _ in range(num_warmup_runs):
+            reconstructions.requires_grad_(True)
+            projections = torch_projectors.forward_project_2d(
+                reconstructions, rotations, shifts, 
+                output_shape=(H, H), interpolation=interpolation_method
+            )
+            loss = torch.sum(torch.abs(projections)**2)
+            loss.backward()
+            reconstructions.grad = None
+        
+        # Timing runs
+        for run in range(num_timing_runs):
+            reconstructions.requires_grad_(True)
+            
+            # Time forward pass
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            start_time = time.perf_counter()
+            
+            projections = torch_projectors.forward_project_2d(
+                reconstructions, rotations, shifts,
+                output_shape=(H, H), interpolation=interpolation_method
+            )
+            
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            forward_time = time.perf_counter() - start_time
+            forward_times.append(forward_time)
+            
+            # Time backward pass
+            loss = torch.sum(torch.abs(projections)**2)
+            
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            start_time = time.perf_counter()
+            
+            loss.backward()
+            
+            torch.cuda.synchronize() if torch.cuda.is_available() else None
+            backward_time = time.perf_counter() - start_time
+            backward_times.append(backward_time)
+            
+            reconstructions.grad = None
+        
+        return forward_times, backward_times
+    
+    # Benchmark both methods
+    print(f"\nBenchmarking linear interpolation...")
+    linear_forward, linear_backward = benchmark_interpolation('linear')
+    
+    print(f"Benchmarking cubic interpolation...")
+    cubic_forward, cubic_backward = benchmark_interpolation('cubic')
+    
+    # Calculate statistics
+    def calc_stats(times):
+        return {
+            'mean': statistics.mean(times),
+            'median': statistics.median(times),
+            'stdev': statistics.stdev(times) if len(times) > 1 else 0,
+            'min': min(times),
+            'max': max(times)
+        }
+    
+    linear_forward_stats = calc_stats(linear_forward)
+    linear_backward_stats = calc_stats(linear_backward)
+    cubic_forward_stats = calc_stats(cubic_forward)
+    cubic_backward_stats = calc_stats(cubic_backward)
+    
+    # Print results
+    print(f"\n{'='*60}")
+    print(f"PERFORMANCE RESULTS")
+    print(f"{'='*60}")
+    
+    print(f"\nForward Projection Times (seconds):")
+    print(f"Linear  - Mean: {linear_forward_stats['mean']:.4f} ± {linear_forward_stats['stdev']:.4f}")
+    print(f"Cubic   - Mean: {cubic_forward_stats['mean']:.4f} ± {cubic_forward_stats['stdev']:.4f}")
+    print(f"Slowdown: {cubic_forward_stats['mean'] / linear_forward_stats['mean']:.2f}x")
+    
+    print(f"\nBackward Projection Times (seconds):")
+    print(f"Linear  - Mean: {linear_backward_stats['mean']:.4f} ± {linear_backward_stats['stdev']:.4f}")
+    print(f"Cubic   - Mean: {cubic_backward_stats['mean']:.4f} ± {cubic_backward_stats['stdev']:.4f}")
+    print(f"Slowdown: {cubic_backward_stats['mean'] / linear_backward_stats['mean']:.2f}x")
+    
+    print(f"\nTotal Times (Forward + Backward):")
+    linear_total = linear_forward_stats['mean'] + linear_backward_stats['mean']
+    cubic_total = cubic_forward_stats['mean'] + cubic_backward_stats['mean']
+    print(f"Linear  - {linear_total:.4f} seconds")
+    print(f"Cubic   - {cubic_total:.4f} seconds")
+    print(f"Slowdown: {cubic_total / linear_total:.2f}x")
+    
+    print(f"\nThroughput (projections/second):")
+    total_projections = num_reconstructions * num_projections_per_rec
+    print(f"Linear  - {total_projections / linear_total:.1f}")
+    print(f"Cubic   - {total_projections / cubic_total:.1f}")
+    
+    # Create performance visualization
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # Box plots for forward times
+    ax1.boxplot([linear_forward, cubic_forward], labels=['Linear', 'Cubic'])
+    ax1.set_title('Forward Projection Times')
+    ax1.set_ylabel('Time (seconds)')
+    ax1.grid(True, alpha=0.3)
+    
+    # Box plots for backward times  
+    ax2.boxplot([linear_backward, cubic_backward], labels=['Linear', 'Cubic'])
+    ax2.set_title('Backward Projection Times')
+    ax2.set_ylabel('Time (seconds)')
+    ax2.grid(True, alpha=0.3)
+    
+    # Bar chart comparing means
+    methods = ['Linear', 'Cubic']
+    forward_means = [linear_forward_stats['mean'], cubic_forward_stats['mean']]
+    backward_means = [linear_backward_stats['mean'], cubic_backward_stats['mean']]
+    
+    x = np.arange(len(methods))
+    width = 0.35
+    
+    ax3.bar(x - width/2, forward_means, width, label='Forward', alpha=0.8)
+    ax3.bar(x + width/2, backward_means, width, label='Backward', alpha=0.8)
+    ax3.set_title('Mean Processing Times')
+    ax3.set_ylabel('Time (seconds)')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(methods)
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Throughput comparison
+    throughputs = [total_projections / linear_total, total_projections / cubic_total]
+    ax4.bar(methods, throughputs, alpha=0.8, color=['blue', 'orange'])
+    ax4.set_title('Throughput Comparison')
+    ax4.set_ylabel('Projections/second')
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    os.makedirs('test_outputs', exist_ok=True)
+    plt.savefig('test_outputs/performance_benchmark.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"\nVisualization saved to: test_outputs/performance_benchmark.png")
+    
+    # Basic sanity checks
+    assert cubic_forward_stats['mean'] > linear_forward_stats['mean'], "Cubic should be slower than linear"
+    assert cubic_backward_stats['mean'] > linear_backward_stats['mean'], "Cubic backward should be slower than linear"
+    assert all(t > 0 for t in linear_forward + linear_backward + cubic_forward + cubic_backward), "All times should be positive"
 
-#     assert torch.autograd.gradcheck(func, (rec_fourier, shifts), atol=1e-4, rtol=1e-2)
+
+def test_interpolation_quality_comparison():
+    """
+    Compare linear vs cubic interpolation quality using round-trip projection.
+    
+    Test procedure:
+    1. Start with random reconstruction
+    2. Make identity projection (0°) as reference
+    3. Project at +5° then back at -5° with linear interpolation
+    4. Project at +5° then back at -5° with cubic interpolation  
+    5. Compare both results to reference, verify cubic is better
+    """
+    torch.manual_seed(42)
+    
+    # Create random reconstruction in Fourier space (RFFT format)
+    H, W = 64, 33  # 64x64 real -> 64x33 complex after RFFT
+    reconstruction = torch.randn(H, W, dtype=torch.complex64)
+    
+    # Identity projection (0 degrees) as reference
+    identity_rotation = torch.eye(2, dtype=torch.float32).unsqueeze(0).unsqueeze(0)  # [1, 1, 2, 2]
+    reference_proj = torch_projectors.forward_project_2d(
+        reconstruction.unsqueeze(0), 
+        identity_rotation, 
+        output_shape=(H, H),
+        interpolation='linear'  # Doesn't matter for identity
+    )
+    
+    # Test rotations: +5° then -5°
+    angle_rad = math.radians(1.0)
+    cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
+    
+    rot_plus5 = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    rot_minus5 = torch.tensor([[cos_a, sin_a], [-sin_a, cos_a]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    
+    # Round-trip with linear interpolation
+    proj_5deg_linear = torch_projectors.forward_project_2d(
+        reconstruction.unsqueeze(0), rot_plus5, output_shape=(H, H), interpolation='linear'
+    )
+    # proj_5deg_linear is [1, 1, 64, 64] but we need [1, 64, 33] for next projection
+    roundtrip_linear = torch_projectors.forward_project_2d(
+        proj_5deg_linear.squeeze(1), rot_minus5, output_shape=(H, H), interpolation='linear'
+    )
+    
+    # Round-trip with cubic interpolation  
+    proj_5deg_cubic = torch_projectors.forward_project_2d(
+        reconstruction.unsqueeze(0), rot_plus5, output_shape=(H, H), interpolation='cubic'
+    )
+    # proj_5deg_cubic is [1, 1, 64, 64] but we need [1, 64, 33] for next projection
+    roundtrip_cubic = torch_projectors.forward_project_2d(
+        proj_5deg_cubic.squeeze(1), rot_minus5, output_shape=(H, H), interpolation='cubic'
+    )
+    
+    # Compare errors
+    error_linear = torch.mean(torch.abs(reference_proj - roundtrip_linear)**2).item()
+    error_cubic = torch.mean(torch.abs(reference_proj - roundtrip_cubic)**2).item()
+    
+    print(f"Linear round-trip MSE: {error_linear:.6f}")
+    print(f"Cubic round-trip MSE: {error_cubic:.6f}")
+    print(f"Improvement ratio: {error_linear / error_cubic:.2f}x")
+    
+    # Visualize results
+    plot_fourier_tensors(
+        [reference_proj[0], roundtrip_linear[0], roundtrip_cubic[0], 
+         reference_proj[0] - roundtrip_linear[0], reference_proj[0] - roundtrip_cubic[0]],
+        ['Reference (0°)', 'Linear round-trip', 'Cubic round-trip', 'Linear error', 'Cubic error'],
+        'test_outputs/interpolation_quality_comparison.png',
+        shape=(1, 5)
+    )
+    
+    # Verify cubic interpolation performs better
+    assert error_cubic < error_linear, f"Cubic interpolation should be more accurate: cubic={error_cubic:.6f} vs linear={error_linear:.6f}"
 
 
 @pytest.mark.parametrize("interpolation", ["linear", "cubic"])

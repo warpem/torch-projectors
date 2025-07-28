@@ -293,11 +293,12 @@ public:
         // Sample 4x4 grid around the interpolation point
         // Grid extends from (r_floor-1, c_floor-1) to (r_floor+2, c_floor+2)
         for (int i = -1; i <= 2; ++i) {      // Row offset: covers 4 rows
+            const real_t weight_r = bicubic_kernel(r_frac - i);
+
             for (int j = -1; j <= 2; ++j) {  // Column offset: covers 4 columns
                 const scalar_t sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
                                                      r_floor + i, c_floor + j);
                 // Compute bicubic weights for this grid position
-                const real_t weight_r = bicubic_kernel(r_frac - i);
                 const real_t weight_c = bicubic_kernel(c_frac - j);
                 // Accumulate weighted contribution
                 result += sample * weight_r * weight_c;
@@ -325,14 +326,15 @@ public:
         // Sample 4x4 grid and compute value + gradients simultaneously
         // This is more efficient than separate passes
         for (int i = -1; i <= 2; ++i) {
+            const real_t weight_r = bicubic_kernel(r_frac - i);
+            const real_t dweight_r = bicubic_kernel_derivative(r_frac - i);
+            
             for (int j = -1; j <= 2; ++j) {
                 const scalar_t sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
                                                      r_floor + i, c_floor + j);
                 
                 // Compute weights and their derivatives for this grid position
-                const real_t weight_r = bicubic_kernel(r_frac - i);
                 const real_t weight_c = bicubic_kernel(c_frac - j);
-                const real_t dweight_r = bicubic_kernel_derivative(r_frac - i);
                 const real_t dweight_c = bicubic_kernel_derivative(c_frac - j);
                 
                 // Accumulate value and gradients
@@ -472,8 +474,9 @@ public:
         // Distribute gradient to 4x4 neighborhood using bicubic weights
         // These are exactly the same weights used in forward bicubic interpolation
         for (int i = -1; i <= 2; ++i) {      // Row offset: covers 4 rows
+            const real_t weight_r = bicubic_kernel(r_frac - i);
+
             for (int j = -1; j <= 2; ++j) {  // Column offset: covers 4 columns
-                const real_t weight_r = bicubic_kernel(r_frac - i);
                 const real_t weight_c = bicubic_kernel(c_frac - j);
                 const real_t total_weight = weight_r * weight_c;
                 
