@@ -604,8 +604,6 @@ def test_gradient_fourier_components(interpolation):
     # Note: Due to numerical precision and the fact that we're doing a single gradient step,
     # we use a reasonable tolerance
     assert ncc > 0.8, f"Expected NCC > 0.8, got {ncc.item():.6f}"
-    
-    return ncc.item()
 
 
 @pytest.mark.parametrize("interpolation", ["linear", "cubic"])
@@ -764,7 +762,6 @@ def test_shift_gradient_verification_parametrized(interpolation, shift_values, b
     plt.close()
     
     print(f"✅ Shift gradient test passed: {shift_values} (B={batch_size}, P={num_poses})")
-    return max_abs_error, max_rel_error
 
 def test_dimension_validation():
     """
