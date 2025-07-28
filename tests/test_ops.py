@@ -798,4 +798,182 @@ def test_dimension_validation():
     proj = torch.randn(1, 1, 32, 17, dtype=torch.complex64)
     rot = torch.eye(2, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
     rec = torch_projectors.backward_project_2d(proj, rot)
-    assert rec.shape == (1, 32, 17) 
+    assert rec.shape == (1, 32, 17)
+
+def create_rotation_matrix_2d(angle):
+    """Helper function to create 2D rotation matrix from angle"""
+    cos_a, sin_a = torch.cos(angle), torch.sin(angle)
+    return torch.stack([
+        torch.stack([cos_a, -sin_a], dim=-1),
+        torch.stack([sin_a, cos_a], dim=-1)
+    ], dim=-2)
+
+def compute_angle_grad_from_matrix_grad(matrix_grad, angle):
+    """Convert rotation matrix gradient to angle gradient using chain rule"""
+    # d/dθ [cos θ, -sin θ; sin θ, cos θ] = [-sin θ, -cos θ; cos θ, -sin θ]
+    cos_a, sin_a = torch.cos(angle), torch.sin(angle)
+    dR_dtheta = torch.tensor([
+        [-sin_a, -cos_a],
+        [cos_a, -sin_a]
+    ])
+    
+    # Angle gradient = trace(matrix_grad^T * dR_dtheta)
+    return torch.sum(matrix_grad * dR_dtheta)
+
+def test_rotation_gradients_comprehensive():
+    """
+    Comprehensive test of rotation gradients using finite difference verification.
+    This test validates that our analytical rotation gradients match numerical derivatives.
+    """
+    print("\n🔄 Testing rotation gradients comprehensively...")
+    
+    # Test 1: Finite Difference Verification (most important)
+    print("  1️⃣ Finite difference verification...")
+    _test_rotation_finite_difference_accuracy()
+    
+    # Test 2: Multiple scenarios to ensure robustness
+    print("  2️⃣ Testing multiple scenarios...")
+    test_cases = [
+        (0.1, 0.05),  # Small angles
+        (0.3, 0.1),   # Medium angles  
+        (0.8, 0.2),   # Larger angles
+    ]
+    
+    for i, (target_angle, test_offset) in enumerate(test_cases):
+        print(f"    Scenario {i+1}: target={target_angle:.2f}, offset={test_offset:.2f}")
+        torch.manual_seed(42 + i)
+        rec = torch.randn(1, 16, 9, dtype=torch.complex64, requires_grad=True)
+        
+        target_rot = create_rotation_matrix_2d(torch.tensor(target_angle)).unsqueeze(0).unsqueeze(0)
+        target_proj = torch_projectors.forward_project_2d(rec, target_rot.detach())
+        
+        test_angle = target_angle + test_offset
+        test_rot = create_rotation_matrix_2d(torch.tensor(test_angle)).unsqueeze(0).unsqueeze(0)
+        test_rot.requires_grad_(True)
+        
+        pred_proj = torch_projectors.forward_project_2d(rec, test_rot)
+        loss = torch.sum((pred_proj - target_proj).abs())
+        loss.backward()
+        
+        # Quick finite difference check for one element
+        eps = 1e-4
+        rot_plus = test_rot.clone().detach()
+        rot_plus[0, 0, 0, 0] += eps
+        loss_plus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_plus) - target_proj).abs())
+        
+        rot_minus = test_rot.clone().detach()
+        rot_minus[0, 0, 0, 0] -= eps
+        loss_minus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_minus) - target_proj).abs())
+        
+        fd_grad = (loss_plus - loss_minus) / (2 * eps)
+        analytical_grad = test_rot.grad[0, 0, 0, 0]
+        error = torch.abs(analytical_grad - fd_grad).item()
+        
+        print(f"      R[0][0]: analytical={analytical_grad:.6f}, fd={fd_grad:.6f}, error={error:.2e}")
+        assert error < 0.05, f"Scenario {i+1} failed: error {error:.2e} (tolerance: 5%)"
+    
+    # Test 3: Optimization Convergence (practical validation)
+    print("  3️⃣ Optimization convergence verification...")
+    _test_rotation_optimization_convergence()
+    
+    print("✅ All rotation gradient tests passed!")
+
+def _test_rotation_finite_difference_accuracy():
+    """Test that analytical gradients match finite differences"""
+    # Create test data - use smaller, more manageable case
+    torch.manual_seed(42)  # For reproducibility
+    rec = torch.randn(1, 16, 9, dtype=torch.complex64, requires_grad=True)
+    target_angle = 0.1  # Smaller angle difference
+    target_rot = create_rotation_matrix_2d(torch.tensor(target_angle)).unsqueeze(0).unsqueeze(0)
+    target_proj = torch_projectors.forward_project_2d(rec, target_rot.detach())
+    
+    # Test at slightly different angle
+    test_angle = target_angle + 0.05  # Smaller perturbation
+    test_rot = create_rotation_matrix_2d(torch.tensor(test_angle)).unsqueeze(0).unsqueeze(0)
+    test_rot.requires_grad_(True)
+    
+    # Compute analytical gradients
+    pred_proj = torch_projectors.forward_project_2d(rec, test_rot)
+    loss = torch.sum((pred_proj - target_proj).abs())
+    loss.backward()
+    
+    # Compare against finite differences
+    eps = 1e-4  # Larger epsilon for numerical stability
+    max_error = 0.0
+    
+    print("    Comparing analytical vs finite difference gradients:")
+    for i in range(2):
+        for j in range(2):
+            # Create perturbed rotation matrices
+            rot_plus = test_rot.clone().detach()
+            rot_minus = test_rot.clone().detach()
+            rot_plus[0, 0, i, j] += eps
+            rot_minus[0, 0, i, j] -= eps
+            
+            # Compute finite difference
+            loss_plus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_plus) - target_proj).abs())
+            loss_minus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_minus) - target_proj).abs())
+            fd_grad = (loss_plus - loss_minus) / (2 * eps)
+            
+            # Compare with analytical gradient
+            analytical_grad = test_rot.grad[0, 0, i, j]
+            error = torch.abs(analytical_grad - fd_grad).item()
+            relative_error = error / (torch.abs(fd_grad).item() + 1e-8)
+            max_error = max(max_error, error)
+            
+            print(f"    R[{i}][{j}]: analytical={analytical_grad:.6f}, fd={fd_grad:.6f}, abs_err={error:.2e}, rel_err={relative_error:.2e}")
+    
+    # Reasonable tolerance - analytical gradients should be close to finite differences
+    assert max_error < 0.02, f"Max finite difference error {max_error:.2e} exceeds tolerance"
+    print(f"    ✅ Max finite difference error: {max_error:.2e}")
+
+
+def _test_rotation_optimization_convergence():
+    """Test that optimization converges to correct angle"""
+    # Create target projection at known angle
+    torch.manual_seed(42)  # For reproducibility
+    rec = torch.randn(1, 16, 9, dtype=torch.complex64)  # Smaller for stability
+    target_angles = [0.2, 0.5, 0.8]  # Positive angles for stability (fewer local minima)
+    
+    for target_angle in target_angles:
+        print(f"    Optimizing toward angle {target_angle:.3f}...")
+        
+        target_rot = create_rotation_matrix_2d(torch.tensor(target_angle)).unsqueeze(0).unsqueeze(0)
+        target_proj = torch_projectors.forward_project_2d(rec, target_rot)
+        
+        # Initialize optimization close to target (not at 0) for better convergence
+        init_angle = target_angle + 0.017  # Start 1 degree (~0.017 radians) away
+        learned_angle = torch.tensor(init_angle, requires_grad=True)
+        optimizer = torch.optim.Adam([learned_angle], lr=0.02)  # Lower learning rate for stability
+        
+        best_loss = float('inf')
+        best_angle = init_angle
+        
+        for step in range(100):  # Fewer steps for speed
+            optimizer.zero_grad()
+            learned_rot = create_rotation_matrix_2d(learned_angle).unsqueeze(0).unsqueeze(0)
+            pred_proj = torch_projectors.forward_project_2d(rec, learned_rot)
+            loss = torch.sum((pred_proj - target_proj).abs().pow(2))  # Manual MSE for complex tensors
+            loss.backward()
+            optimizer.step()
+            
+            # Track best result
+            if loss.item() < best_loss:
+                best_loss = loss.item()
+                best_angle = learned_angle.item()
+            
+            # Check for convergence
+            if step % 25 == 0:
+                print(f"      Step {step}: loss={loss.item():.6f}, angle={learned_angle.item():.3f}")
+            
+            # Early stopping if converged
+            if loss.item() < 1e-6:
+                break
+        
+        # Check convergence using best result (accounting for 2π periodicity)
+        angle_diff = torch.abs(torch.tensor(best_angle) - target_angle) % (2 * torch.pi)
+        angle_diff = torch.min(angle_diff, 2 * torch.pi - angle_diff)
+        
+        print(f"      Final: target={target_angle:.3f}, best={best_angle:.3f}, diff={angle_diff.item():.3f}")
+        # Reasonable tolerance for convergence
+        assert angle_diff < 0.001, f"Failed to converge: angle difference {angle_diff.item():.3f} > 0.001 rad" 
