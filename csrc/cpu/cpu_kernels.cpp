@@ -15,8 +15,38 @@
 
 #include "cpu_kernels.h"
 #include <torch/extension.h>
+#include <ATen/ParallelOpenMP.h>
 #include <complex>
 #include <algorithm>
+#include <atomic>
+#include <omp.h>
+
+/**
+ * Atomic accumulation for complex numbers using separate real/imaginary parts
+ * 
+ * Since std::atomic<std::complex<T>> is not available, we treat complex numbers
+ * as pairs of atomic floats and accumulate real/imaginary parts separately.
+ * This avoids race conditions when multiple threads write to the same location.
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+inline void atomic_add_complex(scalar_t* target, const scalar_t& value) {
+    // Cast to atomic real types for thread-safe accumulation
+    std::atomic<real_t>* real_ptr = reinterpret_cast<std::atomic<real_t>*>(target);
+    std::atomic<real_t>* imag_ptr = real_ptr + 1;
+    
+    // Atomically add real and imaginary parts
+    real_ptr->fetch_add(value.real(), std::memory_order_relaxed);
+    imag_ptr->fetch_add(value.imag(), std::memory_order_relaxed);
+}
+
+/**
+ * Atomic accumulation for real numbers
+ */
+template <typename real_t>
+inline void atomic_add_real(real_t* target, const real_t& value) {
+    std::atomic<real_t>* atomic_ptr = reinterpret_cast<std::atomic<real_t>*>(target);
+    atomic_ptr->fetch_add(value, std::memory_order_relaxed);
+}
 
 /**
  * Sample from FFTW-formatted Fourier space with automatic Friedel symmetry handling
@@ -595,9 +625,13 @@ at::Tensor forward_project_2d_cpu(
             const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
             const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;  // Precompute for efficiency
 
-            // Main projection loop: iterate over all output pixels
-            for (int64_t b = 0; b < B; ++b) {           // Batch dimension
-                for (int64_t p = 0; p < P; ++p) {       // Pose dimension
+            // Main projection loop: parallelize over batch*pose combinations
+            const int64_t grain_size = std::max(int64_t(1), (B * P) / (2 * at::get_num_threads()));
+            at::parallel_for(0, B * P, grain_size, [&](int64_t start, int64_t end) {
+                for (int64_t bp_idx = start; bp_idx < end; ++bp_idx) {
+                    const int64_t b = bp_idx / P;           // Batch index
+                    const int64_t p = bp_idx % P;           // Pose index
+                    
                     // Handle broadcasting: same rotations for all batches if B_rot=1
                     const int64_t rot_b_idx = (B_rot == 1) ? 0 : b;
                     
@@ -642,7 +676,7 @@ at::Tensor forward_project_2d_cpu(
                         }
                     }
                 }
-            }
+            });
         }));
     }));
 
@@ -742,30 +776,40 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
             const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
             const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
             
-            for (int64_t b = 0; b < B; ++b) {
-                // Lambda function to safely accumulate gradients with Friedel symmetry
-                auto accumulate_grad = [&](int64_t r, int64_t c, scalar_t grad) {
-                    bool needs_conj = false;
+            // Parallelize over batch*pose combinations
+            const int64_t grain_size = std::max(int64_t(1), (B * P) / (2 * at::get_num_threads()));
+            at::parallel_for(0, B * P, grain_size, [&](int64_t start, int64_t end) {
+                for (int64_t bp_idx = start; bp_idx < end; ++bp_idx) {
+                    const int64_t b = bp_idx / P;
+                    const int64_t p = bp_idx % P;
                     
-                    // Handle Friedel symmetry for negative column indices
-                    if (c < 0) { 
-                        c = -c;           // Mirror column to positive side
-                        r = -r;           // Mirror row as well
-                        needs_conj = true; // Need to conjugate the value
-                    }
+                    // Local accumulator arrays for this projection's gradients
+                    rot_real_t local_rot_grad[2][2] = {{0, 0}, {0, 0}};      // 2x2 rotation matrix gradients
+                    rot_real_t local_shift_grad[2] = {0, 0};                  // 2-element shift gradients
                     
-                    // Bounds checking
-                    if (c >= rec_boxsize_half) return;  // Beyond stored frequency range
-                    if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return;  // Beyond valid row range
+                    // Lambda function to safely accumulate gradients with Friedel symmetry
+                    auto accumulate_grad = [&](int64_t r, int64_t c, scalar_t grad) {
+                        bool needs_conj = false;
+                        
+                        // Handle Friedel symmetry for negative column indices
+                        if (c < 0) { 
+                            c = -c;           // Mirror column to positive side
+                            r = -r;           // Mirror row as well
+                            needs_conj = true; // Need to conjugate the value
+                        }
+                        
+                        // Bounds checking
+                        if (c >= rec_boxsize_half) return;  // Beyond stored frequency range
+                        if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return;  // Beyond valid row range
 
-                    // Convert negative row indices to positive (FFTW wrapping)
-                    int64_t r_eff = r < 0 ? rec_boxsize + r : r;
-                    if (r_eff >= rec_boxsize) return;  // Final bounds check
+                        // Convert negative row indices to positive (FFTW wrapping)
+                        int64_t r_eff = r < 0 ? rec_boxsize + r : r;
+                        if (r_eff >= rec_boxsize) return;  // Final bounds check
 
-                    // Accumulate gradient (with conjugation if needed for Friedel symmetry)
-                    grad_rec_acc[b][r_eff][c] += needs_conj ? std::conj(grad) : grad;
-                };
-                for (int64_t p = 0; p < P; ++p) {
+                        // Atomically accumulate gradient (with conjugation if needed for Friedel symmetry)
+                        scalar_t final_grad = needs_conj ? std::conj(grad) : grad;
+                        atomic_add_complex(&grad_rec_acc[b][r_eff][c], final_grad);
+                    };
                     const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
                     for (int64_t i = 0; i < proj_boxsize; ++i) {
                         for (int64_t j = 0; j < proj_boxsize_half; ++j) {
@@ -800,7 +844,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
                             backward_kernel->distribute_gradient(accumulate_grad, grad_proj, rot_r, rot_c);
 
                             // Compute gradients w.r.t. shift parameters (only if needed)
-                            if (need_shift_grads && grad_shifts_acc.has_value()) {
+                            if (need_shift_grads) {
                                 const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
                                 
                                 // Apply phase modulation to reconstruction value for correct gradient
@@ -816,14 +860,14 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
                                 scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / rec_boxsize) * modulated_rec_val;
                                 scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / rec_boxsize) * modulated_rec_val;
                                 
-                                // Accumulate shift gradients (take real part of complex gradient)
+                                // Accumulate shift gradients locally (take real part of complex gradient)
                                 scalar_t original_grad_proj = grad_proj_acc[b][p][i][j];
-                                (*grad_shifts_acc)[shift_b_idx][p][0] += (original_grad_proj * std::conj(phase_grad_r)).real();
-                                (*grad_shifts_acc)[shift_b_idx][p][1] += (original_grad_proj * std::conj(phase_grad_c)).real();
+                                local_shift_grad[0] += (original_grad_proj * std::conj(phase_grad_r)).real();
+                                local_shift_grad[1] += (original_grad_proj * std::conj(phase_grad_c)).real();
                             }
 
                             // Compute gradients w.r.t. rotation matrix elements (only if needed)
-                            if (need_rotation_grads && grad_rot_acc.has_value()) {
+                            if (need_rotation_grads) {
                                 auto kernel_grad = get_interpolation_kernel<scalar_t>(interpolation);
                                 auto [rec_val_unused, grad_r, grad_c] = kernel_grad->interpolate_with_gradients(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
                                 
@@ -834,16 +878,31 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
                                 // ∂rot_r/∂R[1][0] = sample_c,  ∂rot_r/∂R[1][1] = sample_r
                                 // ∂rot_c/∂R[0][0] = sample_c,  ∂rot_c/∂R[0][1] = sample_r
                                 //
-                                // Final gradients (taking real part for real-valued rotation matrices):
-                                (*grad_rot_acc)[rot_b_idx][p][0][0] += (grad_proj * std::conj(grad_c * sample_c)).real();  // ∂f/∂R[0][0]
-                                (*grad_rot_acc)[rot_b_idx][p][0][1] += (grad_proj * std::conj(grad_c * sample_r)).real();  // ∂f/∂R[0][1]
-                                (*grad_rot_acc)[rot_b_idx][p][1][0] += (grad_proj * std::conj(grad_r * sample_c)).real();  // ∂f/∂R[1][0]
-                                (*grad_rot_acc)[rot_b_idx][p][1][1] += (grad_proj * std::conj(grad_r * sample_r)).real();  // ∂f/∂R[1][1]
+                                // Accumulate gradients locally (taking real part for real-valued rotation matrices):
+                                local_rot_grad[0][0] += (grad_proj * std::conj(grad_c * sample_c)).real();  // ∂f/∂R[0][0]
+                                local_rot_grad[0][1] += (grad_proj * std::conj(grad_c * sample_r)).real();  // ∂f/∂R[0][1]
+                                local_rot_grad[1][0] += (grad_proj * std::conj(grad_r * sample_c)).real();  // ∂f/∂R[1][0]
+                                local_rot_grad[1][1] += (grad_proj * std::conj(grad_r * sample_r)).real();  // ∂f/∂R[1][1]
                             }
                         }
                     }
+                    
+                    // Atomically add local gradients to global tensors
+                    if (need_rotation_grads && grad_rot_acc.has_value()) {
+                        const int64_t rot_b_idx = (rotations.size(0) == 1) ? 0 : b;
+                        atomic_add_real(&(*grad_rot_acc)[rot_b_idx][p][0][0], local_rot_grad[0][0]);
+                        atomic_add_real(&(*grad_rot_acc)[rot_b_idx][p][0][1], local_rot_grad[0][1]);
+                        atomic_add_real(&(*grad_rot_acc)[rot_b_idx][p][1][0], local_rot_grad[1][0]);
+                        atomic_add_real(&(*grad_rot_acc)[rot_b_idx][p][1][1], local_rot_grad[1][1]);
+                    }
+                    
+                    if (need_shift_grads && grad_shifts_acc.has_value()) {
+                        const int64_t shift_b_idx = (shifts->size(0) == 1) ? 0 : b;
+                        atomic_add_real(&(*grad_shifts_acc)[shift_b_idx][p][0], local_shift_grad[0]);
+                        atomic_add_real(&(*grad_shifts_acc)[shift_b_idx][p][1], local_shift_grad[1]);
+                    }
                 }
-            }
+            });
         }));
     }));
 

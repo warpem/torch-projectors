@@ -400,6 +400,8 @@ def test_visual_rotation_validation(interpolation):
         reconstructions[i, :length, 0] = 1.0 + 1.0j
         horiz_length = length // 2
         reconstructions[i, 0, 1:horiz_length+1] = 1.0 + 1.0j
+        reconstructions[i, length + 5, 4] = 1.0 + 1.0j
+        reconstructions[i, 4, horiz_length+5] = 1.0 + 1.0j
 
     rotations = torch.zeros(num_reconstructions, num_rotations, 2, 2, dtype=torch.float32)
     for i, increment in enumerate(rotation_increments):
