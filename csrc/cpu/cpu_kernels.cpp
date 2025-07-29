@@ -625,6 +625,8 @@ at::Tensor forward_project_2d_cpu(
             const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
             const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;  // Precompute for efficiency
 
+            auto kernel = get_interpolation_kernel<scalar_t>(interpolation);
+
             // Main projection loop: parallelize over batch*pose combinations
             const int64_t grain_size = std::max(int64_t(1), (B * P) / (2 * at::get_num_threads()));
             at::parallel_for(0, B * P, grain_size, [&](int64_t start, int64_t end) {
@@ -658,7 +660,6 @@ at::Tensor forward_project_2d_cpu(
                             real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
 
                             // Interpolate from reconstruction at rotated coordinates
-                            auto kernel = get_interpolation_kernel<scalar_t>(interpolation);
                             scalar_t val = kernel->interpolate(rec_acc, b, boxsize, boxsize_half, rot_r, rot_c);
                             
                             // Apply phase shift if translations are provided
@@ -775,6 +776,10 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
             const real_t default_radius = proj_boxsize / 2.0;
             const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
             const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
+
+            auto kernel = get_interpolation_kernel<scalar_t>(interpolation);
+            auto backward_kernel = get_backward_kernel<scalar_t>(interpolation);
+            auto kernel_grad = get_interpolation_kernel<scalar_t>(interpolation);
             
             // Parallelize over batch*pose combinations
             const int64_t grain_size = std::max(int64_t(1), (B * P) / (2 * at::get_num_threads()));
@@ -827,7 +832,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
                             real_t rot_r = rot_acc[rot_b_idx][p][1][0] * sample_c + rot_acc[rot_b_idx][p][1][1] * sample_r;
                             
                             // Use abstracted interpolation kernel
-                            auto kernel = get_interpolation_kernel<scalar_t>(interpolation);
                             scalar_t rec_val = kernel->interpolate(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
                             scalar_t grad_proj = grad_proj_acc[b][p][i][j];
 
@@ -840,7 +844,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
 
                             // Use abstracted backward kernel for gradient distribution
                             // This ensures the backward pass is the proper adjoint of the forward interpolation
-                            auto backward_kernel = get_backward_kernel<scalar_t>(interpolation);
                             backward_kernel->distribute_gradient(accumulate_grad, grad_proj, rot_r, rot_c);
 
                             // Compute gradients w.r.t. shift parameters (only if needed)
@@ -868,7 +871,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
 
                             // Compute gradients w.r.t. rotation matrix elements (only if needed)
                             if (need_rotation_grads) {
-                                auto kernel_grad = get_interpolation_kernel<scalar_t>(interpolation);
                                 auto [rec_val_unused, grad_r, grad_c] = kernel_grad->interpolate_with_gradients(rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
                                 
                                 // Chain rule: ∂f/∂R[i][j] = (∂f/∂rot_coord) * (∂rot_coord/∂R[i][j])
