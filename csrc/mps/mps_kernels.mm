@@ -5,6 +5,7 @@
 #include <torch/extension.h>
 #include <Metal/Metal.h>
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
+#include <ATen/mps/MPSStream.h>
 #include "projection_kernels.h"
 
 // Get Metal compute pipeline for forward projection
@@ -47,132 +48,137 @@ at::Tensor forward_project_2d_mps(
     const double oversampling,
     const c10::optional<double>& fourier_radius_cutoff
 ) {
-    @autoreleasepool {
-    TORCH_CHECK(reconstruction.is_mps(), "Input reconstruction must be on MPS device");
-    TORCH_CHECK(rotations.is_mps(), "Input rotations must be on MPS device");
-    TORCH_CHECK(interpolation == "linear" || interpolation == "cubic", 
+  @autoreleasepool {
+    // -------- Validation (unchanged) --------
+    TORCH_CHECK(reconstruction.is_mps(),  "Input reconstruction must be on MPS device");
+    TORCH_CHECK(rotations.is_mps(),       "Input rotations must be on MPS device");
+    TORCH_CHECK(interpolation == "linear" || interpolation == "cubic",
                 "Supported interpolation methods: 'linear', 'cubic'");
-    TORCH_CHECK(reconstruction.is_complex(), "Reconstruction must be a complex tensor");
-    TORCH_CHECK(reconstruction.dim() == 3, "Reconstruction must be a 3D tensor (B, boxsize, boxsize/2+1)");
-    TORCH_CHECK(rotations.dim() == 4 && rotations.size(2) == 2 && rotations.size(3) == 2, "Rotations must be (B_rot, P, 2, 2)");
-    
-    // Extract tensor dimensions
-    const auto B = reconstruction.size(0);
-    const auto boxsize = reconstruction.size(1);
+    TORCH_CHECK(reconstruction.is_complex(),
+                "Reconstruction must be a complex tensor");
+    TORCH_CHECK(reconstruction.dim() == 3,
+                "Reconstruction must be a 3D tensor (B, boxsize, boxsize/2+1)");
+    TORCH_CHECK(rotations.dim() == 4 && rotations.size(2) == 2 && rotations.size(3) == 2,
+                "Rotations must be (B_rot, P, 2, 2)");
+
+    const auto B            = reconstruction.size(0);
+    const auto boxsize      = reconstruction.size(1);
     const auto boxsize_half = reconstruction.size(2);
-    
+
     const auto B_rot = rotations.size(0);
-    const auto P = rotations.size(1);
-    TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as reconstruction");
-    
-    const auto proj_boxsize = output_shape[0];
+    const auto P     = rotations.size(1);
+    TORCH_CHECK(B_rot == B || B_rot == 1,
+                "Batch size of rotations must be 1 or same as reconstruction");
+
+    const auto proj_boxsize      = output_shape[0];
     const auto proj_boxsize_half = output_shape[0] / 2 + 1;
-    
-    // Create output tensor on MPS device using PyTorch (not C++)
-    auto projection = torch::zeros({B, P, proj_boxsize, proj_boxsize_half}, 
+
+    // -------- Output tensor on MPS (unchanged) --------
+    auto projection = torch::zeros({B, P, proj_boxsize, proj_boxsize_half},
                                    torch::TensorOptions()
                                        .dtype(reconstruction.dtype())
                                        .device(reconstruction.device()));
-    
-    // Ensure tensors are contiguous
-    auto rec_contiguous = reconstruction.contiguous();
-    auto rot_contiguous = rotations.contiguous();
+
+    // -------- Contiguity (unchanged) --------
+    auto rec_contiguous  = reconstruction.contiguous();
+    auto rot_contiguous  = rotations.contiguous();
     auto proj_contiguous = projection.contiguous();
-    
-    // Get Metal device and create command queue/buffer  
-    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-    id<MTLCommandQueue> commandQueue = [device newCommandQueue];
-    id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
-    id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
-    
-    // Get the compute pipeline
+
+    // -------- Stream/device from PyTorch --------
+    auto* mpsStream = at::mps::getCurrentMPSStream();
+    id<MTLDevice> device = mpsStream->device(); // use the stream's device
+
+    // -------- Pipeline for this device (unchanged logic) --------
     id<MTLComputePipelineState> pipeline = get_forward_projection_pipeline(device);
-    [encoder setComputePipelineState:pipeline];
-    
-    // For MPS tensors, we need to copy data to Metal buffers we can control
-    // This is safer than trying to wrap the MPS storage directly
-    size_t rec_bytes = rec_contiguous.numel() * rec_contiguous.element_size();
-    size_t rot_bytes = rot_contiguous.numel() * rot_contiguous.element_size();
-    size_t proj_bytes = proj_contiguous.numel() * proj_contiguous.element_size();
-    
-    id<MTLBuffer> rec_buffer = [device newBufferWithLength:rec_bytes options:MTLResourceStorageModeShared];
-    id<MTLBuffer> rot_buffer = [device newBufferWithLength:rot_bytes options:MTLResourceStorageModeShared];
+
+    // -------- Create temporary Metal buffers (unchanged approach) --------
+    const size_t rec_bytes  = rec_contiguous.numel()  * rec_contiguous.element_size();
+    const size_t rot_bytes  = rot_contiguous.numel()  * rot_contiguous.element_size();
+    const size_t proj_bytes = proj_contiguous.numel() * proj_contiguous.element_size();
+
+    id<MTLBuffer> rec_buffer  = [device newBufferWithLength:rec_bytes  options:MTLResourceStorageModeShared];
+    id<MTLBuffer> rot_buffer  = [device newBufferWithLength:rot_bytes  options:MTLResourceStorageModeShared];
     id<MTLBuffer> proj_buffer = [device newBufferWithLength:proj_bytes options:MTLResourceStorageModeShared];
-    
-    // Copy tensor data to Metal buffers
+    TORCH_CHECK(rec_buffer && rot_buffer && proj_buffer, "Failed to allocate temporary Metal buffers");
+
+    // Copy tensor data to Metal buffers (unchanged)
     auto rec_cpu = rec_contiguous.cpu();
     auto rot_cpu = rot_contiguous.cpu();
     memcpy(rec_buffer.contents, rec_cpu.data_ptr(), rec_bytes);
     memcpy(rot_buffer.contents, rot_cpu.data_ptr(), rot_bytes);
-    
-    [encoder setBuffer:rec_buffer offset:0 atIndex:0];
-    [encoder setBuffer:rot_buffer offset:0 atIndex:1];
-    
-    // Handle shifts tensor
+
+    // -------- Handle shifts tensor (unchanged) --------
     id<MTLBuffer> shifts_buffer = nil;
     bool has_shifts = shifts.has_value();
     int64_t B_shift = 1;
     if (has_shifts) {
-        TORCH_CHECK(shifts->is_mps(), "Shifts must be on MPS device");
-        TORCH_CHECK(shifts->dim() == 3, "Shifts must be (B_shift, P, 2)");
-        TORCH_CHECK(shifts->size(0) == B || shifts->size(0) == 1, "Batch size of shifts must be 1 or same as reconstruction");
-        TORCH_CHECK(shifts->size(1) == P, "Number of poses in shifts must match rotations");
-        B_shift = shifts->size(0);
-        
-        auto shifts_contiguous = shifts->contiguous();
-        auto shifts_cpu = shifts_contiguous.cpu();
-        size_t shifts_bytes = shifts_contiguous.numel() * shifts_contiguous.element_size();
-        shifts_buffer = [device newBufferWithLength:shifts_bytes options:MTLResourceStorageModeShared];
-        memcpy(shifts_buffer.contents, shifts_cpu.data_ptr(), shifts_bytes);
+      TORCH_CHECK(shifts->is_mps(), "Shifts must be on MPS device");
+      TORCH_CHECK(shifts->dim() == 3, "Shifts must be (B_shift, P, 2)");
+      TORCH_CHECK(shifts->size(0) == B || shifts->size(0) == 1,
+                  "Batch size of shifts must be 1 or same as reconstruction");
+      TORCH_CHECK(shifts->size(1) == P,
+                  "Number of poses in shifts must match rotations");
+      B_shift = shifts->size(0);
+
+      auto shifts_contiguous = shifts->contiguous();
+      auto shifts_cpu = shifts_contiguous.cpu();
+      size_t shifts_bytes = shifts_contiguous.numel() * shifts_contiguous.element_size();
+      shifts_buffer = [device newBufferWithLength:shifts_bytes options:MTLResourceStorageModeShared];
+      TORCH_CHECK(shifts_buffer, "Failed to allocate shifts Metal buffer");
+      memcpy(shifts_buffer.contents, shifts_cpu.data_ptr(), shifts_bytes);
     } else {
-        shifts_buffer = [device newBufferWithLength:8 options:MTLResourceStorageModeShared];
+      shifts_buffer = [device newBufferWithLength:8 options:MTLResourceStorageModeShared];
+      TORCH_CHECK(shifts_buffer, "Failed to allocate placeholder shifts buffer");
+      memset(shifts_buffer.contents, 0, 8);
     }
-    [encoder setBuffer:shifts_buffer offset:0 atIndex:2];
-    [encoder setBuffer:proj_buffer offset:0 atIndex:3];
-    
-    // Pack parameters into struct
+
+    // -------- Pack parameters (unchanged) --------
     struct Params {
-        int B, P, boxsize, boxsize_half;
-        int proj_boxsize, proj_boxsize_half, B_rot, B_shift;
-        int has_shifts;
-        int interpolation_method;
-        float oversampling;
-        float fourier_radius_cutoff;
+      int B, P, boxsize, boxsize_half;
+      int proj_boxsize, proj_boxsize_half, B_rot, B_shift;
+      int has_shifts;
+      int interpolation_method;
+      float oversampling;
+      float fourier_radius_cutoff;
     } params = {
-        (int)B, (int)P, (int)boxsize, (int)boxsize_half,
-        (int)proj_boxsize, (int)proj_boxsize_half, (int)B_rot, (int)B_shift,
-        (int)has_shifts, (interpolation == "linear") ? 0 : 1,
-        static_cast<float>(oversampling),
-        static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0f))
+      (int)B, (int)P, (int)boxsize, (int)boxsize_half,
+      (int)proj_boxsize, (int)proj_boxsize_half, (int)B_rot, (int)B_shift,
+      (int)has_shifts, (interpolation == "linear") ? 0 : 1,
+      static_cast<float>(oversampling),
+      static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0f))
     };
-    [encoder setBytes:&params length:sizeof(Params) atIndex:4];
-    
-    // Optimize thread organization: each threadgroup handles one entire projection
-    // Grid: (P, B, 1) - one threadgroup per projection
-    // Threadgroup: (256, 1, 1) - threads loop over pixels within projection
-    MTLSize threadsPerThreadgroup = MTLSizeMake(256, 1, 1);
-    MTLSize threadgroupsPerGrid = MTLSizeMake(
-        (NSUInteger)P,  // One threadgroup per pose
-        (NSUInteger)B,  // One threadgroup per batch  
-        1
-    );
-    
-    // Dispatch compute shader
-    [encoder dispatchThreadgroups:threadgroupsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
-    [encoder endEncoding];
-    
-    // Execute and wait
-    [commandBuffer commit];
-    [commandBuffer waitUntilCompleted];
-    
-    // Copy result back to MPS tensor
+
+    // -------- Encode on the stream's queue; don't end/commit yourself --------
+    dispatch_sync(mpsStream->queue(), ^(){
+      id<MTLComputeCommandEncoder> encoder = mpsStream->commandEncoder();
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:rec_buffer    offset:0 atIndex:0];
+      [encoder setBuffer:rot_buffer    offset:0 atIndex:1];
+      [encoder setBuffer:shifts_buffer offset:0 atIndex:2];
+      [encoder setBuffer:proj_buffer   offset:0 atIndex:3];
+      [encoder setBytes:&params length:sizeof(Params) atIndex:4];
+
+      // Same launch geometry you had before
+      MTLSize threadsPerThreadgroup = MTLSizeMake(256, 1, 1);
+      MTLSize threadgroupsPerGrid   = MTLSizeMake((NSUInteger)P, (NSUInteger)B, 1);
+      [encoder dispatchThreadgroups:threadgroupsPerGrid
+            threadsPerThreadgroup:threadsPerThreadgroup];
+
+      // IMPORTANT: do NOT call [encoder endEncoding] here; the stream manages it.
+    });
+
+    // We still need the results on CPU for your memcpy path; force completion.
+    mpsStream->synchronize(at::mps::SyncType::COMMIT_AND_WAIT);  // Wait for all queued work on this stream to finish.
+
+    // -------- Copy result back to MPS tensor (unchanged path) --------
     auto proj_cpu = torch::zeros_like(proj_contiguous).cpu();
     memcpy(proj_cpu.data_ptr(), proj_buffer.contents, proj_bytes);
     proj_contiguous.copy_(proj_cpu.to(reconstruction.device()));
-    
+
     return proj_contiguous;
-    } // @autoreleasepool
+  } // @autoreleasepool
 }
+
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
     const at::Tensor& grad_projections,

@@ -24,7 +24,7 @@ extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
 # Add MPS backend on macOS
 if platform.system() == "Darwin":
     sources.append("csrc/mps/mps_kernels.mm")
-    extra_compile_args["cxx"].extend(["-ObjC++", "-fobjc-arc"])
+    extra_compile_args["cxx"].extend(["-ObjC++", "-fobjc-arc", "-mmacosx-version-min=12.0"])
     extra_link_args.extend(["-framework", "Metal", "-framework", "MetalPerformanceShaders"])
 
 setup(
