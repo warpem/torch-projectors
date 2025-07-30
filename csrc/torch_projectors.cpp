@@ -31,4 +31,10 @@ TORCH_LIBRARY_IMPL(torch_projectors, CUDA, m) {
   m.impl("forward_project_2d", &forward_project_2d_cuda);
   m.impl("backward_project_2d", &backward_project_2d_cuda);
 }
-#endif 
+#endif
+
+// Python module initialization for torch.utils.cpp_extension
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  // The TORCH_LIBRARY registration above handles the actual operators
+  // This is just needed for the Python extension to initialize properly
+} 
