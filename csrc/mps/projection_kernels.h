@@ -251,8 +251,6 @@ kernel void forward_project_2d_kernel(
             val = complex_mul(val, phase_factor);
         }
         
-        // SANITY CHECK: Fill with sequential index to debug thread organization
-        // float debug_value = float(pixel_idx);
         projections[proj_base_idx + pixel_idx] = val;
     }
 }

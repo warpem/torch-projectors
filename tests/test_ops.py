@@ -473,7 +473,7 @@ def test_performance_benchmark(device):
     
     # Benchmark parameters
     num_reconstructions = 8
-    num_projections_per_rec = 128
+    num_projections_per_rec = 512
     H, W = 128, 65  # Larger size for more realistic performance test
     num_warmup_runs = 3
     num_timing_runs = 10
@@ -530,6 +530,7 @@ def test_performance_benchmark(device):
             )
             
             torch.cuda.synchronize() if torch.cuda.is_available() else None
+            torch.mps.synchronize() if torch.backends.mps.is_available() else None
             forward_time = time.perf_counter() - start_time
             forward_times.append(forward_time)
             
@@ -537,11 +538,13 @@ def test_performance_benchmark(device):
             loss = torch.sum(torch.abs(projections)**2)
             
             torch.cuda.synchronize() if torch.cuda.is_available() else None
+            torch.mps.synchronize() if torch.backends.mps.is_available() else None
             start_time = time.perf_counter()
             
             loss.backward()
             
             torch.cuda.synchronize() if torch.cuda.is_available() else None
+            torch.mps.synchronize() if torch.backends.mps.is_available() else None
             backward_time = time.perf_counter() - start_time
             backward_times.append(backward_time)
             
