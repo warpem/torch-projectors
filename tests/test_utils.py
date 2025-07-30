@@ -5,6 +5,8 @@ This module contains shared utility functions used across multiple test files.
 """
 
 import torch
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend for headless testing
 import matplotlib.pyplot as plt
 import numpy as np
 import os
