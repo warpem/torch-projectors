@@ -1,5 +1,5 @@
 from setuptools import setup
-from torch.utils.cpp_extension import BuildExtension, CppExtension
+from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension
 import torch
 import os
 import platform
@@ -23,6 +23,21 @@ extra_link_args = []
 extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
 extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
 
+# Check for CUDA availability
+cuda_available = torch.cuda.is_available()
+use_cuda = cuda_available and os.environ.get("TORCH_CUDA_ARCH_LIST") is not None
+
+# Add CUDA backend if available and requested
+if use_cuda:
+    print("CUDA detected, enabling CUDA backend...")
+    sources.append("csrc/cuda/cuda_kernels.cu")
+    extra_compile_args["cxx"].append("-DUSE_CUDA")
+    extra_compile_args["nvcc"] = ["-O3", "--use_fast_math", "-DUSE_CUDA"]
+    
+    # Set CUDA architectures if not specified
+    if "TORCH_CUDA_ARCH_LIST" not in os.environ:
+        os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;8.9;9.0"
+
 # Add MPS backend on macOS
 if platform.system() == "Darwin":
     # Generate Metal shader headers before compilation
@@ -38,6 +53,12 @@ if platform.system() == "Darwin":
     extra_compile_args["cxx"].extend(["-ObjC++", "-fobjc-arc", "-mmacosx-version-min=12.0"])
     extra_link_args.extend(["-framework", "Metal", "-framework", "MetalPerformanceShaders"])
 
+# Choose the appropriate extension type based on CUDA availability
+if use_cuda:
+    extension_class = CUDAExtension
+else:
+    extension_class = CppExtension
+
 setup(
     name="torch-projectors",
     version="0.1.0",
@@ -45,7 +66,7 @@ setup(
     author_email="[Your Email]",
     description="Differentiable forward and backward projectors for cryo-EM.",
     ext_modules=[
-        CppExtension(
+        extension_class(
             name="torch_projectors._C",
             sources=sources,
             extra_compile_args=extra_compile_args,
