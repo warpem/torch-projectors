@@ -197,6 +197,40 @@ at::Tensor forward_project_2d_mps(
 }
 
 
+// Get Metal compute pipeline for backward projection
+id<MTLComputePipelineState> get_backward_projection_pipeline(id<MTLDevice> device) {
+    static id<MTLComputePipelineState> pipeline = nil;
+    static id<MTLDevice> cached_device = nil;
+    static NSString* shaderSource = nil;
+    
+    if (!shaderSource) {
+        shaderSource = [NSString stringWithUTF8String:PROJECTION_KERNEL_SOURCE];
+    }
+    
+    if (pipeline && device == cached_device) {
+        return pipeline;
+    }
+    
+    @autoreleasepool {
+        NSError* error = nil;
+        MTLCompileOptions* opts = [MTLCompileOptions new];
+        opts.fastMathEnabled = YES;
+        id<MTLLibrary> library = [device newLibraryWithSource:shaderSource
+                                                    options:opts
+                                                        error:&error];
+        TORCH_CHECK(library != nil, "Failed to compile Metal library: ", error.localizedDescription.UTF8String);
+        
+        id<MTLFunction> function = [library newFunctionWithName:@"backward_project_2d_kernel"];
+        TORCH_CHECK(function != nil, "Failed to load Metal function");
+        
+        pipeline = [device newComputePipelineStateWithFunction:function error:&error];
+        TORCH_CHECK(pipeline != nil, "Failed to create compute pipeline: ", error.localizedDescription.UTF8String);
+        cached_device = device;
+    }
+    
+    return pipeline;
+}
+
 std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
@@ -206,42 +240,172 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
     const double oversampling,
     const c10::optional<double>& fourier_radius_cutoff
 ) {
+  @autoreleasepool {
+    // -------- Validation --------
     TORCH_CHECK(grad_projections.is_mps(), "Input grad_projections must be on MPS device");
     TORCH_CHECK(reconstruction.is_mps(), "Input reconstruction must be on MPS device");
     TORCH_CHECK(rotations.is_mps(), "Input rotations must be on MPS device");
+    TORCH_CHECK(grad_projections.is_complex(), "Grad projections must be a complex tensor");
+    TORCH_CHECK(interpolation == "linear" || interpolation == "cubic",
+                "Supported interpolation methods: 'linear', 'cubic'");
+    TORCH_CHECK(grad_projections.dim() == 4, "Grad projections must be a 4D tensor (B, P, boxsize, boxsize/2+1)");
+    TORCH_CHECK(rotations.dim() == 4 && rotations.size(2) == 2 && rotations.size(3) == 2,
+                "Rotations must be (B_rot, P, 2, 2)");
+    TORCH_CHECK(rotations.scalar_type() == at::kFloat, "Rotations must be float32 on MPS");
+
+    const auto B = grad_projections.size(0);
+    const auto P = grad_projections.size(1);
+    const auto proj_boxsize = grad_projections.size(2);
+    const auto proj_boxsize_half = grad_projections.size(3);
     
-    // TODO: Implement MPS backward projection
-    // For now, fall back to CPU implementation
-    auto cpu_grad_projections = grad_projections.cpu();
-    auto cpu_reconstruction = reconstruction.cpu();
-    cpu_reconstruction.set_requires_grad(reconstruction.requires_grad());
-    auto cpu_rotations = rotations.cpu();
-    cpu_rotations.set_requires_grad(rotations.requires_grad());
-    c10::optional<at::Tensor> cpu_shifts;
-    if (shifts.has_value()) {
-        auto cpu_shifts_tensor = shifts.value().cpu();
-        // Preserve requires_grad flag which gets lost during device conversion
-        cpu_shifts_tensor.set_requires_grad(shifts.value().requires_grad());
-        cpu_shifts = cpu_shifts_tensor;
+    const auto rec_boxsize = reconstruction.size(1);
+    const auto rec_boxsize_half = reconstruction.size(2);
+    
+    const auto B_rot = rotations.size(0);
+    TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as reconstruction");
+
+    // -------- Initialize gradient tensors based on what's needed --------
+    auto grad_reconstruction = at::zeros({B, rec_boxsize, rec_boxsize_half}, grad_projections.options());
+    
+    at::Tensor grad_rotations;
+    at::Tensor grad_shifts;
+    
+    const bool need_rotation_grads = rotations.requires_grad();
+    const bool need_shift_grads = shifts.has_value() && shifts->requires_grad();
+    
+    if (need_rotation_grads) {
+        grad_rotations = at::zeros_like(rotations);
+    } else {
+        grad_rotations = at::empty({0}, rotations.options());
     }
-    
-    // Forward declare CPU function
-    extern std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cpu(
-        const at::Tensor&, const at::Tensor&, const at::Tensor&, const c10::optional<at::Tensor>&,
-        const std::string&, const double, const c10::optional<double>&
-    );
-    
-    auto [grad_reconstruction, grad_rotations, grad_shifts] = backward_project_2d_cpu(
-        cpu_grad_projections, cpu_reconstruction, cpu_rotations, cpu_shifts,
-        interpolation, oversampling, fourier_radius_cutoff
-    );
-    
-    auto device = reconstruction.device();
-    return std::make_tuple(
-        grad_reconstruction.to(device),
-        grad_rotations.to(device),
-        shifts.has_value() ? grad_shifts.to(device) : grad_shifts
-    );
+
+    int64_t B_shift = 1;
+    if (shifts.has_value()) {
+        TORCH_CHECK(shifts->is_mps(), "Shifts must be on MPS device");
+        TORCH_CHECK(shifts->dim() == 3, "Shifts must be (B_shift, P, 2)");
+        TORCH_CHECK(shifts->size(0) == B || shifts->size(0) == 1,
+                    "Batch size of shifts must be 1 or same as reconstruction");
+        TORCH_CHECK(shifts->size(1) == P, "Number of poses in shifts must match rotations");
+        TORCH_CHECK(shifts->scalar_type() == at::kFloat, "Shifts must be float32 on MPS");
+        B_shift = shifts->size(0);
+        
+        if (need_shift_grads) {
+            grad_shifts = at::zeros_like(*shifts);
+        } else {
+            grad_shifts = at::empty({0}, grad_projections.options().dtype(rotations.scalar_type()));
+        }
+    } else {
+        grad_shifts = at::empty({0}, grad_projections.options().dtype(rotations.scalar_type()));
+    }
+
+    // -------- Ensure contiguity --------
+    auto grad_proj_contiguous = grad_projections.is_contiguous() ? grad_projections : grad_projections.contiguous();
+    auto rec_contiguous = reconstruction.is_contiguous() ? reconstruction : reconstruction.contiguous();
+    auto rot_contiguous = rotations.is_contiguous() ? rotations : rotations.contiguous();
+    auto grad_rec_contiguous = grad_reconstruction.is_contiguous() ? grad_reconstruction : grad_reconstruction.contiguous();
+
+    c10::optional<at::Tensor> shifts_contiguous;
+    c10::optional<at::Tensor> grad_shifts_contiguous;
+    if (shifts.has_value()) {
+        shifts_contiguous = shifts->is_contiguous() ? *shifts : shifts->contiguous();
+        if (need_shift_grads) {
+            grad_shifts_contiguous = grad_shifts.is_contiguous() ? grad_shifts : grad_shifts.contiguous();
+        }
+    }
+
+    c10::optional<at::Tensor> grad_rot_contiguous;
+    if (need_rotation_grads) {
+        grad_rot_contiguous = grad_rotations.is_contiguous() ? grad_rotations : grad_rotations.contiguous();
+    }
+
+    // -------- Acquire PyTorch's MPS command buffer & serial queue --------
+    id<MTLCommandBuffer> commandBuffer = (id<MTLCommandBuffer>)torch::mps::get_command_buffer();
+    TORCH_CHECK(commandBuffer, "Failed to get MPS command buffer");
+    dispatch_queue_t serialQueue = (dispatch_queue_t)torch::mps::get_dispatch_queue();
+    TORCH_CHECK(serialQueue, "Failed to get MPS dispatch queue");
+
+    id<MTLDevice> device = [commandBuffer device];
+    id<MTLComputePipelineState> pipeline = get_backward_projection_pipeline(device);
+
+    // -------- Kernel params with gradient flags --------
+    struct Params {
+      int B, P, boxsize, boxsize_half;
+      int proj_boxsize, proj_boxsize_half, B_rot, B_shift;
+      int has_shifts;
+      int interpolation_method; // Encode gradient flags in upper bits
+      float oversampling;
+      float fourier_radius_cutoff;
+    } params = {
+      (int)B, (int)P, (int)rec_boxsize, (int)rec_boxsize_half,
+      (int)proj_boxsize, (int)proj_boxsize_half, (int)B_rot, (int)B_shift,
+      (int)(shifts.has_value()),
+      (interpolation == "linear" ? 0 : 1) | 
+      (need_rotation_grads ? 0x10 : 0) | 
+      (need_shift_grads ? 0x20 : 0),  // Pack flags into upper bits
+      static_cast<float>(oversampling),
+      static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0))
+    };
+
+    // -------- Execute kernel --------
+    dispatch_sync(serialQueue, ^(){
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      TORCH_CHECK(encoder, "Failed to create compute encoder");
+
+      [encoder setComputePipelineState:pipeline];
+
+      // Bind tensors
+      bindTensor(encoder, grad_proj_contiguous, 0);  // grad_projections
+      bindTensor(encoder, rec_contiguous, 1);        // reconstruction
+      bindTensor(encoder, rot_contiguous, 2);        // rotations
+      
+      if (shifts.has_value()) {
+        bindTensor(encoder, *shifts_contiguous, 3);  // shifts
+      } else {
+        uint64_t zero = 0;
+        [encoder setBytes:&zero length:sizeof(zero) atIndex:3];
+      }
+      
+      bindTensor(encoder, grad_rec_contiguous, 4);   // grad_reconstruction
+      
+      if (need_rotation_grads) {
+        bindTensor(encoder, *grad_rot_contiguous, 5);  // grad_rotations
+      } else {
+        uint64_t zero = 0;
+        [encoder setBytes:&zero length:sizeof(zero) atIndex:5];
+      }
+      
+      if (need_shift_grads) {
+        bindTensor(encoder, *grad_shifts_contiguous, 6);  // grad_shifts
+      } else {
+        uint64_t zero = 0;
+        [encoder setBytes:&zero length:sizeof(zero) atIndex:6];
+      }
+      
+      [encoder setBytes:&params length:sizeof(Params) atIndex:7];
+
+      // Launch geometry - same as forward pass
+      MTLSize threadsPerThreadgroup = MTLSizeMake(256, 1, 1);
+      MTLSize threadgroupsPerGrid   = MTLSizeMake((NSUInteger)P, (NSUInteger)B, 1);
+      [encoder dispatchThreadgroups:threadgroupsPerGrid
+            threadsPerThreadgroup:threadsPerThreadgroup];
+
+      [encoder endEncoding];
+      torch::mps::commit();
+    });
+
+    // -------- Copy back if needed --------
+    if (!grad_reconstruction.is_contiguous()) {
+      grad_reconstruction.copy_(grad_rec_contiguous);
+    }
+    if (need_rotation_grads && !grad_rotations.is_contiguous()) {
+      grad_rotations.copy_(*grad_rot_contiguous);
+    }
+    if (need_shift_grads && !grad_shifts.is_contiguous()) {
+      grad_shifts.copy_(*grad_shifts_contiguous);
+    }
+
+    return std::make_tuple(grad_reconstruction, grad_rotations, grad_shifts);
+  } // @autoreleasepool
 }
 
 #endif // __APPLE__
