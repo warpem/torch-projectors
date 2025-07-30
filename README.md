@@ -1,50 +1,98 @@
 # torch-projectors
 
-A high-performance, differentiable 2D and 3D projection library for PyTorch, tailored for applications in cryogenic electron microscopy (cryo-EM), tomography, and related fields.
+A high-performance, differentiable 2D and 3D projection library for PyTorch, designed for cryogenic electron microscopy (cryo-EM) and tomography applications. The library provides forward and backward projection operators that work in Fourier space, following the Projection-Slice Theorem.
 
-This project is currently under active development.
+## Features
 
-## Development Setup
+- **Multi-Platform Support**: CPU, CUDA (when available), and Metal Performance Shaders (MPS) on Apple Silicon
+- **Multiple Backends**: Optimized kernels for different hardware platforms
+- **Interpolation Methods**: Nearest neighbor, linear, and cubic interpolation
+- **Fourier Space Operations**: Efficient projections using PyTorch's RFFT format
+- **Full Differentiability**: Gradient support for reconstructions, rotations, and shifts
+- **Batch Processing**: Efficient handling of multiple reconstructions and poses
+- **Oversampling Support**: Computational efficiency through coordinate scaling
+- **Fourier Filtering**: Optional radius cutoff for low-pass filtering
 
-These instructions outline how to set up a development environment for `torch-projectors`. We use `conda` to manage dependencies.
+## Core API
 
-### 1. Create and Activate the Conda Environment
+The library provides two main functions:
 
-First, create a dedicated conda environment and install the required dependencies. All commands should be run from the root of this repository.
+- `forward_project_2d()`: Project 3D Fourier reconstructions to 2D projections
+- `backward_project_2d()`: Backward projection for gradient computation
+
+## Installation & Development Setup
+
+### Prerequisites
+
+This project requires a conda environment with PyTorch and pytest:
 
 ```bash
-# Create the conda environment
+# Create and activate environment
 conda create -n torch-projectors python=3.11 -y
-
-# Activate the environment
 conda activate torch-projectors
-
-# Install PyTorch and pytest
 conda install pytorch pytest -c pytorch -c conda-forge -y
 ```
 
-### 2. Install the Project in Editable Mode
+### Install in Editable Mode
 
-To build the C++ extension and install the package in a way that reflects code changes automatically, use the following command.
-
-We use `pip` for the editable install, which handles the C++ extension compilation. Our project uses a `pyproject.toml` file to ensure that `setuptools` can find PyTorch during the build process.
+The project uses PyTorch's modern hybrid C++/Python extension pattern with automatic platform detection:
 
 ```bash
-# Install the package in editable mode
+# Install the package (compiles C++ extensions automatically)
 python -m pip install -e .
 ```
 
-If the command succeeds, the C++ extension has been compiled successfully.
+The build system automatically detects and enables:
+- **CUDA support** when CUDA is available and `TORCH_CUDA_ARCH_LIST` is set
+- **MPS support** on macOS with Apple Silicon
+- **CPU fallback** on all platforms
 
-Our project uses the modern PyTorch C++ extension hybrid approach:
-*   **C++ Kernels:** The performance-sensitive forward and backward passes are written as separate C++ functions.
-*   **`TORCH_LIBRARY` Registration:** Both the forward and backward C++ kernels are registered as distinct PyTorch operators.
-*   **Python `autograd` Registration:** In Python, `torch.library.register_autograd` is used to link the two C++ operators. It tells the autograd engine that when it sees our forward operator, it should use our C++ backward operator in the backward pass. This pattern provides a stable, high-performance, and officially recommended way to create differentiable custom operators.
+## Architecture
 
-### 3. Running Tests
+### Core Components
 
-Tests are managed using `pytest`. To run the test suite, execute the following command from the repository root:
+- **Python API**: `torch_projectors/ops.py` - Main user interface
+- **C++ Kernels**: `csrc/cpu/cpu_kernels.cpp` - High-performance CPU implementations  
+- **CUDA Kernels**: `csrc/cuda/cuda_kernels.cu` - GPU acceleration (when available)
+- **Metal Shaders**: `csrc/mps/*.metal` - Apple Silicon optimization
+- **Operator Registration**: `csrc/torch_projectors.cpp` - PyTorch integration
+
+### Design Pattern
+
+- **C++ Kernels**: Performance-critical forward/backward operations
+- **TORCH_LIBRARY Registration**: Operators registered in the `torch_projectors` namespace
+- **Python Autograd**: `torch.library.register_autograd` links C++ operators for seamless differentiation
+
+## Data Format
+
+- **Fourier Space**: Uses PyTorch's RFFT format (last dimension is `N/2 + 1`)
+- **Coordinate System**: Origin `(0,0,0)` at index `[..., 0, 0, 0]`
+- **Batch Dimensions**: Two batch dimensions - first for reconstructions, second for poses
+- **Friedel Symmetry**: Automatically handled for real-valued reconstructions
+
+## Testing
+
+Comprehensive test suite with visual validation:
 
 ```bash
+# Run all tests
 pytest
+
+# Run specific test categories
+pytest tests/test_basic_projection.py      # Core functionality
+pytest tests/test_gradients.py            # Gradient verification
+pytest tests/test_cross_platform.py       # Multi-platform consistency
+pytest tests/test_performance.py          # Performance benchmarks
+pytest tests/test_visual_validation.py    # Visual output validation
 ```
+
+Tests generate visualization outputs in `test_outputs/` for manual inspection and include:
+- Numerical correctness validation
+- Gradient checking via autograd  
+- Visual validation with matplotlib plots
+- Cross-platform consistency verification
+- Performance benchmarking
+
+## Development Status
+
+This project is under active development. Current capabilities include 2D forward projection with full gradient support. The architecture is designed to support future expansion to 3D-to-2D and 3D-to-3D projections.
