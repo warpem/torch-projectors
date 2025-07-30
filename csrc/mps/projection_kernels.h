@@ -573,10 +573,8 @@ kernel void backward_project_2d_kernel(
         // Get gradient from projection
         float2 grad_proj = grad_projections[proj_base_idx + pixel_idx];
         
-        // 1. ALWAYS compute reconstruction gradients (main scatter operation)
+        // Apply phase shift correction to gradient if needed (same for both rec and rot gradients)
         float2 grad_proj_for_rec = grad_proj;
-        
-        // Apply phase shift correction to gradient if needed
         if (params.has_shifts) {
             float phase = 2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
                                          proj_coord_c * shift_c / params.boxsize);
@@ -584,7 +582,8 @@ kernel void backward_project_2d_kernel(
             grad_proj_for_rec = complex_mul(grad_proj_for_rec, phase_factor);
         }
         
-        // Distribute gradient using appropriate backward kernel
+        // 1. ALWAYS compute reconstruction gradients (main scatter operation)
+        // Use the phase-corrected gradient
         if (interpolation_method == 0) {  // linear
             distribute_bilinear_gradient(grad_reconstruction, b, params.boxsize, params.boxsize_half,
                                        rec_batch_stride, rec_row_stride, grad_proj_for_rec, rot_r, rot_c);
@@ -595,33 +594,28 @@ kernel void backward_project_2d_kernel(
         
         // 2. Compute rotation gradients (only if needed)
         if (need_rotation_grads) {
-            // Get reconstruction value and spatial gradients
-            float2 rec_val, grad_r, grad_c;
+            // Get spatial gradients (rec_val not needed for rotation gradients)
+            float2 _unused, grad_r, grad_c;
             if (interpolation_method == 0) {  // linear
                 bilinear_interpolate_with_gradients(reconstruction, b, params.boxsize, params.boxsize_half,
                                                   rec_batch_stride, rec_row_stride, rot_r, rot_c,
-                                                  &rec_val, &grad_r, &grad_c);
+                                                  &_unused, &grad_r, &grad_c);
             } else {  // cubic
                 bicubic_interpolate_with_gradients(reconstruction, b, params.boxsize, params.boxsize_half,
                                                  rec_batch_stride, rec_row_stride, rot_r, rot_c,
-                                                 &rec_val, &grad_r, &grad_c);
+                                                 &_unused, &grad_r, &grad_c);
             }
             
-            // Apply shift modulation if needed (for correct chain rule)
-            if (params.has_shifts) {
-                float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                              proj_coord_c * shift_c / params.boxsize);
-                float2 phase_factor = float2(cos(phase), sin(phase));
-                rec_val = complex_mul(rec_val, phase_factor);
-            }
+            // Use the SAME (phase-correct) gradient for rotation as for reconstruction
+            const float2 grad_for_rot = grad_proj_for_rec;
             
             // Chain rule: ∂f/∂R[i][j] = (∂f/∂rot_coord) * (∂rot_coord/∂R[i][j])
             // IMPORTANT: Must match CPU version exactly - conjugate AFTER multiplying by sample
             
-            local_rot_grad[tid][0] += (complex_mul(grad_proj, complex_conj(complex_scale(grad_c, sample_c)))).x;  // ∂f/∂R[0][0]
-            local_rot_grad[tid][1] += (complex_mul(grad_proj, complex_conj(complex_scale(grad_c, sample_r)))).x;  // ∂f/∂R[0][1]
-            local_rot_grad[tid][2] += (complex_mul(grad_proj, complex_conj(complex_scale(grad_r, sample_c)))).x;  // ∂f/∂R[1][0]
-            local_rot_grad[tid][3] += (complex_mul(grad_proj, complex_conj(complex_scale(grad_r, sample_r)))).x;  // ∂f/∂R[1][1]
+            local_rot_grad[tid][0] += (complex_mul(grad_for_rot, complex_conj(complex_scale(grad_c, sample_c)))).x;  // ∂f/∂R[0][0]
+            local_rot_grad[tid][1] += (complex_mul(grad_for_rot, complex_conj(complex_scale(grad_c, sample_r)))).x;  // ∂f/∂R[0][1]
+            local_rot_grad[tid][2] += (complex_mul(grad_for_rot, complex_conj(complex_scale(grad_r, sample_c)))).x;  // ∂f/∂R[1][0]
+            local_rot_grad[tid][3] += (complex_mul(grad_for_rot, complex_conj(complex_scale(grad_r, sample_r)))).x;  // ∂f/∂R[1][1]
         }
         
         // 3. Compute shift gradients (only if needed)
