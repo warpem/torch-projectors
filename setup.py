@@ -31,20 +31,31 @@ else:
     extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
 
 # Check for CUDA availability
+print(f"PyTorch CUDA available: {torch.cuda.is_available()}")
+print(f"PyTorch version: {torch.__version__}")
+print(f"Platform: {platform.system()}")
+
 cuda_available = torch.cuda.is_available()
 
 # Set CUDA architectures if not specified and CUDA is available
 if cuda_available and "TORCH_CUDA_ARCH_LIST" not in os.environ:
     os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;8.9;9.0"
+    print(f"Set TORCH_CUDA_ARCH_LIST to: {os.environ['TORCH_CUDA_ARCH_LIST']}")
+else:
+    print(f"TORCH_CUDA_ARCH_LIST already set to: {os.environ.get('TORCH_CUDA_ARCH_LIST', 'Not set')}")
 
 use_cuda = cuda_available
 
 # Add CUDA backend if available
 if use_cuda:
     print("CUDA detected, enabling CUDA backend...")
+    print(f"Adding CUDA source: csrc/cuda/cuda_kernels.cu")
     sources.append("csrc/cuda/cuda_kernels.cu")
     extra_compile_args["cxx"].append("-DUSE_CUDA")
     extra_compile_args["nvcc"] = ["-O3", "--use_fast_math", "-DUSE_CUDA"]
+    print(f"CUDA compile args: {extra_compile_args['nvcc']}")
+else:
+    print("CUDA not available or disabled, using CPU backend only")
 
 # Add MPS backend on macOS
 if platform.system() == "Darwin":
@@ -64,8 +75,14 @@ if platform.system() == "Darwin":
 # Choose the appropriate extension type based on CUDA availability
 if use_cuda:
     extension_class = CUDAExtension
+    print("Using CUDAExtension for compilation")
 else:
     extension_class = CppExtension
+    print("Using CppExtension for compilation")
+
+print(f"Final sources list: {sources}")
+print(f"Final compile args: {extra_compile_args}")
+print(f"Final link args: {extra_link_args}")
 
 setup(
     name="torch-projectors",
