@@ -6,7 +6,10 @@ from pathlib import Path
 # 1. Load the C++ extension library.
 #    This must happen before the Python registration.
 try:
-    _lib_path = next((Path(__file__).parent).glob("_C*.so"))
+    # Try platform-specific extensions: .pyd (Windows), .so (Linux), .dylib (macOS)
+    _lib_path = next((Path(__file__).parent).glob("_C*.*"), None)
+    if _lib_path is None or _lib_path.suffix not in ['.so', '.pyd', '.dylib']:
+        raise StopIteration
 except StopIteration:
     raise ImportError("Could not find C++ extension library. Did you compile the project?")
 torch.ops.load_library(_lib_path)
