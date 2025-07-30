@@ -154,6 +154,8 @@ at::Tensor forward_project_2d_mps(
       static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0f))
     };
 
+    torch::mps::commit();
+
     // -------- Encode & commit (you own encoder lifecycle in this API) --------
     dispatch_sync(serialQueue, ^(){
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -317,6 +319,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
     if (need_rotation_grads) {
         grad_rot_contiguous = grad_rotations.is_contiguous() ? grad_rotations : grad_rotations.contiguous();
     }
+
+    torch::mps::commit();
 
     // -------- Acquire PyTorch's MPS command buffer & serial queue --------
     id<MTLCommandBuffer> commandBuffer = (id<MTLCommandBuffer>)torch::mps::get_command_buffer();
