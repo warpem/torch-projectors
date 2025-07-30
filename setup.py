@@ -16,12 +16,19 @@ sources = [
 ]
 
 # Platform-specific compilation flags
-extra_compile_args = {"cxx": ["-O3", "-std=c++20"]}
-extra_link_args = []
-
-# Add OpenMP support (all platforms)
-extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
-extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
+if platform.system() == "Windows":
+    # MSVC-specific flags
+    extra_compile_args = {"cxx": ["/O2", "/std:c++20"]}
+    extra_link_args = []
+    # OpenMP for MSVC
+    extra_compile_args["cxx"].append("/openmp")
+else:
+    # GCC/Clang flags
+    extra_compile_args = {"cxx": ["-O3", "-std=c++20"]}
+    extra_link_args = []
+    # Add OpenMP support (Unix platforms)
+    extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
+    extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
 
 # Check for CUDA availability
 cuda_available = torch.cuda.is_available()
