@@ -33,7 +33,13 @@ The project uses PyTorch's modern hybrid C++/Python extension pattern:
 - `torch_projectors/ops.py`: Python API with `forward_project_2d()` and `backward_project_2d()`
 - `csrc/torch_projectors.cpp`: Operator registration defining the `torch_projectors` namespace
 - `csrc/cpu/cpu_kernels.{h,cpp}`: CPU implementations of projection kernels
+- `csrc/mps/utilities.metal`: Metal utility functions (complex math, interpolation, atomics)
+- `csrc/mps/forward.metal`: Metal forward projection kernel
+- `csrc/mps/backward.metal`: Metal backward projection kernel
+- `csrc/mps/mps_kernels.mm`: MPS backend implementation
 - `torch_projectors/__init__.py`: Library loading and Python registration
+
+**Note**: `csrc/mps/projection_kernels.h` is auto-generated at build time from the `.metal` files and excluded from git.
 
 ## Data Format and Coordinate System
 

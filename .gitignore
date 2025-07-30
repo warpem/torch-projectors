@@ -57,4 +57,7 @@ env.bak/
 venv.bak/ 
 
 # Test outputs
-test_outputs/ 
+test_outputs/
+
+# Auto-generated Metal shader headers
+csrc/mps/projection_kernels.h 
