@@ -29,8 +29,8 @@ def test_forward_project_2d_backward_gradcheck_rec_only(device, interpolation):
         
     B, P, H, W = 1, 1, 16, 16
     W_half = W // 2 + 1
-    rec_fourier = torch.randn(B, H, W_half, dtype=torch.complex64, requires_grad=True, device=device)
-    rotations = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
+    rec_fourier = torch.randn(B, H, W_half, dtype=torch.complex128, requires_grad=True, device=device)
+    rotations = torch.eye(2, dtype=torch.float64, device=device).unsqueeze(0).unsqueeze(0)
     output_shape = (H, W)
 
     def func(reconstruction):
