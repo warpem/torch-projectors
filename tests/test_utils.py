@@ -173,7 +173,5 @@ def device(request):
     if device_type == "cuda":
         if not torch.cuda.is_available():
             pytest.skip("CUDA not available on this system")
-        if not torch.cuda.is_built():
-            pytest.skip("CUDA not built with this PyTorch installation")
             
     return torch.device(device_type)
