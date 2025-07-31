@@ -1,12 +1,12 @@
 #include <torch/extension.h>
-#include "cpu/cpu_kernels.h"
+#include "cpu/2d/projection_2d_kernels.h"
 
 #ifdef __APPLE__
-#include "mps/mps_kernels.h"
+#include "mps/2d/projection_2d_kernels.h"
 #endif
 
 #ifdef USE_CUDA
-#include "cuda/cuda_kernels.h"
+#include "cuda/2d/projection_2d_kernels.h"
 #endif
 
 TORCH_LIBRARY(torch_projectors, m) {

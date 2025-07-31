@@ -13,7 +13,7 @@
  * - Interpolation: Bilinear and bicubic methods with analytical gradients
  */
 
-#include "cpu_kernels.h"
+#include "projection_2d_kernels.h"
 #include <torch/extension.h>
 #include <ATen/ParallelOpenMP.h>
 #include <complex>

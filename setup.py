@@ -12,7 +12,7 @@ torch_lib_dir = os.path.join(os.path.dirname(torch.__file__), 'lib')
 # Base sources that are compiled on all platforms
 sources = [
     "csrc/torch_projectors.cpp",
-    "csrc/cpu/cpu_kernels.cpp",
+    "csrc/cpu/2d/projection_2d_kernels.cpp",
 ]
 
 # Platform-specific compilation flags
@@ -49,8 +49,8 @@ use_cuda = cuda_available
 # Add CUDA backend if available
 if use_cuda:
     print("CUDA detected, enabling CUDA backend...")
-    print(f"Adding CUDA source: csrc/cuda/cuda_kernels.cu")
-    sources.append("csrc/cuda/cuda_kernels.cu")
+    print(f"Adding CUDA source: csrc/cuda/2d/projection_2d_kernels.cu")
+    sources.append("csrc/cuda/2d/projection_2d_kernels.cu")
     extra_compile_args["cxx"].append("-DUSE_CUDA")
     extra_compile_args["nvcc"] = ["-O3", "--use_fast_math", "-DUSE_CUDA"]
     print(f"CUDA compile args: {extra_compile_args['nvcc']}")
@@ -68,7 +68,7 @@ if platform.system() == "Darwin":
         sys.exit(1)
     print(result.stdout)
     
-    sources.append("csrc/mps/mps_kernels.mm")
+    sources.append("csrc/mps/2d/projection_2d_kernels.mm")
     extra_compile_args["cxx"].extend(["-ObjC++", "-fobjc-arc", "-mmacosx-version-min=12.0"])
     extra_link_args.extend(["-framework", "Metal", "-framework", "MetalPerformanceShaders"])
 

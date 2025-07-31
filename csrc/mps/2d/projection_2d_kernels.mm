@@ -1,4 +1,4 @@
-#include "mps_kernels.h"
+#include "projection_2d_kernels.h"
 
 #ifdef __APPLE__
 
@@ -6,7 +6,7 @@
 #include <Metal/Metal.h>
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #include <ATen/mps/MPSStream.h>
-#include "projection_kernels.h"
+#include "../projection_kernels.h"
 
 // Retrieve the MTLBuffer that backs a tensor's storage.
 // NOTE: storage().data() is const void*, so keep const and cast via __bridge.
