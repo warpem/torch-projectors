@@ -248,8 +248,8 @@ __global__ void forward_project_2d_kernel(
         
         // Apply phase shift if translations are provided (using pre-computed shifts)
         if (params.has_shifts) {
-            float phase = -2.0f * CUDART_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                                 proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
+                                          proj_coord_c * shift_c / params.boxsize);
             cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
             val = complex_mul(val, phase_factor);
         }
