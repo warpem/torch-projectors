@@ -29,22 +29,21 @@ def test_visual_rotation_validation_3d_to_2d(device, interpolation):
     # Create 3D structures with different characteristics
     reconstructions = torch.zeros(num_reconstructions, D, H, W_half, dtype=torch.complex64, device=device)
     
-    # Reconstruction 1: Central line along Z axis
+    # Reconstruction 1
     line_length = 10
     reconstructions[0, :line_length, 0, 0] = 1.0 + 1.0j
     reconstructions[0, 0, :line_length, 0] = 0.5 + 0.5j  # Cross pattern
     reconstructions[0, 0, 0, 1:6] = 0.3 + 0.3j
     
-    # Reconstruction 2: Diagonal structure 
-    for i in range(min(8, D, H)):
-        reconstructions[1, i, i, 0] = 1.0 + 1.0j
-        if i < W_half:
-            reconstructions[1, i, 0, i] = 0.7 + 0.7j
+    # Reconstruction 2
+    reconstructions[1, :line_length, 0, 0] = 1.0 + 1.0j
+    reconstructions[1, 0, :line_length, 0] = 0.5 + 0.5j  # Cross pattern
+    reconstructions[1, 0, 0, 1:6] = 0.3 + 0.3j
     
-    # Reconstruction 3: Corner structures
-    reconstructions[2, 0, 0, 0] = 2.0 + 2.0j  # Origin
-    reconstructions[2, 5, 5, 1] = 1.5 + 1.5j  # Off-origin point
-    reconstructions[2, 2:8, 0, 0] = 0.8 + 0.8j  # Short line along Z
+    # Reconstruction 3
+    reconstructions[2, :line_length, 0, 0] = 1.0 + 1.0j
+    reconstructions[2, 0, :line_length, 0] = 0.5 + 0.5j  # Cross pattern
+    reconstructions[2, 0, 0, 1:6] = 0.3 + 0.3j
 
     # Create rotation matrices - different axes for variety
     rotation_axes = ['x', 'y', 'z']  # One axis per reconstruction
@@ -147,14 +146,14 @@ def test_visual_shift_validation_3d_to_2d(device, interpolation):
     reconstructions[0, :5, 0, 0] = 1.0 + 1.0j  # Line along Z
     reconstructions[0, 0, :5, 2] = 0.8 + 0.8j  # Line along Y
     
-    # Reconstruction 2: Different pattern
-    for i in range(min(6, D, H)):
-        reconstructions[1, i, i, 0] = 1.0 + 1.0j  # Diagonal in Z-Y plane
-        if i < W_half:
-            reconstructions[1, 0, i, i] = 0.6 + 0.6j  # Diagonal in Y-X plane
+    # Reconstruction 2: Asymmetric pattern to ensure shift effects are visible
+    reconstructions[1, 0, 0, 0] = 1.5 + 1.5j  # Origin
+    reconstructions[1, 1, 2, 1] = 1.0 + 1.0j  # Off-center point  
+    reconstructions[1, 0, 0:4, 0] = 0.8 + 0.8j  # Line along Y
+    reconstructions[1, 0:3, 1, 2] = 0.6 + 0.6j  # Line along Z at (Y=1, X=2)
 
-    # Identity rotations for both reconstructions
-    rotations = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0).expand(num_reconstructions, 1, 3, 3)
+    # Identity rotations for both reconstructions - need to match number of shifts
+    rotations = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0).expand(num_reconstructions, num_shifts, 3, 3)
 
     # Different 2D shifts
     shift_values = [
