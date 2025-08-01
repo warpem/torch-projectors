@@ -13,6 +13,7 @@ torch_lib_dir = os.path.join(os.path.dirname(torch.__file__), 'lib')
 sources = [
     "csrc/torch_projectors.cpp",
     "csrc/cpu/2d/projection_2d_kernels.cpp",
+    "csrc/cpu/3d/projection_3d_to_2d_kernels.cpp",
 ]
 
 # Platform-specific compilation flags

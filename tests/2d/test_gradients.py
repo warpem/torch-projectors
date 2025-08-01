@@ -23,6 +23,9 @@ def test_forward_project_2d_backward_gradcheck_rec_only(device, interpolation):
     """
     Tests the 2D forward projection's backward pass using gradcheck for reconstruction only.
     """
+
+    torch.manual_seed(42)
+
     # Skip MPS for gradcheck - PyTorch gradcheck doesn't support MPS complex ops yet
     if device.type == "mps":
         pytest.skip("gradcheck not supported for MPS with complex tensors")
@@ -325,6 +328,9 @@ def test_rotation_gradients_comprehensive(device, interpolation):
     Comprehensive test of rotation gradients using finite difference verification.
     This test validates that our analytical rotation gradients match numerical derivatives.
     """
+
+    torch.manual_seed(42)
+
     # MPS gradient support now working after fixing requires_grad preservation
     print(f"\n🔄 Testing rotation gradients comprehensively ({interpolation})...")
     
@@ -371,6 +377,9 @@ def test_rotation_gradients_comprehensive(device, interpolation):
 
 def _test_rotation_finite_difference_accuracy(device, interpolation):
     """Test that analytical gradients match finite differences"""
+
+    torch.manual_seed(42)
+    
     # Create test data - use smaller, more manageable case
     torch.manual_seed(42)  # For reproducibility
     rec = torch.randn(1, 16, 9, dtype=torch.complex64, requires_grad=True, device=device)

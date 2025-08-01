@@ -18,6 +18,6 @@ torch.ops.load_library(_lib_path)
 from . import ops
 
 # 3. Expose the user-facing function.
-from .ops import forward_project_2d, backward_project_2d
+from .ops import forward_project_2d, backward_project_2d, forward_project_3d_to_2d, backward_project_3d_to_2d
 
-__all__ = ["forward_project_2d", "backward_project_2d"] 
+__all__ = ["forward_project_2d", "backward_project_2d", "forward_project_3d_to_2d", "backward_project_3d_to_2d"] 
