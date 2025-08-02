@@ -8,7 +8,7 @@
 #include <cuComplex.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
-#include "../cpu/2d/projection_2d_kernels.h"
+#include "../../cpu/2d/projection_2d_kernels.h"
 
 // CUDA utility functions and kernels
 
