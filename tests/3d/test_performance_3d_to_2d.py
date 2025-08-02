@@ -402,7 +402,7 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     rotations_tp = torch.zeros(num_reconstructions, num_projections_per_rec, 3, 3, device=device)
     
     # Create rotation matrices for torch-fourier-slice (per volume format)
-    rotations_tfs = torch.zeros(num_reconstructions, num_projections_per_rec, 3, 3)
+    rotations_tfs = torch.zeros(num_reconstructions, num_projections_per_rec, 3, 3, device=device)
     
     for i in range(num_reconstructions):
         for j in range(num_projections_per_rec):
@@ -416,25 +416,25 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
                 [1, 0, 0],
                 [0, cos_x, -sin_x],
                 [0, sin_x, cos_x]
-            ], dtype=torch.float32)
+            ], dtype=torch.float32, device=device)
             
             # Rotation around Y axis  
             Ry = torch.tensor([
                 [cos_y, 0, sin_y],
                 [0, 1, 0],
                 [-sin_y, 0, cos_y]
-            ], dtype=torch.float32)
+            ], dtype=torch.float32, device=device)
             
             # Rotation around Z axis
             Rz = torch.tensor([
                 [cos_z, -sin_z, 0],
                 [sin_z, cos_z, 0],
                 [0, 0, 1]
-            ], dtype=torch.float32)
+            ], dtype=torch.float32, device=device)
             
             # Combined rotation: Rz * Ry * Rx
             rotation = Rz @ Ry @ Rx
-            rotations_tp[i, j] = rotation.to(device)
+            rotations_tp[i, j] = rotation
             rotations_tfs[i, j] = rotation
     
     shifts_tp = torch.randn(num_reconstructions, num_projections_per_rec, 2, device=device) * 5.0
