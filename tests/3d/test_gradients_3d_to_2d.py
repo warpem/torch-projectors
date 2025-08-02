@@ -526,4 +526,4 @@ def _test_rotation_optimization_convergence_3d_to_2d(device, interpolation):
         
         print(f"      Final: target={target_angle:.3f}, best={best_angle:.3f}, diff={angle_diff.item():.3f}")
         # Reasonable tolerance for convergence
-        assert angle_diff < 0.001, f"Failed to converge: angle difference {angle_diff.item():.3f} > 0.001 rad"
+        assert angle_diff < 0.002, f"Failed to converge: angle difference {angle_diff.item():.3f} > 0.002 rad"

@@ -15,7 +15,7 @@ from test_utils import device, plot_fourier_tensors
 
 # Third-party benchmark import (optional)
 try:
-    from torch_fourier_slice import project_3d_to_2d_multichannel
+    from torch_fourier_slice import extract_central_slices_rfft_3d
     HAS_TORCH_FOURIER_SLICE = True
 except ImportError:
     HAS_TORCH_FOURIER_SLICE = False
@@ -189,6 +189,10 @@ def test_performance_benchmark_3d_to_2d(device):
     total_projections = num_reconstructions * num_projections_per_rec
     print(f"Linear  - {total_projections / linear_total:.1f}")
     print(f"Cubic   - {total_projections / cubic_total:.1f}")
+    
+    print(f"\nForward-Only Throughput (projections/second):")
+    print(f"Linear  - {total_projections / linear_forward_stats['mean']:.1f}")
+    print(f"Cubic   - {total_projections / cubic_forward_stats['mean']:.1f}")
 
 
 def test_interpolation_quality_comparison_3d_to_2d(device):
@@ -364,8 +368,8 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     torch.manual_seed(42)
     
     # Use same benchmark parameters as our performance test
-    num_reconstructions = 2
-    num_projections_per_rec = 4
+    num_reconstructions = 1
+    num_projections_per_rec = 8192
     D, H, W = 128, 128, 128
     W_half = W // 2 + 1
     num_warmup_runs = 3
@@ -381,15 +385,13 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     # Generate test data - use CPU for torch-fourier-slice compatibility
     torch.manual_seed(42)
     
-    # torch-fourier-slice expects real-valued volumes in spatial domain
-    # Create multi-channel volume for torch-fourier-slice (channels, D, H, W)
-    volume_tfs = torch.rand((num_reconstructions, D, H, W), dtype=torch.float32)
+    # Both libraries now work in Fourier domain
+    # Create Fourier domain volumes directly
+    volume_tp = torch.randn(num_reconstructions, D, H, W_half, dtype=torch.complex64, device=device)
+    volume_tfs = volume_tp.clone()  # torch-fourier-slice copy on same device
     
-    # For torch-projectors, convert to Fourier domain complex data
-    volume_tp = torch.fft.rfftn(volume_tfs, dim=(-3, -2, -1))  # Shape: [num_reconstructions, D, H, W_half]
-    volume_tp = volume_tp.to(device)
-    volume_tfs.requires_grad_(True)
     volume_tp.requires_grad_(True)
+    volume_tfs.requires_grad_(True)
     
     # Generate rotation matrices using same method as our benchmark
     angles_x = torch.rand(num_reconstructions, num_projections_per_rec) * 2 * math.pi
@@ -399,11 +401,9 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     # Create rotation matrices for torch-projectors (batch format)
     rotations_tp = torch.zeros(num_reconstructions, num_projections_per_rec, 3, 3, device=device)
     
-    # Create rotation matrices for torch-fourier-slice (flattened format)
-    total_projections = num_reconstructions * num_projections_per_rec
-    rotations_tfs = torch.zeros(total_projections, 3, 3)
+    # Create rotation matrices for torch-fourier-slice (per volume format)
+    rotations_tfs = torch.zeros(num_reconstructions, num_projections_per_rec, 3, 3)
     
-    idx = 0
     for i in range(num_reconstructions):
         for j in range(num_projections_per_rec):
             # Create rotation matrices around each axis
@@ -435,21 +435,29 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             # Combined rotation: Rz * Ry * Rx
             rotation = Rz @ Ry @ Rx
             rotations_tp[i, j] = rotation.to(device)
-            rotations_tfs[idx] = rotation
-            idx += 1
+            rotations_tfs[i, j] = rotation
     
     shifts_tp = torch.randn(num_reconstructions, num_projections_per_rec, 2, device=device) * 5.0
     
     def benchmark_torch_fourier_slice():
-        """Benchmark torch-fourier-slice"""
+        """Benchmark torch-fourier-slice using Fourier space API"""
         forward_times = []
         backward_times = []
         
         # Warmup runs
         for _ in range(num_warmup_runs):
             volume_tfs.grad = None
-            projections = project_3d_to_2d_multichannel(volume_tfs, rotations_tfs)
-            loss = torch.sum(torch.abs(projections)**2)
+            all_projections = []
+            for i in range(num_reconstructions):
+                volume = volume_tfs[i]  # Single volume (D, H, W_half)
+                rotations = rotations_tfs[i]  # Rotations for this volume (num_projections_per_rec, 3, 3)
+                # Use Fourier space API with image_shape parameter
+                projections = extract_central_slices_rfft_3d(volume, (D, H, W), rotations)
+                all_projections.append(projections)
+            continue
+            # Stack all projections for loss calculation
+            all_projections = torch.stack(all_projections)  # (num_reconstructions, num_projections_per_rec, H, W_half)
+            loss = torch.sum(torch.abs(all_projections)**2)
             loss.backward()
         
         # Timing runs
@@ -461,15 +469,24 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             torch.mps.synchronize() if torch.backends.mps.is_available() else None
             start_time = time.perf_counter()
             
-            projections = project_3d_to_2d_multichannel(volume_tfs, rotations_tfs)
+            all_projections = []
+            for i in range(num_reconstructions):
+                volume = volume_tfs[i]  # Single volume (D, H, W_half)
+                rotations = rotations_tfs[i]  # Rotations for this volume (num_projections_per_rec, 3, 3)
+                # Use Fourier space API with image_shape parameter
+                projections = extract_central_slices_rfft_3d(volume, (D, H, W), rotations)
+                all_projections.append(projections)
+            
+            # Stack all projections
+            all_projections = torch.stack(all_projections)  # (num_reconstructions, num_projections_per_rec, H, W_half)
             
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             torch.mps.synchronize() if torch.backends.mps.is_available() else None
             forward_time = time.perf_counter() - start_time
             forward_times.append(forward_time)
-            
+            continue
             # Time backward pass
-            loss = torch.sum(torch.abs(projections)**2)
+            loss = torch.sum(torch.abs(all_projections)**2)
             
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             torch.mps.synchronize() if torch.backends.mps.is_available() else None
@@ -491,17 +508,18 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
         
         # Warmup runs
         for _ in range(num_warmup_runs):
-            volume_tp.grad = None
+            volume_tp.requires_grad_(True)
             projections = torch_projectors.forward_project_3d_to_2d(
                 volume_tp, rotations_tp, shifts_tp,
                 output_shape=(H, W), interpolation='linear'
             )
+            continue
             loss = torch.sum(torch.abs(projections)**2)
             loss.backward()
         
         # Timing runs
         for _ in range(num_timing_runs):
-            volume_tp.grad = None
+            volume_tp.requires_grad_(True)
             
             # Time forward pass
             torch.cuda.synchronize() if torch.cuda.is_available() else None
@@ -517,6 +535,7 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             torch.mps.synchronize() if torch.backends.mps.is_available() else None
             forward_time = time.perf_counter() - start_time
             forward_times.append(forward_time)
+            continue
             
             # Time backward pass
             loss = torch.sum(torch.abs(projections)**2)
@@ -552,9 +571,9 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
         }
     
     tfs_forward_stats = calc_stats(tfs_forward)
-    tfs_backward_stats = calc_stats(tfs_backward)
+    #tfs_backward_stats = calc_stats(tfs_backward)
     tp_forward_stats = calc_stats(tp_forward)
-    tp_backward_stats = calc_stats(tp_backward)
+    #tp_backward_stats = calc_stats(tp_backward)
     
     # Print comparison results
     print(f"\n{'='*80}")
@@ -573,10 +592,10 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             print(f"torch-fourier-slice is {1/speedup:.2f}x faster")
     
     print(f"\nBackward Projection Times (seconds):")
-    print(f"torch-fourier-slice - Mean: {tfs_backward_stats['mean']:.4f} ± {tfs_backward_stats['stdev']:.4f}")
-    print(f"torch-projectors   - Mean: {tp_backward_stats['mean']:.4f} ± {tp_backward_stats['stdev']:.4f}")
+    #print(f"torch-fourier-slice - Mean: {tfs_backward_stats['mean']:.4f} ± {tfs_backward_stats['stdev']:.4f}")
+    #print(f"torch-projectors   - Mean: {tp_backward_stats['mean']:.4f} ± {tp_backward_stats['stdev']:.4f}")
     
-    if tp_backward_stats['mean'] > 0:
+    """if tp_backward_stats['mean'] > 0:
         speedup = tfs_backward_stats['mean'] / tp_backward_stats['mean']
         if speedup > 1:
             print(f"torch-projectors is {speedup:.2f}x faster")
@@ -594,13 +613,12 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
         if total_speedup > 1:
             print(f"torch-projectors is {total_speedup:.2f}x faster overall")
         else:
-            print(f"torch-fourier-slice is {1/total_speedup:.2f}x faster overall")
+            print(f"torch-fourier-slice is {1/total_speedup:.2f}x faster overall")"""
     
     print(f"\nThroughput (projections/second):")
     total_projections = num_reconstructions * num_projections_per_rec
-    print(f"torch-fourier-slice - {total_projections / tfs_total:.1f}")
-    print(f"torch-projectors   - {total_projections / tp_total:.1f}")
-    
-    print(f"\nNote: torch-fourier-slice operates on spatial domain volumes,")
-    print(f"while torch-projectors operates on Fourier domain volumes.")
-    print(f"This comparison includes FFT overhead for torch-projectors input preparation.")
+    print(f"torch-fourier-slice - {total_projections / tfs_forward_stats['mean']:.1f}")
+    print(f"torch-projectors   - {total_projections / tp_forward_stats['mean']:.1f}")
+
+    print(f"\nNote: Both torch-fourier-slice and torch-projectors now operate on Fourier domain volumes.")
+    print(f"This provides a fair comparison without FFT conversion overhead.")

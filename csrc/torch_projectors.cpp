@@ -4,6 +4,7 @@
 
 #ifdef __APPLE__
 #include "mps/2d/projection_2d_kernels.h"
+#include "mps/3d/projection_3d_to_2d_kernels.h"
 #endif
 
 #ifdef USE_CUDA
@@ -32,8 +33,13 @@ TORCH_LIBRARY_IMPL(torch_projectors, CPU, m) {
 
 #ifdef __APPLE__
 TORCH_LIBRARY_IMPL(torch_projectors, MPS, m) {
+  // 2D->2D projection implementations
   m.impl("forward_project_2d", &forward_project_2d_mps);
   m.impl("backward_project_2d", &backward_project_2d_mps);
+  
+  // 3D->2D projection implementations
+  m.impl("forward_project_3d_to_2d", &forward_project_3d_to_2d_mps);
+  m.impl("backward_project_3d_to_2d", &backward_project_3d_to_2d_mps);
 }
 #endif
 

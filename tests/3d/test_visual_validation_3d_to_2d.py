@@ -194,7 +194,9 @@ def test_visual_shift_validation_3d_to_2d(device, interpolation):
         unshifted = projections[i, 0]  # No shift
         for j in range(1, num_shifts):
             shifted = projections[i, j]
-            diff = torch.norm(unshifted - shifted)
+            # Move to CPU for norm calculation (MPS doesn't support norm on complex tensors)
+            diff_tensor = unshifted - shifted
+            diff = torch.norm(diff_tensor.cpu()).to(unshifted.device)
             assert diff > 1e-4, f"Shifted projection {j} should differ from unshifted (diff={diff:.2e})"
 
 
@@ -283,9 +285,10 @@ def test_visual_central_slice_theorem_3d_to_2d(device, interpolation):
     assert os.path.exists(f'test_outputs/3d/test_visual_central_slice_theorem_3d_to_2d_{interpolation}_{device.type}.png')
     
     # Verify that identity projection is closest to central slice
-    diff_identity = torch.norm(proj_identity[0, 0] - central_slice)
-    diff_rot_y = torch.norm(proj_rot_y[0, 0] - central_slice) 
-    diff_rot_x = torch.norm(proj_rot_x[0, 0] - central_slice)
+    # Move to CPU for norm calculation (MPS doesn't support norm on complex tensors)
+    diff_identity = torch.norm((proj_identity[0, 0] - central_slice).cpu()).to(proj_identity.device)
+    diff_rot_y = torch.norm((proj_rot_y[0, 0] - central_slice).cpu()).to(proj_rot_y.device)
+    diff_rot_x = torch.norm((proj_rot_x[0, 0] - central_slice).cpu()).to(proj_rot_x.device)
     
     print(f"Central slice theorem validation:")
     print(f"  Identity vs central slice: {diff_identity:.6f}")

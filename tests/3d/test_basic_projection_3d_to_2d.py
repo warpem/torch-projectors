@@ -155,7 +155,9 @@ def test_forward_project_3d_to_2d_rotations(device, interpolation):
     for p1 in range(P):
         for p2 in range(p1 + 1, P):
             # Projections should be significantly different for different rotations
-            diff = torch.norm(projection[0, p1] - projection[0, p2])
+            # Move to CPU for norm calculation (MPS doesn't support norm on complex tensors)
+            diff_tensor = projection[0, p1] - projection[0, p2]
+            diff = torch.norm(diff_tensor.cpu()).to(projection.device)
             assert diff > 1e-3, f"Projections {p1} and {p2} are too similar (diff={diff})"
 
     plot_fourier_tensors(
@@ -197,7 +199,9 @@ def test_forward_project_3d_to_2d_with_phase_shift(device, interpolation):
     assert projection.shape == (B, P, H, W_half)
     
     # The projections should be different due to the phase shifts
-    diff = torch.norm(projection[0, 0] - projection[0, 1])
+    # Move to CPU for norm calculation (MPS doesn't support norm on complex tensors)
+    diff_tensor = projection[0, 0] - projection[0, 1]
+    diff = torch.norm(diff_tensor.cpu()).to(projection.device)
     assert diff > 1e-3, f"Shifted and unshifted projections are too similar (diff={diff})"
     
     # Test without shifts for comparison
