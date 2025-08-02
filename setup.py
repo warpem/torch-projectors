@@ -52,6 +52,8 @@ if use_cuda:
     print("CUDA detected, enabling CUDA backend...")
     print(f"Adding CUDA source: csrc/cuda/2d/projection_2d_kernels.cu")
     sources.append("csrc/cuda/2d/projection_2d_kernels.cu")
+    print(f"Adding CUDA source: csrc/cuda/3d/projection_3d_to_2d_kernels.cu")
+    sources.append("csrc/cuda/3d/projection_3d_to_2d_kernels.cu")
     extra_compile_args["cxx"].append("-DUSE_CUDA")
     extra_compile_args["nvcc"] = ["-O3", "--use_fast_math", "-DUSE_CUDA"]
     print(f"CUDA compile args: {extra_compile_args['nvcc']}")
