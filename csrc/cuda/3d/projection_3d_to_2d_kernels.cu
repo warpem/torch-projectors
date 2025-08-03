@@ -3,6 +3,7 @@
 #ifdef USE_CUDA
 
 #include <torch/extension.h>
+#include <torch/torch.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuComplex.h>
@@ -918,8 +919,8 @@ at::Tensor forward_project_3d_to_2d_cuda(
     
     if (B == 1) {
         // Extract real and imaginary parts
-        real_part = reconstruction.real().squeeze(0);  // Remove batch dimension: [D, H, W/2+1]
-        imag_part = reconstruction.imag().squeeze(0);
+        real_part = torch::real(reconstruction).squeeze(0);  // Remove batch dimension: [D, H, W/2+1]
+        imag_part = torch::imag(reconstruction).squeeze(0);
         
         // Ensure contiguous memory layout
         real_part = real_part.contiguous();
