@@ -19,6 +19,10 @@ struct CudaParams3D {
     int interpolation_method; // 0=linear, 1=cubic
     float oversampling;
     float fourier_radius_cutoff;
+    // Texture objects for B=1 optimization
+    cudaTextureObject_t tex_real;
+    cudaTextureObject_t tex_imag;
+    bool use_textures;
 };
 
 // Complex number operations using cuFloatComplex (float32 only for CUDA kernels)
@@ -39,6 +43,46 @@ __device__ __forceinline__ cuFloatComplex complex_add(cuFloatComplex a, cuFloatC
 
 __device__ __forceinline__ cuFloatComplex complex_scale(cuFloatComplex a, float s) {
     return make_cuFloatComplex(cuCrealf(a) * s, cuCimagf(a) * s);
+}
+
+// Sample from 3D volume using texture objects (when available)
+__device__ __forceinline__ cuFloatComplex sample_3d_texture(
+    cudaTextureObject_t tex_real, cudaTextureObject_t tex_imag,
+    int boxsize, int boxsize_half,
+    int d, int r, int c
+) {
+    bool need_conjugate = false;
+    
+    // Handle negative kx via 3D Friedel symmetry (c < 0)
+    if (c < 0) {
+        c = -c;          // Mirror to positive kx
+        r = -r;          // ky must be mirrored as well
+        d = -d;          // kz must be mirrored as well
+        need_conjugate = !need_conjugate;
+    }
+    
+    // Clamp coordinates to valid array bounds
+    c = min(c, boxsize_half - 1);  // Column: [0, boxsize/2]
+    
+    // Row and depth: [-boxsize/2+1, boxsize/2]
+    r = min(boxsize / 2, max(r, -boxsize / 2 + 1));
+    d = min(boxsize / 2, max(d, -boxsize / 2 + 1));
+    
+    // Convert negative indices to positive (FFTW wrapping)
+    if (r < 0) r = boxsize + r;
+    if (d < 0) d = boxsize + d;
+    
+    // Final bounds check
+    r = min(r, boxsize - 1);
+    d = min(d, boxsize - 1);
+    
+    // Sample from texture (convert to 0.5-offset coordinates for texture sampling)
+    float real_val = tex3D<float>(tex_real, c + 0.5f, r + 0.5f, d + 0.5f);
+    float imag_val = tex3D<float>(tex_imag, c + 0.5f, r + 0.5f, d + 0.5f);
+    cuFloatComplex value = make_cuFloatComplex(real_val, imag_val);
+    
+    // Return conjugated value if we used Friedel symmetry
+    return need_conjugate ? complex_conj(value) : value;
 }
 
 // Sample from 3D FFTW-formatted Fourier space with automatic Friedel symmetry handling
@@ -82,12 +126,13 @@ __device__ __forceinline__ cuFloatComplex sample_3d_fftw_with_conjugate(
     return need_conjugate ? complex_conj(value) : value;
 }
 
-// Trilinear interpolation kernel
+// Trilinear interpolation kernel with optional texture sampling
 __device__ __forceinline__ cuFloatComplex trilinear_interpolate(
     const cuFloatComplex* rec,
     int b, int boxsize, int boxsize_half,
     int rec_batch_stride, int rec_depth_stride, int rec_row_stride,
-    float d, float r, float c
+    float d, float r, float c,
+    cudaTextureObject_t tex_real = 0, cudaTextureObject_t tex_imag = 0, bool use_textures = false
 ) {
     // Extract integer and fractional parts of coordinates
     int d_floor = floorf(d);
@@ -99,14 +144,27 @@ __device__ __forceinline__ cuFloatComplex trilinear_interpolate(
 
     // Sample 2x2x2 = 8 neighboring voxels
     // Using systematic naming: pDRC where D,R,C ∈ {0,1} indicate the offset
-    cuFloatComplex p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor);
-    cuFloatComplex p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1);
-    cuFloatComplex p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor);
-    cuFloatComplex p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1);
-    cuFloatComplex p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor);
-    cuFloatComplex p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1);
-    cuFloatComplex p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor);
-    cuFloatComplex p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1);
+    cuFloatComplex p000, p001, p010, p011, p100, p101, p110, p111;
+    
+    if (use_textures) {
+        p000 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor,     r_floor,     c_floor);
+        p001 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor,     r_floor,     c_floor + 1);
+        p010 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor,     r_floor + 1, c_floor);
+        p011 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor,     r_floor + 1, c_floor + 1);
+        p100 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor + 1, r_floor,     c_floor);
+        p101 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor + 1, r_floor,     c_floor + 1);
+        p110 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor + 1, r_floor + 1, c_floor);
+        p111 = sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d_floor + 1, r_floor + 1, c_floor + 1);
+    } else {
+        p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor);
+        p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1);
+        p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor);
+        p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1);
+        p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor);
+        p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1);
+        p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor);
+        p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1);
+    }
 
     // Trilinear interpolation: interpolate in each dimension sequentially
     // First, interpolate along the c dimension (4 edge interpolations)
@@ -142,7 +200,8 @@ __device__ __forceinline__ cuFloatComplex sample_3d_with_edge_clamping(
     const cuFloatComplex* rec,
     int b, int boxsize, int boxsize_half,
     int rec_batch_stride, int rec_depth_stride, int rec_row_stride,
-    int d, int r, int c
+    int d, int r, int c,
+    cudaTextureObject_t tex_real = 0, cudaTextureObject_t tex_imag = 0, bool use_textures = false
 ) {
     // For c: after Friedel symmetry, clamp |c| to valid range [0, boxsize_half-1]
     if (abs(c) >= boxsize_half) {
@@ -153,15 +212,20 @@ __device__ __forceinline__ cuFloatComplex sample_3d_with_edge_clamping(
     r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
     d = max(-boxsize / 2 + 1, min(d, boxsize / 2));
     
-    return sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d, r, c);
+    if (use_textures) {
+        return sample_3d_texture(tex_real, tex_imag, boxsize, boxsize_half, d, r, c);
+    } else {
+        return sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d, r, c);
+    }
 }
 
-// Tricubic interpolation kernel
+// Tricubic interpolation kernel with optional texture sampling
 __device__ __forceinline__ cuFloatComplex tricubic_interpolate(
     const cuFloatComplex* rec,
     int b, int boxsize, int boxsize_half,
     int rec_batch_stride, int rec_depth_stride, int rec_row_stride,
-    float d, float r, float c
+    float d, float r, float c,
+    cudaTextureObject_t tex_real = 0, cudaTextureObject_t tex_imag = 0, bool use_textures = false
 ) {
     // Extract integer and fractional parts
     int d_floor = floorf(d);
@@ -183,7 +247,8 @@ __device__ __forceinline__ cuFloatComplex tricubic_interpolate(
 
             for (int j = -1; j <= 2; ++j) {  // Column offset: covers 4 columns
                 cuFloatComplex sample = sample_3d_with_edge_clamping(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride,
-                                                                    d_floor + k, r_floor + i, c_floor + j);
+                                                                    d_floor + k, r_floor + i, c_floor + j,
+                                                                    tex_real, tex_imag, use_textures);
                 // Compute tricubic weights for this grid position (separable)
                 float weight_c = tricubic_kernel(c_frac - j);
                 // Accumulate weighted contribution
@@ -287,10 +352,12 @@ __global__ void forward_project_3d_to_2d_kernel(
         cuFloatComplex val;
         if (params.interpolation_method == 0) {  // linear (trilinear)
             val = trilinear_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
-                                      rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c);
+                                      rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c,
+                                      params.tex_real, params.tex_imag, params.use_textures);
         } else {  // cubic (tricubic)
             val = tricubic_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
-                                     rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c);
+                                     rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c,
+                                     params.tex_real, params.tex_imag, params.use_textures);
         }
         
         // Apply phase shift if translations are provided (using pre-computed shifts)
@@ -816,7 +883,8 @@ at::Tensor forward_project_3d_to_2d_cuda(
         (int)(shifts.has_value() ? 1 : 0),
         (interpolation == "linear") ? 0 : 1,
         static_cast<float>(oversampling),
-        static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0))
+        static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0)),
+        0, 0, false  // tex_real, tex_imag, use_textures - will be set below
     };
 
     // Launch CUDA kernel
@@ -843,6 +911,71 @@ at::Tensor forward_project_3d_to_2d_cuda(
         return result_cpu.to(reconstruction.device(), /*non_blocking=*/false);
     }
 
+    // Create texture objects for B=1 optimization
+    cudaTextureObject_t tex_real = 0, tex_imag = 0;
+    cudaArray_t real_array = nullptr, imag_array = nullptr;
+    at::Tensor real_part, imag_part;
+    
+    if (B == 1) {
+        // Extract real and imaginary parts
+        real_part = reconstruction.real().squeeze(0);  // Remove batch dimension: [D, H, W/2+1]
+        imag_part = reconstruction.imag().squeeze(0);
+        
+        // Ensure contiguous memory layout
+        real_part = real_part.contiguous();
+        imag_part = imag_part.contiguous();
+        
+        // Create texture objects
+        cudaResourceDesc resDesc;
+        memset(&resDesc, 0, sizeof(resDesc));
+        resDesc.resType = cudaResourceTypeArray;
+        
+        // Configure texture descriptor
+        cudaTextureDesc texDesc;
+        memset(&texDesc, 0, sizeof(texDesc));
+        texDesc.readMode = cudaReadModeElementType;
+        texDesc.filterMode = cudaFilterModePoint;  // No hardware interpolation as requested
+        texDesc.addressMode[0] = cudaAddressModeBorder;
+        texDesc.addressMode[1] = cudaAddressModeBorder;
+        texDesc.addressMode[2] = cudaAddressModeBorder;
+        
+        // Create CUDA arrays for 3D textures
+        cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+        cudaExtent extent = make_cudaExtent(boxsize_half, boxsize, boxsize);
+        
+        // Real part array and texture
+        cudaMalloc3DArray(&real_array, &channelDesc, extent);
+        
+        cudaMemcpy3DParms copyParams = {0};
+        copyParams.srcPtr = make_cudaPitchedPtr(real_part.data_ptr<float>(), 
+                                              boxsize_half * sizeof(float), 
+                                              boxsize_half, boxsize);
+        copyParams.dstArray = real_array;
+        copyParams.extent = extent;
+        copyParams.kind = cudaMemcpyDeviceToDevice;
+        cudaMemcpy3D(&copyParams);
+        
+        resDesc.res.array.array = real_array;
+        cudaCreateTextureObject(&tex_real, &resDesc, &texDesc, nullptr);
+        
+        // Imaginary part array and texture
+        cudaMalloc3DArray(&imag_array, &channelDesc, extent);
+        
+        copyParams.srcPtr = make_cudaPitchedPtr(imag_part.data_ptr<float>(), 
+                                              boxsize_half * sizeof(float), 
+                                              boxsize_half, boxsize);
+        copyParams.dstArray = imag_array;
+        cudaMemcpy3D(&copyParams);
+        
+        resDesc.res.array.array = imag_array;
+        cudaCreateTextureObject(&tex_imag, &resDesc, &texDesc, nullptr);
+        
+        // Update parameters to use textures
+        params.tex_real = tex_real;
+        params.tex_imag = tex_imag;
+        params.use_textures = true;
+    }
+
     // Get raw pointers for kernel launch (float32 only)
     const cuFloatComplex* rec_ptr = reinterpret_cast<const cuFloatComplex*>(rec_contiguous.data_ptr<c10::complex<float>>());
     const float* rot_ptr = rot_contiguous.data_ptr<float>();
@@ -855,6 +988,16 @@ at::Tensor forward_project_3d_to_2d_cuda(
 
     // Check for kernel launch errors
     C10_CUDA_KERNEL_LAUNCH_CHECK();
+
+    // Cleanup texture objects if they were created
+    if (B == 1 && params.use_textures) {
+        cudaDestroyTextureObject(tex_real);
+        cudaDestroyTextureObject(tex_imag);
+        
+        // Free the CUDA arrays
+        if (real_array) cudaFreeArray(real_array);
+        if (imag_array) cudaFreeArray(imag_array);
+    }
 
     // Copy back if projection wasn't originally contiguous
     if (!projection.is_contiguous()) {
@@ -966,7 +1109,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_3d_to_2d_cuda(
         (need_rotation_grads ? 0x10 : 0) | 
         (need_shift_grads ? 0x20 : 0),  // Pack flags into upper bits
         static_cast<float>(oversampling),
-        static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0))
+        static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0)),
+        0, 0, false  // tex_real, tex_imag, use_textures - not used in backward pass
     };
 
     // Launch CUDA kernel
