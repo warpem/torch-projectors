@@ -202,7 +202,7 @@ def test_backproject_shift_gradient_verification_parametrized(device, interpolat
     projections_random = torch.randn(B, P, H, H // 2 + 1, dtype=torch.complex64, device=device)
     
     # 15-degree rotation (same for all batches and poses)
-    angle_deg = 15.0
+    angle_deg = 180.0
     angle_rad = math.radians(angle_deg)
     cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
     rot_15 = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], dtype=torch.float32, device=device)
