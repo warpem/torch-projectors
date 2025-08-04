@@ -32,14 +32,14 @@ def test_batching_multiple_reconstructions_single_angle(device, interpolation):
     
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_2d(
+    projection = torch_projectors.project_2d_forw(
         rec_fourier, rotations, output_shape=output_shape, interpolation=interpolation
     )
 
     # Ground truth: loop over reconstructions and project individually
     expected_projection = torch.zeros_like(projection)
     for b in range(B):
-        expected_projection[b] = torch_projectors.forward_project_2d(
+        expected_projection[b] = torch_projectors.project_2d_forw(
             rec_fourier[b].unsqueeze(0), rotations, output_shape=output_shape, interpolation=interpolation
         )
 
@@ -74,14 +74,14 @@ def test_batching_single_reconstruction_multiple_angles(device, interpolation):
     
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_2d(
+    projection = torch_projectors.project_2d_forw(
         rec_fourier, rotations, output_shape=output_shape, interpolation=interpolation
     )
 
     # Ground truth: loop over poses and project individually
     expected_projection = torch.zeros_like(projection)
     for p in range(P):
-        expected_projection[0, p] = torch_projectors.forward_project_2d(
+        expected_projection[0, p] = torch_projectors.project_2d_forw(
             rec_fourier, rotations[:, p].unsqueeze(1), output_shape=output_shape, interpolation=interpolation
         )
 
@@ -116,7 +116,7 @@ def test_batching_multiple_reconstructions_multiple_angles(device, interpolation
     
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_2d(
+    projection = torch_projectors.project_2d_forw(
         rec_fourier, rotations, output_shape=output_shape, interpolation=interpolation
     )
 
@@ -124,7 +124,7 @@ def test_batching_multiple_reconstructions_multiple_angles(device, interpolation
     expected_projection = torch.zeros_like(projection)
     for b in range(B):
         for p in range(P):
-            expected_projection[b, p] = torch_projectors.forward_project_2d(
+            expected_projection[b, p] = torch_projectors.project_2d_forw(
                 rec_fourier[b].unsqueeze(0), rotations[b, p].unsqueeze(0).unsqueeze(0), output_shape=output_shape, interpolation=interpolation
             )
 

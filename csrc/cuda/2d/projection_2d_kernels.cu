@@ -625,7 +625,7 @@ __global__ void backward_project_2d_kernel(
 }
 
 // Forward projection from 3D Fourier reconstruction to 2D projections (CUDA version)
-at::Tensor forward_project_2d_cuda(
+at::Tensor project_2d_forw_cuda(
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
@@ -721,7 +721,7 @@ at::Tensor forward_project_2d_cuda(
             shifts_cpu = shifts->cpu();
         }
         
-        auto result_cpu = forward_project_2d_cpu(
+        auto result_cpu = project_2d_forw_cpu(
             reconstruction_cpu, rotations_cpu, shifts_cpu,
             output_shape, interpolation, oversampling, fourier_radius_cutoff
         );
@@ -752,7 +752,7 @@ at::Tensor forward_project_2d_cuda(
 }
 
 // Backward projection for gradients (CUDA version) 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cuda(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_cuda(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
@@ -869,7 +869,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_cuda(
             shifts_cpu = shifts->cpu();
         }
         
-        auto [grad_reconstruction_cpu, grad_rotations_cpu, grad_shifts_cpu] = backward_project_2d_cpu(
+        auto [grad_reconstruction_cpu, grad_rotations_cpu, grad_shifts_cpu] = project_2d_back_cpu(
             grad_projections_cpu, reconstruction_cpu, rotations_cpu, shifts_cpu,
             interpolation, oversampling, fourier_radius_cutoff
         );

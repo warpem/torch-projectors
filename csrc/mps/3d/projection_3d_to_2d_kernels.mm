@@ -68,7 +68,7 @@ id<MTLComputePipelineState> get_forward_3d_to_2d_projection_pipeline(id<MTLDevic
 }
 
 // -------------------- forward op (zero-copy; stream-managed) --------------------
-at::Tensor forward_project_3d_to_2d_mps(
+at::Tensor project_3d_to_2d_forw_mps(
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
@@ -233,7 +233,7 @@ id<MTLComputePipelineState> get_backward_3d_to_2d_projection_pipeline(id<MTLDevi
     return pipeline;
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_3d_to_2d_mps(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_mps(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,

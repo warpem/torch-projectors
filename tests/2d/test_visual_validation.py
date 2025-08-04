@@ -42,7 +42,7 @@ def test_visual_rotation_validation(device, interpolation):
             cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
             rotations[i, j] = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], device=device)
 
-    projections = torch_projectors.forward_project_2d(reconstructions, rotations, output_shape=(H, W), interpolation=interpolation)
+    projections = torch_projectors.project_2d_forw(reconstructions, rotations, output_shape=(H, W), interpolation=interpolation)
 
     tensors_to_plot = []
     titles = []
@@ -69,7 +69,7 @@ def test_visual_rotation_validation(device, interpolation):
         angle_deg = rotation_increments[0] * i
         angle_rad = math.radians(angle_deg)
         rot = torch.tensor([[[math.cos(angle_rad), -math.sin(angle_rad)], [math.sin(angle_rad), math.cos(angle_rad)]]], dtype=torch.float32, device=device).unsqueeze(0)
-        proj = torch_projectors.forward_project_2d(rec_fourier, rot, output_shape=(H, W), interpolation=interpolation)
+        proj = torch_projectors.project_2d_forw(rec_fourier, rot, output_shape=(H, W), interpolation=interpolation)
         if prev is not None:
             assert not torch.allclose(prev, proj[0].real, atol=1e-6)
         prev = proj[0].real

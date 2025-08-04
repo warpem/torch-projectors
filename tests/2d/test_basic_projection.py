@@ -24,7 +24,7 @@ def test_forward_project_2d_identity(device, interpolation):
     rotations = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_2d(
+    projection = torch_projectors.project_2d_forw(
         rec_fourier,
         rotations,
         output_shape=output_shape,
@@ -68,7 +68,7 @@ def test_forward_project_2d_rotations(device, interpolation):
     rotations[0, 2] = torch.tensor([[0., -1.], [1., 0.]], device=device)
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_2d(rec_fourier, rotations, output_shape=output_shape, interpolation=interpolation)
+    projection = torch_projectors.project_2d_forw(rec_fourier, rotations, output_shape=output_shape, interpolation=interpolation)
 
     # Expected peak locations after rotation
     expected_coords = [(0, 5), (5, 0), (H - 5, 0)]
@@ -115,7 +115,7 @@ def test_forward_project_2d_with_phase_shift(device, interpolation):
     shift_r, shift_c = 2.0, 3.0
     shifts = torch.tensor([[[shift_r, shift_c]]], dtype=torch.float32, device=device)
 
-    projection_fourier = torch_projectors.forward_project_2d(
+    projection_fourier = torch_projectors.project_2d_forw(
         rec_fourier, rotations, shifts=shifts, output_shape=output_shape, interpolation=interpolation
     )
     projection_real = torch.fft.irfft2(projection_fourier.squeeze(0), s=(H, W))
@@ -152,23 +152,23 @@ def test_dimension_validation(device):
     with pytest.raises(ValueError, match="expected boxsize .* to match"):
         rec = torch.randn(1, 30, 17, dtype=torch.complex64, device=device)  # 30 != 2*(17-1) = 32
         rot = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-        torch_projectors.forward_project_2d(rec, rot)
+        torch_projectors.project_2d_forw(rec, rot)
 
     # Test odd dimensions (should fail) 
     with pytest.raises(ValueError, match="Boxsize .* must be even"):
         rec = torch.randn(1, 29, 15, dtype=torch.complex64, device=device)  # 29 is odd, should be caught by even check first
         rot = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-        torch_projectors.forward_project_2d(rec, rot)
+        torch_projectors.project_2d_forw(rec, rot)
         
     # Test valid square, even dimensions (should pass)
     rec = torch.randn(1, 32, 17, dtype=torch.complex64, device=device)  # 32x32 -> 17 half
     rot = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-    proj = torch_projectors.forward_project_2d(rec, rot)
+    proj = torch_projectors.project_2d_forw(rec, rot)
     assert proj.shape == (1, 1, 32, 17)
     
     # Test valid backward projection (should pass)
     proj = torch.randn(1, 1, 32, 17, dtype=torch.complex64, device=device)
     dummy_rec = torch.randn(1, 32, 17, dtype=torch.complex64, device=device)
     rot = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-    rec = torch_projectors.backward_project_2d(proj, dummy_rec, rot)
+    rec = torch_projectors.project_2d_back(proj, dummy_rec, rot)
     assert rec.shape == (1, 32, 17)

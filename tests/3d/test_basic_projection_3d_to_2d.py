@@ -61,7 +61,7 @@ def test_forward_project_3d_to_2d_identity(device, interpolation):
     rotations = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
     output_shape = (H, W)
 
-    projection = torch_projectors.forward_project_3d_to_2d(
+    projection = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier,
         rotations,
         output_shape=output_shape,
@@ -143,7 +143,7 @@ def test_forward_project_3d_to_2d_rotations(device, interpolation):
         # Combined rotation: Rz * Ry * Rx
         rotations[0, p] = Rz @ Ry @ Rx
 
-    projection = torch_projectors.forward_project_3d_to_2d(
+    projection = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier,
         rotations,
         interpolation=interpolation
@@ -189,7 +189,7 @@ def test_forward_project_3d_to_2d_with_phase_shift(device, interpolation):
         [2.5, -1.8]      # Some shift
     ], dtype=torch.float32, device=device).unsqueeze(0)  # [1, P, 2]
 
-    projection = torch_projectors.forward_project_3d_to_2d(
+    projection = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier,
         rotations,
         shifts=shifts,
@@ -205,7 +205,7 @@ def test_forward_project_3d_to_2d_with_phase_shift(device, interpolation):
     assert diff > 1e-3, f"Shifted and unshifted projections are too similar (diff={diff})"
     
     # Test without shifts for comparison
-    projection_no_shift = torch_projectors.forward_project_3d_to_2d(
+    projection_no_shift = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier,
         rotations[:, :1],  # Just first pose
         interpolation=interpolation
@@ -245,7 +245,7 @@ def test_central_slice_theorem_validation(device, interpolation):
     rotations = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
     
     # Project with 3D->2D
-    projection = torch_projectors.forward_project_3d_to_2d(
+    projection = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier,
         rotations,
         interpolation=interpolation

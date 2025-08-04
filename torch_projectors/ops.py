@@ -3,7 +3,7 @@
 import torch
 from typing import Optional
 
-def forward_project_2d(
+def project_2d_forw(
     reconstruction: torch.Tensor,
     rotations: torch.Tensor,
     shifts: Optional[torch.Tensor] = None,
@@ -35,9 +35,9 @@ def forward_project_2d(
         if output_shape[0] % 2 != 0:
             raise ValueError(f"Output boxsize {output_shape[0]} must be even")
     
-    return _ForwardProject2D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+    return _Project2D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
 
-def backward_project_2d(
+def project_2d_back(
     projections: torch.Tensor,
     reconstruction: torch.Tensor,
     rotations: torch.Tensor,
@@ -52,13 +52,13 @@ def backward_project_2d(
     projection operation, discarding rotation and shift gradients for convenience.
     """
     # Call the unified backward function and return only reconstruction gradients
-    grad_reconstruction, _, _ = torch.ops.torch_projectors.backward_project_2d(
+    grad_reconstruction, _, _ = torch.ops.torch_projectors.project_2d_back(
         projections, reconstruction, rotations, shifts, interpolation, oversampling, None
     )
     
     return grad_reconstruction
 
-def back_project_2d(
+def backproject_2d_forw(
     projections: torch.Tensor,
     rotations: torch.Tensor,
     weights: Optional[torch.Tensor] = None,
@@ -114,9 +114,9 @@ def back_project_2d(
         if not weights.is_floating_point():
             raise ValueError("Weights must be real-valued (floating point)")
     
-    return _BackProject2D.apply(projections, weights, rotations, shifts, interpolation, oversampling, fourier_radius_cutoff)
+    return _Backproject2D.apply(projections, weights, rotations, shifts, interpolation, oversampling, fourier_radius_cutoff)
 
-def forward_project_3d_to_2d(
+def project_3d_to_2d_forw(
     reconstruction: torch.Tensor,
     rotations: torch.Tensor,
     shifts: Optional[torch.Tensor] = None,
@@ -171,9 +171,9 @@ def forward_project_3d_to_2d(
         if output_shape[0] % 2 != 0:
             raise ValueError(f"Output boxsize {output_shape[0]} must be even")
     
-    return _ForwardProject3DTo2D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+    return _Project3DTo2D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
 
-def backward_project_3d_to_2d(
+def project_3d_to_2d_back(
     projections: torch.Tensor,
     reconstruction: torch.Tensor,
     rotations: torch.Tensor,
@@ -199,7 +199,7 @@ def backward_project_3d_to_2d(
         4D complex tensor [B, D, H, W/2+1] - gradients w.r.t. 3D reconstruction
     """
     # Call the unified backward function and return only reconstruction gradients
-    grad_reconstruction, _, _ = torch.ops.torch_projectors.backward_project_3d_to_2d(
+    grad_reconstruction, _, _ = torch.ops.torch_projectors.project_3d_to_2d_back(
         projections, reconstruction, rotations, shifts, interpolation, oversampling, None
     )
     
@@ -207,7 +207,7 @@ def backward_project_3d_to_2d(
 
 # --- Autograd Registration ---
 
-class _ForwardProject2D(torch.autograd.Function):
+class _Project2D(torch.autograd.Function):
     @staticmethod
     def forward(ctx, reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff):
         # Unsqueeze if single reconstruction/pose set
@@ -227,7 +227,7 @@ class _ForwardProject2D(torch.autograd.Function):
         if rotations.size(0) != reconstruction.size(0) and rotations.size(0) != 1:
             raise ValueError("Batch size of rotations must be 1 or match reconstruction")
         
-        projection = torch.ops.torch_projectors.forward_project_2d(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+        projection = torch.ops.torch_projectors.project_2d_forw(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
         
         ctx.save_for_backward(reconstruction, rotations, shifts)
         ctx.interpolation = interpolation
@@ -239,7 +239,7 @@ class _ForwardProject2D(torch.autograd.Function):
     def backward(ctx, grad_output):
         reconstruction, rotations, shifts = ctx.saved_tensors
         
-        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_project_2d(
+        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.project_2d_back(
             grad_output.contiguous(),
             reconstruction,
             rotations,
@@ -255,7 +255,7 @@ class _ForwardProject2D(torch.autograd.Function):
         
         return grad_reconstruction, grad_rotations, grad_shifts, None, None, None, None
 
-class _ForwardProject3DTo2D(torch.autograd.Function):
+class _Project3DTo2D(torch.autograd.Function):
     @staticmethod
     def forward(ctx, reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff):
         # Unsqueeze if single reconstruction/pose set
@@ -275,7 +275,7 @@ class _ForwardProject3DTo2D(torch.autograd.Function):
         if rotations.size(0) != reconstruction.size(0) and rotations.size(0) != 1:
             raise ValueError("Batch size of rotations must be 1 or match reconstruction")
         
-        projection = torch.ops.torch_projectors.forward_project_3d_to_2d(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+        projection = torch.ops.torch_projectors.project_3d_to_2d_forw(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
         
         ctx.save_for_backward(reconstruction, rotations, shifts)
         ctx.interpolation = interpolation
@@ -287,7 +287,7 @@ class _ForwardProject3DTo2D(torch.autograd.Function):
     def backward(ctx, grad_output):
         reconstruction, rotations, shifts = ctx.saved_tensors
         
-        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_project_3d_to_2d(
+        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.project_3d_to_2d_back(
             grad_output.contiguous(),
             reconstruction,
             rotations,
@@ -303,7 +303,7 @@ class _ForwardProject3DTo2D(torch.autograd.Function):
         
         return grad_reconstruction, grad_rotations, grad_shifts, None, None, None, None
 
-class _BackProject2D(torch.autograd.Function):
+class _Backproject2D(torch.autograd.Function):
     @staticmethod
     def forward(ctx, projections, weights, rotations, shifts, interpolation, oversampling, fourier_radius_cutoff):
         # Unsqueeze if single projection/pose set
@@ -326,7 +326,7 @@ class _BackProject2D(torch.autograd.Function):
         if rotations.size(0) != projections.size(0) and rotations.size(0) != 1:
             raise ValueError("Batch size of rotations must be 1 or match projections")
         
-        data_reconstruction, weight_reconstruction = torch.ops.torch_projectors.back_project_2d(
+        data_reconstruction, weight_reconstruction = torch.ops.torch_projectors.backproject_2d_forw(
             projections, weights, rotations, shifts, interpolation, oversampling, fourier_radius_cutoff)
         
         ctx.save_for_backward(projections, weights, rotations, shifts)
@@ -339,7 +339,11 @@ class _BackProject2D(torch.autograd.Function):
     def backward(ctx, grad_data_rec, grad_weight_rec):
         projections, weights, rotations, shifts = ctx.saved_tensors
         
-        grad_projections, grad_weights, grad_rotations, grad_shifts = torch.ops.torch_projectors.backward_back_project_2d(
+        # Handle case where grad_weight_rec is an empty tensor (when weights weren't provided)
+        if grad_weight_rec is not None and grad_weight_rec.numel() == 0:
+            grad_weight_rec = None
+        
+        grad_projections, grad_weights, grad_rotations, grad_shifts = torch.ops.torch_projectors.backproject_2d_back(
             grad_data_rec.contiguous(),
             grad_weight_rec.contiguous() if grad_weight_rec is not None else None,
             projections,
@@ -359,42 +363,42 @@ class _BackProject2D(torch.autograd.Function):
         
         return grad_projections, grad_weights, grad_rotations, grad_shifts, None, None, None
 
-def _backward_project_2d_backward(ctx, grad_output):
+def _project_2d_back_backward(ctx, grad_output):
     # No-op placeholder
     return None
 
-def _backward_project_3d_to_2d_backward(ctx, grad_output):
+def _project_3d_to_2d_back_backward(ctx, grad_output):
     # No-op placeholder
     return None
 
-def _back_project_2d_backward(ctx, grad_output):
-    # No-op placeholder for back_project_2d
+def _backproject_2d_forw_backward(ctx, grad_output):
+    # No-op placeholder for backproject_2d_forw
     return None
 
-def _backward_back_project_2d_backward(ctx, grad_output):
-    # No-op placeholder for backward_back_project_2d
+def _backproject_2d_back_backward(ctx, grad_output):
+    # No-op placeholder for backproject_2d_back
     return None
 
 torch.library.register_autograd(
-    "torch_projectors::backward_project_2d", 
-    _backward_project_2d_backward,
+    "torch_projectors::project_2d_back", 
+    _project_2d_back_backward,
     setup_context=lambda ctx, inputs, output: None
 )
 
 torch.library.register_autograd(
-    "torch_projectors::back_project_2d", 
-    _back_project_2d_backward,
+    "torch_projectors::backproject_2d_forw", 
+    _backproject_2d_forw_backward,
     setup_context=lambda ctx, inputs, output: None
 )
 
 torch.library.register_autograd(
-    "torch_projectors::backward_back_project_2d", 
-    _backward_back_project_2d_backward,
+    "torch_projectors::backproject_2d_back", 
+    _backproject_2d_back_backward,
     setup_context=lambda ctx, inputs, output: None
 )
 
 torch.library.register_autograd(
-    "torch_projectors::backward_project_3d_to_2d", 
-    _backward_project_3d_to_2d_backward,
+    "torch_projectors::project_3d_to_2d_back", 
+    _project_3d_to_2d_back_backward,
     setup_context=lambda ctx, inputs, output: None
 ) 

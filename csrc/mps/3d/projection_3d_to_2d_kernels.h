@@ -36,7 +36,7 @@
  * @param fourier_radius_cutoff: Optional frequency cutoff for low-pass filtering
  * @return: 4D complex tensor [B, P, H_out, W_out/2+1] - the 2D projections (on MPS device)
  */
-at::Tensor forward_project_3d_to_2d_mps(
+at::Tensor project_3d_to_2d_forw_mps(
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
@@ -63,7 +63,7 @@ at::Tensor forward_project_3d_to_2d_mps(
  * @return: Tuple of (grad_reconstruction, grad_rotations, grad_shifts) (all on MPS device)
  *          Empty tensors are returned for gradients that aren't needed
  */
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_3d_to_2d_mps(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_mps(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,

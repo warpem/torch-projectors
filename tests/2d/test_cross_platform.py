@@ -64,14 +64,14 @@ def test_cpu_cuda_identical_comprehensive():
         print(f"\nTesting {interpolation} interpolation...")
         
         # Forward pass - CPU
-        projections_cpu = torch_projectors.forward_project_2d(
+        projections_cpu = torch_projectors.project_2d_forw(
             reconstructions_cpu, rotations_cpu, shifts_cpu,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
         )
         
         # Forward pass - CUDA  
-        projections_cuda = torch_projectors.forward_project_2d(
+        projections_cuda = torch_projectors.project_2d_forw(
             reconstructions_cuda, rotations_cuda, shifts_cuda,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
@@ -248,14 +248,14 @@ def test_cpu_mps_identical_comprehensive():
         print(f"\nTesting {interpolation} interpolation...")
         
         # Forward pass - CPU
-        projections_cpu = torch_projectors.forward_project_2d(
+        projections_cpu = torch_projectors.project_2d_forw(
             reconstructions_cpu, rotations_cpu, shifts_cpu,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
         )
         
         # Forward pass - MPS  
-        projections_mps = torch_projectors.forward_project_2d(
+        projections_mps = torch_projectors.project_2d_forw(
             reconstructions_mps, rotations_mps, shifts_mps,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation

@@ -60,7 +60,7 @@ def test_performance_benchmark(device):
         # Warmup runs
         for _ in range(num_warmup_runs):
             reconstructions.requires_grad_(True)
-            projections = torch_projectors.forward_project_2d(
+            projections = torch_projectors.project_2d_forw(
                 reconstructions, rotations, shifts, 
                 output_shape=(H, H), interpolation=interpolation_method
             )
@@ -76,7 +76,7 @@ def test_performance_benchmark(device):
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             start_time = time.perf_counter()
             
-            projections = torch_projectors.forward_project_2d(
+            projections = torch_projectors.project_2d_forw(
                 reconstructions, rotations, shifts,
                 output_shape=(H, H), interpolation=interpolation_method
             )
@@ -174,7 +174,7 @@ def test_interpolation_quality_comparison(device):
     
     # Identity projection (0 degrees) as reference
     identity_rotation = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)  # [1, 1, 2, 2]
-    reference_proj = torch_projectors.forward_project_2d(
+    reference_proj = torch_projectors.project_2d_forw(
         reconstruction.unsqueeze(0), 
         identity_rotation, 
         output_shape=(H, H),
@@ -189,20 +189,20 @@ def test_interpolation_quality_comparison(device):
     rot_minus5 = torch.tensor([[cos_a, sin_a], [-sin_a, cos_a]], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
     
     # Round-trip with linear interpolation
-    proj_5deg_linear = torch_projectors.forward_project_2d(
+    proj_5deg_linear = torch_projectors.project_2d_forw(
         reconstruction.unsqueeze(0), rot_plus5, output_shape=(H, H), interpolation='linear'
     )
     # proj_5deg_linear is [1, 1, 64, 64] but we need [1, 64, 33] for next projection
-    roundtrip_linear = torch_projectors.forward_project_2d(
+    roundtrip_linear = torch_projectors.project_2d_forw(
         proj_5deg_linear.squeeze(1), rot_minus5, output_shape=(H, H), interpolation='linear'
     )
     
     # Round-trip with cubic interpolation  
-    proj_5deg_cubic = torch_projectors.forward_project_2d(
+    proj_5deg_cubic = torch_projectors.project_2d_forw(
         reconstruction.unsqueeze(0), rot_plus5, output_shape=(H, H), interpolation='cubic'
     )
     # proj_5deg_cubic is [1, 1, 64, 64] but we need [1, 64, 33] for next projection
-    roundtrip_cubic = torch_projectors.forward_project_2d(
+    roundtrip_cubic = torch_projectors.project_2d_forw(
         proj_5deg_cubic.squeeze(1), rot_minus5, output_shape=(H, H), interpolation='cubic'
     )
     

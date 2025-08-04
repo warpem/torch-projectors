@@ -78,7 +78,7 @@ def test_visual_rotation_validation_3d_to_2d(device, interpolation):
                     [0, 0, 1]
                 ], dtype=torch.float32, device=device)
 
-    projections = torch_projectors.forward_project_3d_to_2d(
+    projections = torch_projectors.project_3d_to_2d_forw(
         reconstructions, rotations, output_shape=(H, W), interpolation=interpolation
     )
 
@@ -117,7 +117,7 @@ def test_visual_rotation_validation_3d_to_2d(device, interpolation):
             [0, sin_a, cos_a]
         ]], dtype=torch.float32, device=device).unsqueeze(0)
         
-        proj = torch_projectors.forward_project_3d_to_2d(
+        proj = torch_projectors.project_3d_to_2d_forw(
             rec_3d_fourier, rot, output_shape=(H, W), interpolation=interpolation
         )
         if prev is not None:
@@ -165,7 +165,7 @@ def test_visual_shift_validation_3d_to_2d(device, interpolation):
     
     shifts = torch.tensor(shift_values, dtype=torch.float32, device=device).unsqueeze(0).expand(num_reconstructions, num_shifts, 2)
 
-    projections = torch_projectors.forward_project_3d_to_2d(
+    projections = torch_projectors.project_3d_to_2d_forw(
         reconstructions, rotations, shifts=shifts, output_shape=(H, W), interpolation=interpolation
     )
 
@@ -243,13 +243,13 @@ def test_visual_central_slice_theorem_3d_to_2d(device, interpolation):
     ]], dtype=torch.float32, device=device).unsqueeze(0)
 
     # Generate projections
-    proj_identity = torch_projectors.forward_project_3d_to_2d(
+    proj_identity = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier, identity_rot, output_shape=(H, W), interpolation=interpolation
     )
-    proj_rot_y = torch_projectors.forward_project_3d_to_2d(
+    proj_rot_y = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier, small_rot_y, output_shape=(H, W), interpolation=interpolation
     )
-    proj_rot_x = torch_projectors.forward_project_3d_to_2d(
+    proj_rot_x = torch_projectors.project_3d_to_2d_forw(
         rec_3d_fourier, small_rot_x, output_shape=(H, W), interpolation=interpolation
     )
     

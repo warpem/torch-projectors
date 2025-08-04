@@ -96,7 +96,7 @@ public:
  * Accumulates 2D projection data (and optional weights) into 2D reconstructions.
  * This is the adjoint/transpose operation of forward projection.
  */
-std::tuple<at::Tensor, at::Tensor> back_project_2d_cpu(
+std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
     const at::Tensor& projections,
     const c10::optional<at::Tensor>& weights,
     const at::Tensor& rotations,
@@ -228,8 +228,8 @@ std::tuple<at::Tensor, at::Tensor> back_project_2d_cpu(
                             if (has_weights) {
                                 rot_real_t weight_val = (*weights_acc)[b][p][i][j];
                                 auto weight_accumulate_func = [&](int64_t r, int64_t c, scalar_t interp_weight) {
-                                    // For weights, we only need the interpolation weight magnitude (real part)
-                                    rot_real_t final_weight = weight_val * interp_weight.real();
+                                    // For weights, we only need the interpolation weight magnitude (absolute value)
+                                    rot_real_t final_weight = weight_val * std::abs(interp_weight.real());
                                     // Handle bounds and Friedel symmetry for weight accumulation
                                     bool needs_conj = false;
                                     int64_t c_eff = c;
@@ -275,7 +275,7 @@ std::tuple<at::Tensor, at::Tensor> back_project_2d_cpu(
  * The key insight is that grad_projections = forward_project(grad_data_rec) since
  * forward projection is the mathematical adjoint of back-projection.
  */
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backward_back_project_2d_cpu(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_cpu(
     const at::Tensor& grad_data_rec,
     const c10::optional<at::Tensor>& grad_weight_rec,
     const at::Tensor& projections,

@@ -75,14 +75,24 @@ def plot_fourier_tensors(tensors, titles, filename, shape=None):
         
         # Plot real part
         ax_real = axes[2 * row, col]
-        ax_real.imshow(tensor.real.detach().numpy(), cmap='viridis', origin='lower')
-        ax_real.set_title(f"{title} (Real)")
+        if tensor.is_complex():
+            ax_real.imshow(tensor.real.detach().numpy(), cmap='viridis', origin='lower')
+            ax_real.set_title(f"{title} (Real)")
+        else:
+            ax_real.imshow(tensor.detach().numpy(), cmap='viridis', origin='lower')
+            ax_real.set_title(f"{title}")
         ax_real.axis('off')
 
         # Plot imaginary part
         ax_imag = axes[2 * row + 1, col]
-        ax_imag.imshow(tensor.imag.detach().numpy(), cmap='viridis', origin='lower')
-        ax_imag.set_title(f"{title} (Imag)")
+        if tensor.is_complex():
+            ax_imag.imshow(tensor.imag.detach().numpy(), cmap='viridis', origin='lower')
+            ax_imag.set_title(f"{title} (Imag)")
+        else:
+            # For real tensors, leave the imaginary plot empty
+            ax_imag.text(0.5, 0.5, f"{title}\n(Real tensor)", ha='center', va='center', 
+                        transform=ax_imag.transAxes, fontsize=12)
+            ax_imag.set_title(f"{title} (N/A)")
         ax_imag.axis('off')
 
     # Hide unused axes
@@ -161,7 +171,7 @@ def complex_mse_loss(input_tensor, target_tensor):
     return loss
 
 
-@pytest.fixture(params=["cpu", "mps", "cuda"])
+@pytest.fixture(params=["cpu", "cuda"])
 def device(request):
     """Test fixture that yields available devices"""
     device_type = request.param

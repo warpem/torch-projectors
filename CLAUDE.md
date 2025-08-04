@@ -30,7 +30,7 @@ The project uses PyTorch's modern hybrid C++/Python extension pattern:
 
 ### Key Components
 
-- `torch_projectors/ops.py`: Python API with `forward_project_2d()` and `backward_project_2d()`
+- `torch_projectors/ops.py`: Python API with `project_2d_forw()` and `project_2d_back()`
 - `csrc/torch_projectors.cpp`: Operator registration defining the `torch_projectors` namespace
 - `csrc/cpu/cpu_kernels.{h,cpp}`: CPU implementations of projection kernels
 - `csrc/mps/utilities.metal`: Metal utility functions (complex math, interpolation, atomics)

@@ -69,7 +69,7 @@ id<MTLComputePipelineState> get_forward_projection_pipeline(id<MTLDevice> device
 }
 
 // -------------------- forward op (zero-copy; stream-managed) --------------------
-at::Tensor forward_project_2d_mps(
+at::Tensor project_2d_forw_mps(
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
@@ -233,7 +233,7 @@ id<MTLComputePipelineState> get_backward_projection_pipeline(id<MTLDevice> devic
     return pipeline;
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_mps(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,

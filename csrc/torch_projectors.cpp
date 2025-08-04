@@ -15,53 +15,53 @@
 
 TORCH_LIBRARY(torch_projectors, m) {
   // 2D->2D projection operators
-  m.def("forward_project_2d(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
-  m.def("backward_project_2d(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
+  m.def("project_2d_forw(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
+  m.def("project_2d_back(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
   
   // 2D back-projection operators (adjoint/transpose operations)
-  m.def("back_project_2d(Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor)");
-  m.def("backward_back_project_2d(Tensor grad_data_rec, Tensor? grad_weight_rec, Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor, Tensor)");
+  m.def("backproject_2d_forw(Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor)");
+  m.def("backproject_2d_back(Tensor grad_data_rec, Tensor? grad_weight_rec, Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor, Tensor)");
   
   // 3D->2D projection operators
-  m.def("forward_project_3d_to_2d(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
-  m.def("backward_project_3d_to_2d(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
+  m.def("project_3d_to_2d_forw(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
+  m.def("project_3d_to_2d_back(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
 }
 
 TORCH_LIBRARY_IMPL(torch_projectors, CPU, m) {
   // 2D->2D projection implementations
-  m.impl("forward_project_2d", &forward_project_2d_cpu);
-  m.impl("backward_project_2d", &backward_project_2d_cpu);
+  m.impl("project_2d_forw", &project_2d_forw_cpu);
+  m.impl("project_2d_back", &project_2d_back_cpu);
   
   // 2D back-projection implementations
-  m.impl("back_project_2d", &back_project_2d_cpu);
-  m.impl("backward_back_project_2d", &backward_back_project_2d_cpu);
+  m.impl("backproject_2d_forw", &backproject_2d_forw_cpu);
+  m.impl("backproject_2d_back", &backproject_2d_back_cpu);
   
   // 3D->2D projection implementations
-  m.impl("forward_project_3d_to_2d", &forward_project_3d_to_2d_cpu);
-  m.impl("backward_project_3d_to_2d", &backward_project_3d_to_2d_cpu);
+  m.impl("project_3d_to_2d_forw", &project_3d_to_2d_forw_cpu);
+  m.impl("project_3d_to_2d_back", &project_3d_to_2d_back_cpu);
 }
 
 #ifdef __APPLE__
 TORCH_LIBRARY_IMPL(torch_projectors, MPS, m) {
   // 2D->2D projection implementations
-  m.impl("forward_project_2d", &forward_project_2d_mps);
-  m.impl("backward_project_2d", &backward_project_2d_mps);
+  m.impl("project_2d_forw", &project_2d_forw_mps);
+  m.impl("project_2d_back", &project_2d_back_mps);
   
   // 3D->2D projection implementations
-  m.impl("forward_project_3d_to_2d", &forward_project_3d_to_2d_mps);
-  m.impl("backward_project_3d_to_2d", &backward_project_3d_to_2d_mps);
+  m.impl("project_3d_to_2d_forw", &project_3d_to_2d_forw_mps);
+  m.impl("project_3d_to_2d_back", &project_3d_to_2d_back_mps);
 }
 #endif
 
 #ifdef USE_CUDA
 TORCH_LIBRARY_IMPL(torch_projectors, CUDA, m) {
   // 2D->2D projection implementations
-  m.impl("forward_project_2d", &forward_project_2d_cuda);
-  m.impl("backward_project_2d", &backward_project_2d_cuda);
+  m.impl("project_2d_forw", &project_2d_forw_cuda);
+  m.impl("project_2d_back", &project_2d_back_cuda);
   
   // 3D->2D projection implementations
-  m.impl("forward_project_3d_to_2d", &forward_project_3d_to_2d_cuda);
-  m.impl("backward_project_3d_to_2d", &backward_project_3d_to_2d_cuda);
+  m.impl("project_3d_to_2d_forw", &project_3d_to_2d_forw_cuda);
+  m.impl("project_3d_to_2d_back", &project_3d_to_2d_back_cuda);
 }
 #endif
 

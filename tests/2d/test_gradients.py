@@ -37,7 +37,7 @@ def test_forward_project_2d_backward_gradcheck_rec_only(device, interpolation):
     output_shape = (H, W)
 
     def func(reconstruction):
-        return torch_projectors.forward_project_2d(
+        return torch_projectors.project_2d_forw(
             reconstruction,
             rotations,
             output_shape=output_shape,
@@ -71,7 +71,7 @@ def test_gradient_fourier_components(device, interpolation):
     rotations_90 = rot_90.unsqueeze(0).unsqueeze(0)  # Shape: (B=1, P=1, 2, 2)
     
     # Project at 90°, no shift
-    proj_90_fourier = torch_projectors.forward_project_2d(
+    proj_90_fourier = torch_projectors.project_2d_forw(
         rec_random_fourier, rotations_90, shifts=None, 
         output_shape=(H, W), interpolation=interpolation
     )
@@ -83,7 +83,7 @@ def test_gradient_fourier_components(device, interpolation):
     rot_0 = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32, device=device)
     rotations_0 = rot_0.unsqueeze(0).unsqueeze(0)  # Shape: (B=1, P=1, 2, 2)
     
-    proj_0_fourier = torch_projectors.forward_project_2d(
+    proj_0_fourier = torch_projectors.project_2d_forw(
         rec_random_fourier, rotations_0, shifts=None,
         output_shape=(H, W), interpolation=interpolation
     )
@@ -95,7 +95,7 @@ def test_gradient_fourier_components(device, interpolation):
     rec_zero_fourier = rec_zero_fourier.unsqueeze(0)  # Add batch dim
     
     # Step 4: Forward project the zero reconstruction at 90°
-    proj_zero_fourier = torch_projectors.forward_project_2d(
+    proj_zero_fourier = torch_projectors.project_2d_forw(
         rec_zero_fourier, rotations_90, shifts=None,
         output_shape=(H, W), interpolation=interpolation
     )
@@ -226,14 +226,14 @@ def test_shift_gradient_verification_parametrized(device, interpolation, shift_v
     rotations = rot_15.unsqueeze(0).unsqueeze(0).expand(B, P, 2, 2)  # Shape: (B, P, 2, 2)
     
     # Step 2: Generate unshifted projection at 15 degrees
-    proj_unshifted = torch_projectors.forward_project_2d(
+    proj_unshifted = torch_projectors.project_2d_forw(
         rec_random_fourier, rotations, shifts=None,
         output_shape=(H, W), interpolation=interpolation
     )
     
     # Step 3: Generate shifted projection using our implementation
     shifts_for_our_impl = test_shift.clone().requires_grad_(True)
-    proj_shifted_our_impl = torch_projectors.forward_project_2d(
+    proj_shifted_our_impl = torch_projectors.project_2d_forw(
         rec_random_fourier, rotations, shifts=shifts_for_our_impl,
         output_shape=(H, W), interpolation=interpolation
     )
@@ -352,13 +352,13 @@ def test_rotation_gradients_comprehensive(device, interpolation):
         rec = torch.randn(1, 16, 9, dtype=torch.complex64, requires_grad=True, device=device)
         
         target_rot = create_rotation_matrix_2d(torch.tensor(target_angle, device=device)).unsqueeze(0).unsqueeze(0)
-        target_proj = torch_projectors.forward_project_2d(rec, target_rot.detach(), interpolation=interpolation)
+        target_proj = torch_projectors.project_2d_forw(rec, target_rot.detach(), interpolation=interpolation)
         
         test_angle = target_angle + test_offset
         test_rot = create_rotation_matrix_2d(torch.tensor(test_angle, device=device)).unsqueeze(0).unsqueeze(0)
         test_rot.requires_grad_(True)
         
-        pred_proj = torch_projectors.forward_project_2d(rec, test_rot, interpolation=interpolation)
+        pred_proj = torch_projectors.project_2d_forw(rec, test_rot, interpolation=interpolation)
         loss = torch.sum((pred_proj - target_proj).abs())
         loss.backward()
         
@@ -385,7 +385,7 @@ def _test_rotation_finite_difference_accuracy(device, interpolation):
     rec = torch.randn(1, 16, 9, dtype=torch.complex64, requires_grad=True, device=device)
     target_angle = 0.1  # Smaller angle difference
     target_rot = create_rotation_matrix_2d(torch.tensor(target_angle, device=device)).unsqueeze(0).unsqueeze(0)
-    target_proj = torch_projectors.forward_project_2d(rec, target_rot.detach(), interpolation=interpolation)
+    target_proj = torch_projectors.project_2d_forw(rec, target_rot.detach(), interpolation=interpolation)
     
     # Test at slightly different angle
     test_angle = target_angle + 0.05  # Smaller perturbation
@@ -393,7 +393,7 @@ def _test_rotation_finite_difference_accuracy(device, interpolation):
     test_rot.requires_grad_(True)
     
     # Compute analytical gradients
-    pred_proj = torch_projectors.forward_project_2d(rec, test_rot, interpolation=interpolation)
+    pred_proj = torch_projectors.project_2d_forw(rec, test_rot, interpolation=interpolation)
     loss = torch.sum((pred_proj - target_proj).abs())
     loss.backward()
     
@@ -407,8 +407,8 @@ def _test_rotation_finite_difference_accuracy(device, interpolation):
     rot_minus = create_rotation_matrix_2d(torch.tensor(test_angle - eps, device=device)).unsqueeze(0).unsqueeze(0)
     
     # Compute finite difference
-    loss_plus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_plus, interpolation=interpolation) - target_proj).abs())
-    loss_minus = torch.sum((torch_projectors.forward_project_2d(rec.detach(), rot_minus, interpolation=interpolation) - target_proj).abs())
+    loss_plus = torch.sum((torch_projectors.project_2d_forw(rec.detach(), rot_plus, interpolation=interpolation) - target_proj).abs())
+    loss_minus = torch.sum((torch_projectors.project_2d_forw(rec.detach(), rot_minus, interpolation=interpolation) - target_proj).abs())
     fd_angle_grad = (loss_plus - loss_minus) / (2 * eps)
     
     # Convert matrix gradient to angle gradient using chain rule
@@ -434,7 +434,7 @@ def _test_rotation_optimization_convergence(device, interpolation):
         print(f"    Optimizing toward angle {target_angle:.3f}...")
         
         target_rot = create_rotation_matrix_2d(torch.tensor(target_angle, device=device)).unsqueeze(0).unsqueeze(0)
-        target_proj = torch_projectors.forward_project_2d(rec, target_rot, interpolation=interpolation)
+        target_proj = torch_projectors.project_2d_forw(rec, target_rot, interpolation=interpolation)
         
         # Initialize optimization close to target (not at 0) for better convergence
         init_angle = target_angle + 0.017  # Start 1 degree (~0.017 radians) away
@@ -447,7 +447,7 @@ def _test_rotation_optimization_convergence(device, interpolation):
         for step in range(100):  # Fewer steps for speed
             optimizer.zero_grad()
             learned_rot = create_rotation_matrix_2d(learned_angle).unsqueeze(0).unsqueeze(0)
-            pred_proj = torch_projectors.forward_project_2d(rec, learned_rot, interpolation=interpolation)
+            pred_proj = torch_projectors.project_2d_forw(rec, learned_rot, interpolation=interpolation)
             loss = torch.sum((pred_proj - target_proj).abs().pow(2))  # Manual MSE for complex tensors
             loss.backward()
             optimizer.step()

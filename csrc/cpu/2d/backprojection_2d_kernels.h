@@ -1,7 +1,7 @@
 #pragma once
 #include <torch/extension.h>
 
-std::tuple<at::Tensor, at::Tensor> back_project_2d_cpu(
+std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
     const at::Tensor& projections,
     const c10::optional<at::Tensor>& weights,
     const at::Tensor& rotations,
@@ -11,7 +11,7 @@ std::tuple<at::Tensor, at::Tensor> back_project_2d_cpu(
     const c10::optional<double>& fourier_radius_cutoff
 );
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backward_back_project_2d_cpu(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_cpu(
     const at::Tensor& grad_data_rec,
     const c10::optional<at::Tensor>& grad_weight_rec,
     const at::Tensor& projections,

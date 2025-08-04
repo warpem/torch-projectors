@@ -3,7 +3,7 @@
 
 #ifdef __APPLE__
 
-at::Tensor forward_project_2d_mps(
+at::Tensor project_2d_forw_mps(
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
@@ -13,7 +13,7 @@ at::Tensor forward_project_2d_mps(
     const c10::optional<double>& fourier_radius_cutoff
 );
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> backward_project_2d_mps(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_mps(
     const at::Tensor& grad_projections,
     const at::Tensor& reconstruction,
     const at::Tensor& rotations,

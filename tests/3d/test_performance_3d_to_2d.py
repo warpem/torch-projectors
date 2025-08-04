@@ -97,7 +97,7 @@ def test_performance_benchmark_3d_to_2d(device):
         # Warmup runs
         for _ in range(num_warmup_runs):
             reconstructions.requires_grad_(True)
-            projections = torch_projectors.forward_project_3d_to_2d(
+            projections = torch_projectors.project_3d_to_2d_forw(
                 reconstructions, rotations, shifts, 
                 output_shape=(H, W), interpolation=interpolation_method
             )
@@ -113,7 +113,7 @@ def test_performance_benchmark_3d_to_2d(device):
             torch.cuda.synchronize() if torch.cuda.is_available() else None
             start_time = time.perf_counter()
             
-            projections = torch_projectors.forward_project_3d_to_2d(
+            projections = torch_projectors.project_3d_to_2d_forw(
                 reconstructions, rotations, shifts,
                 output_shape=(H, W), interpolation=interpolation_method
             )
@@ -215,7 +215,7 @@ def test_interpolation_quality_comparison_3d_to_2d(device):
     
     # Identity projection as reference (3D->2D at identity rotation)
     identity_rotation_3d = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)  # [1, 1, 3, 3]
-    reference_proj = torch_projectors.forward_project_3d_to_2d(
+    reference_proj = torch_projectors.project_3d_to_2d_forw(
         reconstruction_3d.unsqueeze(0), 
         identity_rotation_3d, 
         output_shape=(H, W),
@@ -271,21 +271,21 @@ def test_interpolation_quality_comparison_3d_to_2d(device):
             ], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
         
         # Round-trip with linear interpolation: 3D->2D then 2D->2D back
-        proj_rotated_linear = torch_projectors.forward_project_3d_to_2d(
+        proj_rotated_linear = torch_projectors.project_3d_to_2d_forw(
             reconstruction_3d.unsqueeze(0), rot_forward, 
             output_shape=(H, W), interpolation='linear'
         )
-        roundtrip_linear = torch_projectors.forward_project_2d(
+        roundtrip_linear = torch_projectors.project_2d_forw(
             proj_rotated_linear.squeeze(1), rot_back_2d, 
             output_shape=(H, H), interpolation='linear'
         )
         
         # Round-trip with cubic interpolation: 3D->2D then 2D->2D back
-        proj_rotated_cubic = torch_projectors.forward_project_3d_to_2d(
+        proj_rotated_cubic = torch_projectors.project_3d_to_2d_forw(
             reconstruction_3d.unsqueeze(0), rot_forward, 
             output_shape=(H, W), interpolation='cubic'
         )
-        roundtrip_cubic = torch_projectors.forward_project_2d(
+        roundtrip_cubic = torch_projectors.project_2d_forw(
             proj_rotated_cubic.squeeze(1), rot_back_2d, 
             output_shape=(H, H), interpolation='cubic'
         )
@@ -321,20 +321,20 @@ def test_interpolation_quality_comparison_3d_to_2d(device):
         [-sin_a, cos_a]
     ], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
     
-    proj_y_linear = torch_projectors.forward_project_3d_to_2d(
+    proj_y_linear = torch_projectors.project_3d_to_2d_forw(
         reconstruction_3d.unsqueeze(0), rot_forward_y, 
         output_shape=(H, W), interpolation='linear'
     )
-    roundtrip_y_linear = torch_projectors.forward_project_2d(
+    roundtrip_y_linear = torch_projectors.project_2d_forw(
         proj_y_linear.squeeze(1), rot_back_2d_y, 
         output_shape=(H, H), interpolation='linear'
     )
     
-    proj_y_cubic = torch_projectors.forward_project_3d_to_2d(
+    proj_y_cubic = torch_projectors.project_3d_to_2d_forw(
         reconstruction_3d.unsqueeze(0), rot_forward_y, 
         output_shape=(H, W), interpolation='cubic'
     )
-    roundtrip_y_cubic = torch_projectors.forward_project_2d(
+    roundtrip_y_cubic = torch_projectors.project_2d_forw(
         proj_y_cubic.squeeze(1), rot_back_2d_y, 
         output_shape=(H, H), interpolation='cubic'
     )
@@ -513,7 +513,7 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
         # Warmup runs
         for _ in range(num_warmup_runs):
             volume_tp.requires_grad_(True)
-            projections = torch_projectors.forward_project_3d_to_2d(
+            projections = torch_projectors.project_3d_to_2d_forw(
                 volume_tp, rotations_tp, shifts_tp,
                 output_shape=(H, W), interpolation='linear'
             )
@@ -530,7 +530,7 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             torch.mps.synchronize() if torch.backends.mps.is_available() else None
             start_time = time.perf_counter()
             
-            projections = torch_projectors.forward_project_3d_to_2d(
+            projections = torch_projectors.project_3d_to_2d_forw(
                 volume_tp, rotations_tp, shifts_tp,
                 output_shape=(H, W), interpolation='linear'
             )

@@ -18,13 +18,13 @@ A high-performance, differentiable 2D and 3D projection library for PyTorch, des
 The library provides several main functions:
 
 ### 2D-to-2D Operations
-- `forward_project_2d()`: Project 2D Fourier reconstructions to 2D projections  
-- `backward_project_2d()`: Backward projection for gradient computation
-- `back_project_2d()`: Accumulate 2D projections into 2D reconstructions (adjoint operation)
+- `project_2d_forw()`: Project 2D Fourier reconstructions to 2D projections  
+- `project_2d_back()`: Backward projection for gradient computation
+- `backproject_2d_forw()`: Accumulate 2D projections into 2D reconstructions (adjoint operation)
 
 ### 3D-to-2D Operations  
-- `forward_project_3d_to_2d()`: Project 3D Fourier volumes to 2D projections
-- `backward_project_3d_to_2d()`: Backward projection for 3D gradient computation
+- `project_3d_to_2d_forw()`: Project 3D Fourier volumes to 2D projections
+- `project_3d_to_2d_back()`: Backward projection for 3D gradient computation
 
 ## Installation & Development Setup
 
