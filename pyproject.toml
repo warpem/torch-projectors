@@ -2,6 +2,7 @@
 
 [build-system]
 requires = [
+    "pybind11",
     "setuptools",
     "torch",
 ]

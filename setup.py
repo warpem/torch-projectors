@@ -30,12 +30,19 @@ else:
     extra_link_args = []
     # Add OpenMP support (Unix platforms)
     # Try to detect available OpenMP library
-    if os.path.exists("/usr/lib/x86_64-linux-gnu/libgomp.so") or os.path.exists("/usr/lib/aarch64-linux-gnu/libgomp.so") or os.path.exists("/usr/lib/libgomp.so"):
+    if platform.system() == "Darwin":
+        # macOS: Check for LLVM OpenMP from PyTorch (uses .dylib extension)
+        if os.path.exists(os.path.join(torch_lib_dir, "libomp.dylib")):
+            extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
+            extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
+        else:
+            print("Warning: OpenMP not found on macOS, compiling without OpenMP support")
+    elif os.path.exists("/usr/lib/x86_64-linux-gnu/libgomp.so") or os.path.exists("/usr/lib/aarch64-linux-gnu/libgomp.so") or os.path.exists("/usr/lib/libgomp.so"):
         # GNU OpenMP (most common on Linux)
         extra_compile_args["cxx"].extend(["-fopenmp"])
         extra_link_args.extend(["-lgomp"])
     elif os.path.exists(os.path.join(torch_lib_dir, "libomp.so")):
-        # LLVM OpenMP from PyTorch
+        # LLVM OpenMP from PyTorch (Linux)
         extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
         extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
     else:

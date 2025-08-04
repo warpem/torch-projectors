@@ -365,6 +365,10 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     Tests both forward and backward passes with proper timing methodology.
     """
 
+    # Skip MPS - torch-fourier-slice operators not implemented for MPS
+    if device.type == "mps":
+        pytest.skip("torch-fourier-slice operators not implemented for MPS")
+
     torch.manual_seed(42)
     
     # Use same benchmark parameters as our performance test
