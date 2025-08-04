@@ -499,7 +499,7 @@ def test_backproject_2d_weight_gradients(device, interpolation):
     print(f"Loss: {loss.item():.6f}")
     
     # Test finite difference for weight gradients
-    eps = 1e-5
+    eps = 1e-1
     weights_plus = weights.detach().clone()
     weights_plus[0, 0, 0, 0] += eps
     
@@ -524,4 +524,4 @@ def test_backproject_2d_weight_gradients(device, interpolation):
     relative_error = abs(analytical_grad - fd_grad) / (abs(fd_grad) + 1e-8)
     print(f"Weight gradient finite difference check: analytical={analytical_grad:.6f}, fd={fd_grad:.6f}, rel_err={relative_error:.2e}")
     
-    assert relative_error < 0.01, f"Weight gradient finite difference error too high: {relative_error:.2e}"
+    assert relative_error < 0.001, f"Weight gradient finite difference error too high: {relative_error:.2e}"
