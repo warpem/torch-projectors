@@ -29,8 +29,13 @@ else:
     extra_compile_args = {"cxx": ["-O3", "-std=c++20"]}
     extra_link_args = []
     # Add OpenMP support (Unix platforms)
-    extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
-    extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
+    if platform.machine() in ['arm64', 'aarch64']:
+        # ARM64 systems typically use libgomp
+        extra_compile_args["cxx"].extend(["-fopenmp"])
+        extra_link_args.extend(["-lgomp"])
+    else:
+        extra_compile_args["cxx"].extend(["-Xpreprocessor", "-fopenmp"])
+        extra_link_args.extend(["-L" + torch_lib_dir, "-lomp"])
 
 # Check for CUDA availability
 print(f"PyTorch CUDA available: {torch.cuda.is_available()}")
