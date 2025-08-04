@@ -1,5 +1,6 @@
 #include <torch/extension.h>
 #include "cpu/2d/projection_2d_kernels.h"
+#include "cpu/2d/backprojection_2d_kernels.h"
 #include "cpu/3d/projection_3d_to_2d_kernels.h"
 
 #ifdef __APPLE__
@@ -17,6 +18,10 @@ TORCH_LIBRARY(torch_projectors, m) {
   m.def("forward_project_2d(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
   m.def("backward_project_2d(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
   
+  // 2D back-projection operators (adjoint/transpose operations)
+  m.def("back_project_2d(Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor)");
+  m.def("backward_back_project_2d(Tensor grad_data_rec, Tensor? grad_weight_rec, Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor, Tensor)");
+  
   // 3D->2D projection operators
   m.def("forward_project_3d_to_2d(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
   m.def("backward_project_3d_to_2d(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
@@ -26,6 +31,10 @@ TORCH_LIBRARY_IMPL(torch_projectors, CPU, m) {
   // 2D->2D projection implementations
   m.impl("forward_project_2d", &forward_project_2d_cpu);
   m.impl("backward_project_2d", &backward_project_2d_cpu);
+  
+  // 2D back-projection implementations
+  m.impl("back_project_2d", &back_project_2d_cpu);
+  m.impl("backward_back_project_2d", &backward_back_project_2d_cpu);
   
   // 3D->2D projection implementations
   m.impl("forward_project_3d_to_2d", &forward_project_3d_to_2d_cpu);

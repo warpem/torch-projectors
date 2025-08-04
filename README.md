@@ -15,10 +15,16 @@ A high-performance, differentiable 2D and 3D projection library for PyTorch, des
 
 ## Core API
 
-The library provides two main functions:
+The library provides several main functions:
 
-- `forward_project_2d()`: Project 3D Fourier reconstructions to 2D projections
+### 2D-to-2D Operations
+- `forward_project_2d()`: Project 2D Fourier reconstructions to 2D projections  
 - `backward_project_2d()`: Backward projection for gradient computation
+- `back_project_2d()`: Accumulate 2D projections into 2D reconstructions (adjoint operation)
+
+### 3D-to-2D Operations  
+- `forward_project_3d_to_2d()`: Project 3D Fourier volumes to 2D projections
+- `backward_project_3d_to_2d()`: Backward projection for 3D gradient computation
 
 ## Installation & Development Setup
 
@@ -52,8 +58,11 @@ The build system automatically detects and enables:
 ### Core Components
 
 - **Python API**: `torch_projectors/ops.py` - Main user interface
-- **C++ Kernels**: `csrc/cpu/cpu_kernels.cpp` - High-performance CPU implementations  
-- **CUDA Kernels**: `csrc/cuda/cuda_kernels.cu` - GPU acceleration (when available)
+- **C++ Kernels**: 
+  - `csrc/cpu/2d/projection_2d_kernels.cpp` - 2D forward/backward projection
+  - `csrc/cpu/2d/backprojection_2d_kernels.cpp` - 2D back-projection (adjoint)
+  - `csrc/cpu/3d/projection_3d_to_2d_kernels.cpp` - 3D-to-2D projection
+- **CUDA Kernels**: `csrc/cuda/*.cu` - GPU acceleration (when available)
 - **Metal Shaders**: `csrc/mps/*.metal` - Apple Silicon optimization
 - **Operator Registration**: `csrc/torch_projectors.cpp` - PyTorch integration
 
@@ -93,6 +102,30 @@ Tests generate visualization outputs in `test_outputs/` for manual inspection an
 - Cross-platform consistency verification
 - Performance benchmarking
 
+## Key Features
+
+### 2D Back-Projection (New!)
+- **Adjoint Operations**: Mathematical transpose of forward projection
+- **Weight Accumulation**: Support for CTF² or other weight functions
+- **Full Differentiability**: Gradients w.r.t. projections, weights, rotations, and shifts
+- **Conjugate Phase Shifts**: Proper mathematical adjoint with conjugate phase corrections
+- **Wiener Filtering Ready**: Separate data/weight accumulation enables downstream filtering
+
+### Interpolation & Filtering
+- **Interpolation Methods**: Linear (bilinear/trilinear) and cubic (bicubic/tricubic)
+- **Oversampling Support**: Coordinate scaling for computational efficiency  
+- **Fourier Filtering**: Optional radius cutoff for low-pass filtering
+- **Friedel Symmetry**: Automatic handling for real-valued reconstructions
+
 ## Development Status
 
-This project is under active development. Current capabilities include 2D forward projection with full gradient support. The architecture is designed to support future expansion to 3D-to-2D and 3D-to-3D projections.
+This project is under active development. Current capabilities include:
+- ✅ 2D-to-2D forward projection with full gradient support
+- ✅ 2D-to-2D back-projection (adjoint) with weight accumulation
+- ✅ 3D-to-2D forward projection with full gradient support
+- ✅ 3D-to-2D back-projection (adjoint) with weight accumulation
+- 🚧 3D-to-3D projection operations
+- 🚧 3D-to-3D back-projection (adjoint) with weight accumulation
+- 🚧 CUDA and MPS backend implementations
+
+The architecture is designed to support future expansion to additional projection geometries and backend optimizations.
