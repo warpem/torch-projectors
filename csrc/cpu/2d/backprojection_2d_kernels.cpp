@@ -475,6 +475,16 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                 scalar_t rec_val_for_shift = kernel.interpolate(grad_data_rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
                                 scalar_t proj_val = proj_acc[b][p][i][j];
                                 
+                                // Apply conjugate phase shift to projection value (consistent with rotation gradient computation)
+                                if (shifts_acc.has_value()) {
+                                    std::vector<rot_real_t> shift_vals = {(*shifts_acc)[indices.shift_b_idx][p][0], 
+                                                                          (*shifts_acc)[indices.shift_b_idx][p][1]};
+                                    std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
+                                    scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
+                                        coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                    proj_val = proj_val * std::conj(phase_factor);
+                                }
+                                
                                 scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / rec_boxsize) * rec_val_for_shift;
                                 scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / rec_boxsize) * rec_val_for_shift;
                                 
