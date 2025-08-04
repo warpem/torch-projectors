@@ -5,6 +5,7 @@ import os
 import platform
 import subprocess
 import sys
+import pybind11
 
 # Get PyTorch's library directory to find libomp
 torch_lib_dir = os.path.join(os.path.dirname(torch.__file__), 'lib')
@@ -98,6 +99,7 @@ setup(
         extension_class(
             name="torch_projectors._C",
             sources=sources,
+            include_dirs=[pybind11.get_include()],
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,
         )
