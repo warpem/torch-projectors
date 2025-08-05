@@ -118,7 +118,7 @@ def create_fourier_mask(shape, radius_cutoff_sq, device=None):
     kx = torch.arange(W_half, dtype=torch.float32, device=device)
     kyy, kxx = torch.meshgrid(ky, kx, indexing='ij')
     
-    return kxx**2 + kyy**2 > radius_cutoff_sq
+    return kxx**2 + kyy**2 >= radius_cutoff_sq
 
 
 def create_rotation_matrix_2d(angle):
@@ -169,6 +169,81 @@ def complex_mse_loss(input_tensor, target_tensor):
     # |a + ib|^2 = a^2 + b^2
     loss = torch.mean(diff.real**2 + diff.imag**2)
     return loss
+
+
+def create_friedel_symmetric_noise(shape, device=None):
+    """
+    Create complex noise that satisfies Friedel symmetry for RFFT format.
+    
+    For real-valued images, the Fourier transform must satisfy:
+    F(-k) = F*(k) (complex conjugate)
+    
+    Works for both 2D and 3D cases:
+    - 2D: shape = (H, W) where W is RFFT width (original_width//2 + 1)
+    - 3D: shape = (D, H, W) where W is RFFT width (original_width//2 + 1)
+    
+    Args:
+        shape: tuple of dimensions
+        device: torch device
+    
+    Returns:
+        Complex tensor with proper Friedel symmetry
+    """
+    noise = torch.randn(*shape, dtype=torch.complex64, device=device)
+    
+    if len(shape) == 2:
+        # 2D case: (H, W)
+        H, W = shape
+        
+        # DC component must be real
+        noise[0, 0] = torch.complex(noise[0, 0].real, torch.tensor(0.0, device=device))
+        
+        # Nyquist frequency (if H is even) must be real
+        if H % 2 == 0:
+            noise[H//2, 0] = torch.complex(noise[H//2, 0].real, torch.tensor(0.0, device=device))
+        
+        # Friedel symmetry on kx=0 line: F(ky, 0) = F*(-ky, 0)
+        for ky in range(1, H//2):
+            noise[H-ky, 0] = torch.conj(noise[ky, 0])
+            
+    elif len(shape) == 3:
+        # 3D case: (D, H, W)
+        D, H, W = shape
+        
+        # DC component must be real
+        noise[0, 0, 0] = torch.complex(noise[0, 0, 0].real, torch.tensor(0.0, device=device))
+        
+        # Nyquist frequencies must be real
+        if D % 2 == 0:
+            noise[D//2, 0, 0] = torch.complex(noise[D//2, 0, 0].real, torch.tensor(0.0, device=device))
+        if H % 2 == 0:
+            noise[0, H//2, 0] = torch.complex(noise[0, H//2, 0].real, torch.tensor(0.0, device=device))
+        if D % 2 == 0 and H % 2 == 0:
+            noise[D//2, H//2, 0] = torch.complex(noise[D//2, H//2, 0].real, torch.tensor(0.0, device=device))
+        
+        # Friedel symmetry on kx=0 plane: F(kz, ky, 0) = F*(-kz, -ky, 0)
+        for kz in range(D):
+            for ky in range(H):
+                if kz == 0 and ky == 0:
+                    continue  # Already handled DC
+                
+                # Calculate symmetric indices
+                kz_sym = (-kz) % D
+                ky_sym = (-ky) % H
+                
+                # Skip if we're at the positive frequency (we set the negative one)
+                if kz > D//2 or (kz == D//2 and ky > H//2):
+                    continue
+                if kz == 0 and ky > H//2:
+                    continue
+                    
+                # Set symmetric counterpart
+                noise[kz_sym, ky_sym, 0] = torch.conj(noise[kz, ky, 0])
+    
+    else:
+        raise ValueError(f"Unsupported shape dimensionality: {len(shape)}. Only 2D and 3D supported.")
+    
+    return noise
 
 
 @pytest.fixture(params=["cpu", "cuda"])

@@ -165,113 +165,165 @@ struct BackwardKernel {
 };
 
 /**
- * Linear backward kernel for N dimensions
+ * Linear backward kernel for 2D
  */
-template <int N, typename scalar_t, typename real_t = typename scalar_t::value_type>
-struct LinearBackwardKernel : public BackwardKernel<N, scalar_t, real_t> {
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct Linear2DBackwardKernel : public BackwardKernel<2, scalar_t, real_t> {
     void distribute_gradient(
-        std::function<void(const std::array<int64_t, N>&, scalar_t)> accumulate_func,
+        std::function<void(const std::array<int64_t, 2>&, scalar_t)> accumulate_func,
         scalar_t grad_val,
-        const std::array<real_t, N>& coords
+        const std::array<real_t, 2>& coords
     ) const override {
-        // Extract integer and fractional parts for all dimensions
-        std::array<int64_t, N> floors;
-        std::array<real_t, N> fracs;
+        // Get floor and fractional parts
+        int64_t r_floor = floor(coords[0]);
+        int64_t c_floor = floor(coords[1]);
+        real_t r_frac = coords[0] - r_floor;
+        real_t c_frac = coords[1] - c_floor;
         
-        for (int i = 0; i < N; ++i) {
-            floors[i] = floor(coords[i]);
-            fracs[i] = coords[i] - floors[i];
-        }
-        
-        // Generate all 2^N corner points of the hypercube
-        constexpr int num_corners = 1 << N;  // 2^N
-        
-        for (int corner = 0; corner < num_corners; ++corner) {
-            std::array<int64_t, N> indices;
-            real_t weight = 1.0;
-            
-            // For each dimension, choose lower or upper corner based on bit
-            for (int dim = 0; dim < N; ++dim) {
-                bool use_upper = (corner >> dim) & 1;
-                indices[dim] = floors[dim] + (use_upper ? 1 : 0);
-                weight *= use_upper ? fracs[dim] : (1 - fracs[dim]);
-            }
-            
-            accumulate_func(indices, grad_val * weight);
-        }
+        // Distribute to 4 corners of 2D square
+        accumulate_func({r_floor,     c_floor},     grad_val * (1 - r_frac) * (1 - c_frac));
+        accumulate_func({r_floor + 1, c_floor},     grad_val * r_frac * (1 - c_frac));
+        accumulate_func({r_floor,     c_floor + 1}, grad_val * (1 - r_frac) * c_frac);
+        accumulate_func({r_floor + 1, c_floor + 1}, grad_val * r_frac * c_frac);
     }
 };
 
 /**
- * Cubic backward kernel for N dimensions
+ * Linear backward kernel for 3D
  */
-template <int N, typename scalar_t, typename real_t = typename scalar_t::value_type>
-struct CubicBackwardKernel : public BackwardKernel<N, scalar_t, real_t> {
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct Linear3DBackwardKernel : public BackwardKernel<3, scalar_t, real_t> {
     void distribute_gradient(
-        std::function<void(const std::array<int64_t, N>&, scalar_t)> accumulate_func,
+        std::function<void(const std::array<int64_t, 3>&, scalar_t)> accumulate_func,
         scalar_t grad_val,
-        const std::array<real_t, N>& coords
+        const std::array<real_t, 3>& coords
     ) const override {
-        // Extract integer and fractional parts
-        std::array<int64_t, N> floors;
-        std::array<real_t, N> fracs;
+        // Get floor and fractional parts
+        int64_t d_floor = floor(coords[0]);
+        int64_t r_floor = floor(coords[1]);
+        int64_t c_floor = floor(coords[2]);
+        real_t d_frac = coords[0] - d_floor;
+        real_t r_frac = coords[1] - r_floor;
+        real_t c_frac = coords[2] - c_floor;
         
-        for (int i = 0; i < N; ++i) {
-            floors[i] = floor(coords[i]);
-            fracs[i] = coords[i] - floors[i];
-        }
+        // Distribute to 8 corners of 3D cube
+        accumulate_func({d_floor,     r_floor,     c_floor},     grad_val * (1 - d_frac) * (1 - r_frac) * (1 - c_frac));
+        accumulate_func({d_floor + 1, r_floor,     c_floor},     grad_val * d_frac * (1 - r_frac) * (1 - c_frac));
+        accumulate_func({d_floor,     r_floor + 1, c_floor},     grad_val * (1 - d_frac) * r_frac * (1 - c_frac));
+        accumulate_func({d_floor + 1, r_floor + 1, c_floor},     grad_val * d_frac * r_frac * (1 - c_frac));
+        accumulate_func({d_floor,     r_floor,     c_floor + 1}, grad_val * (1 - d_frac) * (1 - r_frac) * c_frac);
+        accumulate_func({d_floor + 1, r_floor,     c_floor + 1}, grad_val * d_frac * (1 - r_frac) * c_frac);
+        accumulate_func({d_floor,     r_floor + 1, c_floor + 1}, grad_val * (1 - d_frac) * r_frac * c_frac);
+        accumulate_func({d_floor + 1, r_floor + 1, c_floor + 1}, grad_val * d_frac * r_frac * c_frac);
+    }
+};
+
+/**
+ * Cubic backward kernel for 2D
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct Cubic2DBackwardKernel : public BackwardKernel<2, scalar_t, real_t> {
+    void distribute_gradient(
+        std::function<void(const std::array<int64_t, 2>&, scalar_t)> accumulate_func,
+        scalar_t grad_val,
+        const std::array<real_t, 2>& coords
+    ) const override {
+        // Get floor and fractional parts
+        int64_t r_floor = floor(coords[0]);
+        int64_t c_floor = floor(coords[1]);
+        real_t r_frac = coords[0] - r_floor;
+        real_t c_frac = coords[1] - c_floor;
         
-        // Generate all 4^N points in the cubic support region
-        constexpr int support_size = 4;
-        constexpr int num_points = 1;
-        int total_points = 1;
-        for (int i = 0; i < N; ++i) {
-            total_points *= support_size;
-        }
-        
-        // Use nested loops for N-dimensional cubic support
-        std::function<void(int, std::array<int64_t, N>&, real_t)> recursive_distribute;
-        recursive_distribute = [&](int dim, std::array<int64_t, N>& indices, real_t accumulated_weight) {
-            if (dim == N) {
-                // Base case: distribute the accumulated weight
-                if (accumulated_weight != 0.0) {
-                    accumulate_func(indices, grad_val * accumulated_weight);
-                }
-                return;
-            }
+        // Distribute to 4x4 grid around the point (cubic support)
+        for (int r_offset = -1; r_offset <= 2; ++r_offset) {
+            real_t r_weight = cubic_kernel(r_frac - r_offset);
+            if (r_weight == 0.0) continue;
             
-            // Recurse through the 4-point support in this dimension
-            for (int offset = -1; offset <= 2; ++offset) {
-                indices[dim] = floors[dim] + offset;
-                real_t weight = cubic_kernel(fracs[dim] - offset);
-                if (weight != 0.0) {
-                    recursive_distribute(dim + 1, indices, accumulated_weight * weight);
-                }
+            for (int c_offset = -1; c_offset <= 2; ++c_offset) {
+                real_t c_weight = cubic_kernel(c_frac - c_offset);
+                if (c_weight == 0.0) continue;
+                
+                accumulate_func({r_floor + r_offset, c_floor + c_offset}, 
+                              grad_val * r_weight * c_weight);
             }
-        };
-        
-        std::array<int64_t, N> indices;
-        recursive_distribute(0, indices, 1.0);
+        }
     }
 
 private:
-    // Use the cubic kernel from cubic_kernels.h
     real_t cubic_kernel(real_t s) const {
         return torch_projectors::cpu::common::cubic_kernel(s);
     }
 };
 
 /**
- * Factory for backward kernels
+ * Cubic backward kernel for 3D
  */
-template <int N, typename scalar_t, typename real_t = typename scalar_t::value_type>
-std::unique_ptr<BackwardKernel<N, scalar_t, real_t>> get_backward_kernel(const std::string& interpolation) {
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+struct Cubic3DBackwardKernel : public BackwardKernel<3, scalar_t, real_t> {
+    void distribute_gradient(
+        std::function<void(const std::array<int64_t, 3>&, scalar_t)> accumulate_func,
+        scalar_t grad_val,
+        const std::array<real_t, 3>& coords
+    ) const override {
+        // Get floor and fractional parts
+        int64_t d_floor = floor(coords[0]);
+        int64_t r_floor = floor(coords[1]);
+        int64_t c_floor = floor(coords[2]);
+        real_t d_frac = coords[0] - d_floor;
+        real_t r_frac = coords[1] - r_floor;
+        real_t c_frac = coords[2] - c_floor;
+        
+        // Distribute to 4x4x4 grid around the point (cubic support)
+        for (int d_offset = -1; d_offset <= 2; ++d_offset) {
+            real_t d_weight = cubic_kernel(d_frac - d_offset);
+            if (d_weight == 0.0) continue;
+            
+            for (int r_offset = -1; r_offset <= 2; ++r_offset) {
+                real_t r_weight = cubic_kernel(r_frac - r_offset);
+                if (r_weight == 0.0) continue;
+                
+                for (int c_offset = -1; c_offset <= 2; ++c_offset) {
+                    real_t c_weight = cubic_kernel(c_frac - c_offset);
+                    if (c_weight == 0.0) continue;
+                    
+                    accumulate_func({d_floor + d_offset, r_floor + r_offset, c_floor + c_offset}, 
+                                  grad_val * d_weight * r_weight * c_weight);
+                }
+            }
+        }
+    }
+
+private:
+    real_t cubic_kernel(real_t s) const {
+        return torch_projectors::cpu::common::cubic_kernel(s);
+    }
+};
+
+/**
+ * Factory for 2D backward kernels
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+std::unique_ptr<BackwardKernel<2, scalar_t, real_t>> get_2d_backward_kernel(const std::string& interpolation) {
     if (interpolation == "linear") {
-        return std::make_unique<LinearBackwardKernel<N, scalar_t, real_t>>();
+        return std::make_unique<Linear2DBackwardKernel<scalar_t, real_t>>();
     } else if (interpolation == "cubic") {
-        return std::make_unique<CubicBackwardKernel<N, scalar_t, real_t>>();
+        return std::make_unique<Cubic2DBackwardKernel<scalar_t, real_t>>();
     } else {
-        throw std::runtime_error("Unsupported backward interpolation method: " + interpolation);
+        throw std::runtime_error("Unsupported 2D backward interpolation method: " + interpolation);
+    }
+}
+
+/**
+ * Factory for 3D backward kernels
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+std::unique_ptr<BackwardKernel<3, scalar_t, real_t>> get_3d_backward_kernel(const std::string& interpolation) {
+    if (interpolation == "linear") {
+        return std::make_unique<Linear3DBackwardKernel<scalar_t, real_t>>();
+    } else if (interpolation == "cubic") {
+        return std::make_unique<Cubic3DBackwardKernel<scalar_t, real_t>>();
+    } else {
+        throw std::runtime_error("Unsupported 3D backward interpolation method: " + interpolation);
     }
 }
 
@@ -307,6 +359,49 @@ inline void accumulate_2d_gradient(
     // Atomically accumulate gradient (with conjugation if needed for Friedel symmetry)
     scalar_t final_grad = needs_conj ? std::conj(grad) : grad;
     atomic_add_complex(&grad_rec_acc[b][r_eff][c], final_grad);
+
+    // On the x=0 line, also insert Friedel-symmetric conjugate counterpart
+    if (c == 0) {
+        r *= -1;
+        int64_t r_eff2 = r < 0 ? rec_boxsize + r : r;
+        if (r_eff2 >= rec_boxsize || r_eff2 == r_eff) return;
+
+        atomic_add_complex(&grad_rec_acc[b][r_eff2][c], std::conj(final_grad));
+    }
+}
+
+/**
+ * Accumulate complex values into 2D FFTW-formatted reconstruction tensor for back-projection
+ * WITHOUT Friedel symmetry conjugation (back-projection accumulates arbitrary complex data)
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+inline void accumulate_2d_backproject_data(
+    torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec_acc,
+    int64_t b, int64_t rec_boxsize, int64_t rec_boxsize_half,
+    int64_t r, int64_t c, scalar_t data
+) {
+    // Handle negative column indices by mirroring coordinates (no conjugation)
+    if (c < 0) { 
+        c = -c;
+        r = -r;
+        // NO conjugation for back-projection data accumulation
+    }
+    
+    // Handle Nyquist frequency wrapping: -boxsize/2 maps to +boxsize/2
+    if (r == -rec_boxsize / 2) {
+        r = rec_boxsize / 2;
+    }
+    
+    // Bounds checking
+    if (c >= rec_boxsize_half) return;
+    if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return;
+
+    // Convert negative row indices to positive (FFTW wrapping)
+    int64_t r_eff = r < 0 ? rec_boxsize + r : r;
+    if (r_eff >= rec_boxsize) return;
+
+    // Atomically accumulate data (NO conjugation)
+    atomic_add_complex(&rec_acc[b][r_eff][c], data);
 }
 
 /**

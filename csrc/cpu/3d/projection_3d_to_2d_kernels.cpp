@@ -37,7 +37,7 @@ private:
 
 public:
     BackwardProjection3DKernel(const std::string& interpolation) 
-        : kernel_(get_backward_kernel<3, scalar_t, real_t>(interpolation)) {}
+        : kernel_(get_3d_backward_kernel<scalar_t, real_t>(interpolation)) {}
     
     void distribute_gradient(
         std::function<void(int64_t, int64_t, int64_t, scalar_t)> accumulate_func,

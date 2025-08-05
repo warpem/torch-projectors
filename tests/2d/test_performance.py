@@ -180,9 +180,9 @@ def test_interpolation_quality_comparison(device):
         output_shape=(H, H),
         interpolation='linear'  # Doesn't matter for identity
     )
-    
-    # Test rotations: +5° then -5°
-    angle_rad = math.radians(1.0)
+
+    # Test rotations: +45° then -45°
+    angle_rad = math.radians(45.0)
     cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
     
     rot_plus5 = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)

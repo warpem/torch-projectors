@@ -16,7 +16,7 @@ import os
 
 # Add parent directory to path to import test_utils
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from test_utils import device, plot_fourier_tensors
+from test_utils import device, plot_fourier_tensors, create_fourier_mask, create_friedel_symmetric_noise
 
 
 def test_backproject_performance_benchmark(device):
@@ -69,7 +69,7 @@ def test_backproject_performance_benchmark(device):
             projections.requires_grad_(True)
             weights.requires_grad_(True)
             reconstruction, weight_reconstruction = torch_projectors.backproject_2d_forw(
-                projections, weights, rotations, shifts, 
+                projections, rotations, weights=weights, shifts=shifts, 
                 interpolation=interpolation_method
             )
             loss = torch.sum(torch.abs(reconstruction)**2) + 0.1 * torch.sum(weight_reconstruction**2)
@@ -87,7 +87,7 @@ def test_backproject_performance_benchmark(device):
             start_time = time.perf_counter()
             
             reconstruction, weight_reconstruction = torch_projectors.backproject_2d_forw(
-                projections, weights, rotations, shifts,
+                projections, rotations, weights=weights, shifts=shifts,
                 interpolation=interpolation_method
             )
             
@@ -170,80 +170,72 @@ def test_backproject_interpolation_quality_comparison(device):
     Compare linear vs cubic interpolation quality for back-projection using round-trip operations.
     
     Test procedure:
-    1. Start with random projections
-    2. Back-project them at 0° as reference
-    3. Forward project the result at +5°, then back-project at -5° with linear interpolation
-    4. Forward project the result at +5°, then back-project at -5° with cubic interpolation  
-    5. Compare both results to reference, verify cubic is better
+    1. Start with a known reconstruction in Fourier space
+    2. Forward project it at 90° to create projections
+    3. Back-project those projections at -90° with linear interpolation
+    4. Back-project those projections at -90° with cubic interpolation  
+    5. Compare both results to original reconstruction, verify cubic is better
     """
     torch.manual_seed(42)
     
-    # Create random projections in Fourier space (RFFT format)
+    # Create a known reconstruction in Fourier space (RFFT format)
     # Generate on CPU first to ensure consistent data across devices
     H, W = 64, 33  # 64x64 real -> 64x33 complex after RFFT
-    projections = torch.randn(1, 1, H, W, dtype=torch.complex64, device='cpu').to(device)
     
-    # Identity back-projection (0 degrees) as reference
-    identity_rotation = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)  # [1, 1, 2, 2]
-    reference_reconstruction, _ = torch_projectors.backproject_2d_forw(
-        projections, 
-        rotations=identity_rotation, 
-        interpolation='linear'  # Doesn't matter for identity
-    )
+    # Create Friedel-symmetric noise (proper for real-valued reconstruction)
+    original_reconstruction = create_friedel_symmetric_noise((H, W), device='cpu').unsqueeze(0).to(device)
     
-    # Test rotations: +5° then -5°
-    angle_rad = math.radians(1.0)
+    # Apply circular mask in Fourier space to avoid edge artifacts
+    max_radius = H // 2  # Leave some margin to avoid edge effects
+    mask = create_fourier_mask((H, W), max_radius**2, device=device)
+    original_reconstruction[0][mask] = 0.0
+
+    # Test rotation: +45°
+    angle_rad = math.radians(45.0)
     cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
-    
-    rot_plus5 = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-    rot_minus5 = torch.tensor([[cos_a, sin_a], [-sin_a, cos_a]], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
-    
-    # Round-trip with linear interpolation
-    # Back-project -> Forward project -> Back-project
-    reconstruction_5deg_linear, _ = torch_projectors.backproject_2d_forw(
-        projections, rotations=rot_plus5, interpolation='linear'
+
+    # Forward projection rotation (+45°)
+    rot = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]], dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
+
+    # Step 1: Forward project the known reconstruction at +45° with both interpolation methods
+    projections_linear = torch_projectors.project_2d_forw(
+        original_reconstruction, rotations=rot, output_shape=(H, H), interpolation='linear'
     )
     
-    # Forward project the back-projection result
-    forward_proj_linear = torch_projectors.project_2d_forw(
-        reconstruction_5deg_linear, rot_minus5, output_shape=(H, H*2-1), interpolation='linear'
+    projections_cubic = torch_projectors.project_2d_forw(
+        original_reconstruction, rotations=rot, output_shape=(H, H), interpolation='cubic'
     )
     
-    # Back-project again to complete the round-trip
-    roundtrip_linear, _ = torch_projectors.backproject_2d_forw(
-        forward_proj_linear, rotations=identity_rotation, interpolation='linear'
+    # Step 2: Back-project with linear interpolation (using linear-generated projections)
+    reconstructed_linear, _ = torch_projectors.backproject_2d_forw(
+        projections_linear, rotations=rot, interpolation='linear'
     )
     
-    # Round-trip with cubic interpolation  
-    reconstruction_5deg_cubic, _ = torch_projectors.backproject_2d_forw(
-        projections, rotations=rot_plus5, interpolation='cubic'
-    )
-    
-    # Forward project the back-projection result
-    forward_proj_cubic = torch_projectors.project_2d_forw(
-        reconstruction_5deg_cubic, rot_minus5, output_shape=(H, H*2-1), interpolation='cubic'
-    )
-    
-    # Back-project again to complete the round-trip
-    roundtrip_cubic, _ = torch_projectors.backproject_2d_forw(
-        forward_proj_cubic, rotations=identity_rotation, interpolation='cubic'
+    # Step 3: Back-project with cubic interpolation (using cubic-generated projections)
+    reconstructed_cubic, _ = torch_projectors.backproject_2d_forw(
+        projections_cubic, rotations=rot, interpolation='cubic'
     )
     
     # Compare errors
-    error_linear = torch.mean(torch.abs(reference_reconstruction - roundtrip_linear)**2).item()
-    error_cubic = torch.mean(torch.abs(reference_reconstruction - roundtrip_cubic)**2).item()
+    error_linear = torch.mean(torch.abs(original_reconstruction[0] - reconstructed_linear[0])**2).item()
+    error_cubic = torch.mean(torch.abs(original_reconstruction[0] - reconstructed_cubic[0])**2).item()
     
-    print(f"Linear round-trip MSE: {error_linear:.6f}")
-    print(f"Cubic round-trip MSE: {error_cubic:.6f}")
-    print(f"Improvement ratio: {error_linear / error_cubic:.2f}x")
+    print(f"Linear back-projection MSE: {error_linear:.6f}")
+    print(f"Cubic back-projection MSE: {error_cubic:.6f}")
+    #print(f"Improvement ratio: {error_linear / error_cubic:.2f}x")
     
     # Visualize results
     plot_fourier_tensors(
-        [reference_reconstruction[0].cpu(), roundtrip_linear[0].cpu(), roundtrip_cubic[0].cpu(), 
-         (reference_reconstruction[0] - roundtrip_linear[0]).cpu(), (reference_reconstruction[0] - roundtrip_cubic[0]).cpu()],
-        ['Reference (0°)', 'Linear round-trip', 'Cubic round-trip', 'Linear error', 'Cubic error'],
+        [original_reconstruction[0].cpu(), 
+         projections_linear[0].cpu(), 
+         projections_cubic[0].cpu(),
+         reconstructed_linear[0].cpu(),
+         (original_reconstruction[0] - reconstructed_linear[0]).cpu(),
+         reconstructed_cubic[0].cpu(),
+         (original_reconstruction[0] - reconstructed_cubic[0]).cpu()],
+        ['Original Reconstruction', 'Linear Forward Projection', 'Cubic Forward Projection', 'Linear Back-projection', 'Linear Error', 'Cubic Back-projection', 'Cubic Error'],
         f'test_outputs/2d/back/backproject_interpolation_quality_comparison_{device.type}.png',
-        shape=(1, 5)
+        shape=(2, 4)
     )
     
     # Verify cubic interpolation performs better

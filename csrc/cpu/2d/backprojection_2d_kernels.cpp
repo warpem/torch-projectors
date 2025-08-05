@@ -39,7 +39,7 @@ private:
 
 public:
     BackwardProjection2DKernel(const std::string& interpolation) 
-        : kernel_(get_backward_kernel<2, scalar_t, real_t>(interpolation)) {}
+        : kernel_(get_2d_backward_kernel<scalar_t, real_t>(interpolation)) {}
     
     void distribute_gradient(
         std::function<void(int64_t, int64_t, scalar_t)> accumulate_func,
@@ -195,6 +195,11 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
                             if (should_filter_frequency<real_t>({proj_coord_r, proj_coord_c}, radius_cutoff_sq)) {
                                 continue;
                             }
+
+                            if (j == 0 && i >= proj_boxsize / 2) {
+                                // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+                                continue;
+                            }
                             
                             // Apply oversampling and rotation (same as forward projection)
                             real_t sample_c = proj_coord_c * oversampling;
@@ -231,14 +236,12 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
                                     // For weights, we only need the interpolation weight magnitude (absolute value)
                                     rot_real_t final_weight = weight_val * std::abs(interp_weight.real());
                                     // Handle bounds and Friedel symmetry for weight accumulation
-                                    bool needs_conj = false;
                                     int64_t c_eff = c;
                                     int64_t r_eff = r;
                                     
                                     if (c_eff < 0) { 
                                         c_eff = -c_eff;
                                         r_eff = -r_eff;
-                                        needs_conj = true;
                                     }
                                     
                                     if (c_eff >= rec_boxsize_half) return;
@@ -248,6 +251,15 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
                                     if (r_idx >= rec_boxsize) return;
                                     
                                     atomic_add_real(&(*weight_rec_acc)[b][r_idx][c_eff], final_weight);
+
+                                    // On the x=0 line, also insert Friedel-symmetric conjugate counterpart
+                                    if (c == 0) {
+                                        int64_t r_eff2 = -1 * r_eff;
+                                        r_eff2 = r_eff2 < 0 ? rec_boxsize + r_eff2 : r_eff2;
+                                        if (r_eff2 >= rec_boxsize || r_eff2 == r_eff) return;
+
+                                        atomic_add_real(&(*weight_rec_acc)[b][r_eff2][c], final_weight);
+                                    }
                                 };
                                 backward_kernel.distribute_gradient(weight_accumulate_func, scalar_t(1.0, 0.0), rot_r, rot_c);
                             }
@@ -418,11 +430,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                 // Sample 2x2 grid from grad_weight_rec with bounds checking
                                 auto sample_weight_grad = [&](int64_t r, int64_t c) -> rot_real_t {
                                     // Handle Friedel symmetry and bounds
-                                    bool needs_conj = false;
                                     if (c < 0) { 
                                         c = -c;
                                         r = -r;
-                                        needs_conj = true;
                                     }
                                     if (c >= rec_boxsize_half) return 0.0;
                                     if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return 0.0;
