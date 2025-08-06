@@ -75,13 +75,13 @@ def test_cpu_cuda_backproject_identical_comprehensive():
         
         # Forward pass - CPU
         reconstruction_cpu, weight_reconstruction_cpu = torch_projectors.backproject_2d_forw(
-            projections_cpu, weights_cpu, rotations_cpu, shifts_cpu,
+            projections_cpu, rotations_cpu, weights_cpu, shifts_cpu,
             interpolation=interpolation
         )
         
         # Forward pass - CUDA  
         reconstruction_cuda, weight_reconstruction_cuda = torch_projectors.backproject_2d_forw(
-            projections_cuda, weights_cuda, rotations_cuda, shifts_cuda,
+            projections_cuda, rotations_cuda, weights_cuda, shifts_cuda,
             interpolation=interpolation
         )
         
@@ -274,13 +274,13 @@ def test_cpu_mps_backproject_identical_comprehensive():
         
         # Forward pass - CPU
         reconstruction_cpu, weight_reconstruction_cpu = torch_projectors.backproject_2d_forw(
-            projections_cpu, weights_cpu, rotations_cpu, shifts_cpu,
+            projections_cpu, rotations_cpu, weights_cpu, shifts_cpu,
             interpolation=interpolation
         )
         
         # Forward pass - MPS  
         reconstruction_mps, weight_reconstruction_mps = torch_projectors.backproject_2d_forw(
-            projections_mps, weights_mps, rotations_mps, shifts_mps,
+            projections_mps, rotations_mps, weights_mps, shifts_mps,
             interpolation=interpolation
         )
         

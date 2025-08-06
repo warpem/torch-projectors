@@ -92,6 +92,7 @@ if platform.system() == "Darwin":
     print(result.stdout)
     
     sources.append("csrc/mps/2d/projection_2d_kernels.mm")
+    sources.append("csrc/mps/2d/backprojection_2d_kernels.mm")
     sources.append("csrc/mps/3d/projection_3d_to_2d_kernels.mm")
     extra_compile_args["cxx"].extend(["-ObjC++", "-fobjc-arc", "-mmacosx-version-min=12.0"])
     extra_link_args.extend(["-framework", "Metal", "-framework", "MetalPerformanceShaders"])

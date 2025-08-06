@@ -30,6 +30,11 @@ def generate_header(output_path, csrc_mps_path):
     forward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "forward_2d.metal"))
     backward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backward_2d.metal"))
     
+    # Read the 2D backprojection Metal files
+    backproject_utilities_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backproject_utilities_2d.metal"))
+    forward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "forward_backproject_2d.metal"))
+    backward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backward_backproject_2d.metal"))
+    
     # Read the 3D Metal files
     utilities_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "utilities_3d.metal"))
     forward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "forward_3d_to_2d.metal"))
@@ -46,6 +51,19 @@ using namespace metal;
 {backward_2d_content}
 """
     
+    # Assemble the complete 2D backprojection shader source
+    complete_2d_backproject_source = f"""#include <metal_stdlib>
+using namespace metal;
+
+{utilities_2d_content}
+
+{backproject_utilities_2d_content}
+
+{forward_backproject_2d_content}
+
+{backward_backproject_2d_content}
+"""
+    
     # Assemble the complete 3D shader source
     complete_3d_source = f"""#include <metal_stdlib>
 using namespace metal;
@@ -59,9 +77,10 @@ using namespace metal;
     
     # Escape the source code for C++ string literals
     escaped_2d_source = complete_2d_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
+    escaped_2d_backproject_source = complete_2d_backproject_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
     escaped_3d_source = complete_3d_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
     
-    # Generate the header content with both 2D and 3D sources
+    # Generate the header content with 2D projection, 2D backprojection, and 3D sources
     header_content = f'''#pragma once
 
 #ifdef __APPLE__
@@ -73,6 +92,10 @@ using namespace metal;
 // 2D projection kernels (utilities_2d.metal, forward_2d.metal, backward_2d.metal)
 constexpr const char* PROJECTION_KERNEL_SOURCE = 
     "{escaped_2d_source}";
+
+// 2D backprojection kernels (utilities_2d.metal, backproject_utilities_2d.metal, forward_backproject_2d.metal, backward_backproject_2d.metal)
+constexpr const char* BACKPROJECT_KERNEL_SOURCE = 
+    "{escaped_2d_backproject_source}";
 
 // 3D->2D projection kernels (utilities_3d.metal, forward_3d_to_2d.metal, backward_3d_to_2d.metal)
 constexpr const char* PROJECTION_3D_KERNEL_SOURCE = 
@@ -88,6 +111,7 @@ constexpr const char* PROJECTION_3D_KERNEL_SOURCE =
     
     print(f"Generated Metal shader header: {output_path}")
     print("  - Includes 2D projection kernels: PROJECTION_KERNEL_SOURCE")
+    print("  - Includes 2D backprojection kernels: BACKPROJECT_KERNEL_SOURCE")  
     print("  - Includes 3D->2D projection kernels: PROJECTION_3D_KERNEL_SOURCE")
 
 if __name__ == "__main__":
