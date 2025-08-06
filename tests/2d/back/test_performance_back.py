@@ -171,9 +171,10 @@ def test_backproject_interpolation_quality_comparison(device):
     
     Test procedure:
     1. Start with a known reconstruction in Fourier space
-    2. Forward project it at 90° to create projections
-    3. Back-project those projections at -90° with linear interpolation
-    4. Back-project those projections at -90° with cubic interpolation  
+    2. Forward project it at 45° with linear interpolation
+    3. Forward project it at 45° with cubic interpolation
+    3. Back-project those projections at 45° with linear interpolation
+    4. Back-project those projections at 45° with cubic interpolation  
     5. Compare both results to original reconstruction, verify cubic is better
     """
     torch.manual_seed(42)
