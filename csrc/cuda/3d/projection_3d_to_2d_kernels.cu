@@ -262,7 +262,7 @@ __device__ __forceinline__ cuFloatComplex tricubic_interpolate(
 }
 
 // Forward projection CUDA kernel for 3D->2D
-__global__ void forward_project_3d_to_2d_kernel(
+__global__ void project_3d_to_2d_forw_kernel(
     const cuFloatComplex* reconstruction,
     const float* rotations,
     const float* shifts,
@@ -614,7 +614,7 @@ __device__ __forceinline__ void distribute_tricubic_gradient(
 }
 
 // Backward projection CUDA kernel for 3D->2D
-__global__ void backward_project_3d_to_2d_kernel(
+__global__ void project_3d_to_2d_back_kernel(
     const cuFloatComplex* grad_projections,
     const cuFloatComplex* reconstruction,
     const float* rotations,
@@ -682,6 +682,11 @@ __global__ void backward_project_3d_to_2d_kernel(
     for (int pixel_idx = threadIdx.x; pixel_idx < total_pixels; pixel_idx += blockDim.x) {
         int i = pixel_idx / params.proj_boxsize_half;
         int j = pixel_idx % params.proj_boxsize_half;
+
+        if (j == 0 && i >= params.proj_boxsize / 2) {
+            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+            continue;
+        }
         
         // Convert to Fourier coordinates
         float proj_coord_c = float(j);
@@ -983,7 +988,7 @@ at::Tensor project_3d_to_2d_forw_cuda(
     const float* shift_ptr = shifts.has_value() ? shifts_contiguous->data_ptr<float>() : nullptr;
     cuFloatComplex* proj_ptr = reinterpret_cast<cuFloatComplex*>(proj_contiguous.data_ptr<c10::complex<float>>());
 
-    forward_project_3d_to_2d_kernel<<<gridDim, blockDim, 0, stream>>>(
+    project_3d_to_2d_forw_kernel<<<gridDim, blockDim, 0, stream>>>(
         rec_ptr, rot_ptr, shift_ptr, proj_ptr, params
     );
 
@@ -1151,7 +1156,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_cuda(
     float* grad_rot_ptr = need_rotation_grads ? grad_rot_contiguous.data_ptr<float>() : nullptr;
     float* grad_shift_ptr = need_shift_grads ? grad_shifts_contiguous.data_ptr<float>() : nullptr;
 
-    backward_project_3d_to_2d_kernel<<<gridDim, blockDim, 0, stream>>>(
+    project_3d_to_2d_back_kernel<<<gridDim, blockDim, 0, stream>>>(
         grad_proj_ptr, rec_ptr, rot_ptr, shift_ptr, 
         grad_rec_ptr, grad_rot_ptr, grad_shift_ptr, params
     );

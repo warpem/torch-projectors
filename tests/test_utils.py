@@ -118,7 +118,7 @@ def create_fourier_mask(shape, radius_cutoff_sq, device=None):
     kx = torch.arange(W_half, dtype=torch.float32, device=device)
     kyy, kxx = torch.meshgrid(ky, kx, indexing='ij')
     
-    return kxx**2 + kyy**2 >= radius_cutoff_sq
+    return kxx**2 + kyy**2 > radius_cutoff_sq
 
 
 def create_rotation_matrix_2d(angle):
@@ -246,7 +246,7 @@ def create_friedel_symmetric_noise(shape, device=None):
     return noise
 
 
-@pytest.fixture(params=["cpu", "cuda"])
+@pytest.fixture(params=["cpu", "mps", "cuda"])
 def device(request):
     """Test fixture that yields available devices"""
     device_type = request.param

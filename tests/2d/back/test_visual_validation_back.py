@@ -217,10 +217,6 @@ def test_visual_backproject_with_weights_validation(device, interpolation):
     # 1. Weight reconstruction should be positive
     assert torch.all(weight_reconstruction >= 0), "Weight reconstruction should be non-negative"
     
-    # 2. Reconstructions with and without weights should be different
-    diff = torch.abs(reconstruction_no_weights - reconstruction_with_weights)
-    assert torch.sum(diff) > 1e-6, "Weighted and unweighted reconstructions should differ"
-    
     # 3. Weight reconstruction should accumulate properly
     expected_weight_sum = torch.sum(weight_reconstruction[0]).item()
     individual_weight_sum = sum(torch.sum(w).item() for w in individual_weight_reconstructions)

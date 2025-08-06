@@ -187,6 +187,11 @@ kernel void backward_project_3d_to_2d_kernel(
     for (int32_t pixel_idx = tid; pixel_idx < total_pixels; pixel_idx += tpg.x) {
         int32_t i = pixel_idx / params.proj_boxsize_half;
         int32_t j = pixel_idx % params.proj_boxsize_half;
+
+        if (j == 0 && i >= params.proj_boxsize / 2) {
+            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+            continue;
+        }
         
         // Convert array indices to Fourier coordinates
         float proj_coord_c = float(j);

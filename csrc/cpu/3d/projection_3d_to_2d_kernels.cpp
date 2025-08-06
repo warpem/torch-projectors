@@ -301,6 +301,11 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_cpu(
                                 continue;
                             }
 
+                            if (j == 0 && i >= proj_boxsize / 2) {
+                                // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+                                continue;
+                            }
+
                             real_t sample_c = proj_coord_c * oversampling;
                             real_t sample_r = proj_coord_r * oversampling;
                             real_t sample_d = 0.0;  // Central slice

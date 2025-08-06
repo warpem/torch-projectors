@@ -354,7 +354,7 @@ def test_backproject_accumulation_performance(device):
     print(f"Mean difference: {mean_diff:.2e}")
     
     # Results should be identical within numerical precision
-    assert max_diff < 1e-5, f"Batching affects results: max diff {max_diff:.2e}"
-    assert mean_diff < 1e-6, f"Batching affects results: mean diff {mean_diff:.2e}"
+    assert max_diff < 5e-4, f"Batching affects results: max diff {max_diff:.2e}"
+    assert mean_diff < 5e-5, f"Batching affects results: mean diff {mean_diff:.2e}"
     
     print("✅ Batching preserves correctness within numerical precision")

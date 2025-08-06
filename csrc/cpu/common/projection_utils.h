@@ -359,37 +359,28 @@ inline void accumulate_2d_gradient(
     // Atomically accumulate gradient (with conjugation if needed for Friedel symmetry)
     scalar_t final_grad = needs_conj ? std::conj(grad) : grad;
     atomic_add_complex(&grad_rec_acc[b][r_eff][c], final_grad);
-
-    // On the x=0 line, also insert Friedel-symmetric conjugate counterpart
-    if (c == 0) {
-        r *= -1;
-        int64_t r_eff2 = r < 0 ? rec_boxsize + r : r;
-        if (r_eff2 >= rec_boxsize || r_eff2 == r_eff) return;
-
-        atomic_add_complex(&grad_rec_acc[b][r_eff2][c], std::conj(final_grad));
-    }
 }
 
+
 /**
- * Accumulate complex values into 2D FFTW-formatted reconstruction tensor for back-projection
- * WITHOUT Friedel symmetry conjugation (back-projection accumulates arbitrary complex data)
+ * 2D Data accumulator with Friedel symmetry handling
+ * 
+ * Functions like accumulate_2d_gradient but makes sure 
+ * components at c = 0 are inserted twice (Friedel-symmetrically)
  */
 template <typename scalar_t, typename real_t = typename scalar_t::value_type>
-inline void accumulate_2d_backproject_data(
-    torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec_acc,
+inline void accumulate_2d_data(
+    torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& grad_rec_acc,
     int64_t b, int64_t rec_boxsize, int64_t rec_boxsize_half,
-    int64_t r, int64_t c, scalar_t data
+    int64_t r, int64_t c, scalar_t grad
 ) {
-    // Handle negative column indices by mirroring coordinates (no conjugation)
+    bool needs_conj = false;
+    
+    // Handle Friedel symmetry for negative column indices
     if (c < 0) { 
         c = -c;
         r = -r;
-        // NO conjugation for back-projection data accumulation
-    }
-    
-    // Handle Nyquist frequency wrapping: -boxsize/2 maps to +boxsize/2
-    if (r == -rec_boxsize / 2) {
-        r = rec_boxsize / 2;
+        needs_conj = true;
     }
     
     // Bounds checking
@@ -400,8 +391,18 @@ inline void accumulate_2d_backproject_data(
     int64_t r_eff = r < 0 ? rec_boxsize + r : r;
     if (r_eff >= rec_boxsize) return;
 
-    // Atomically accumulate data (NO conjugation)
-    atomic_add_complex(&rec_acc[b][r_eff][c], data);
+    // Atomically accumulate gradient (with conjugation if needed for Friedel symmetry)
+    scalar_t final_grad = needs_conj ? std::conj(grad) : grad;
+    atomic_add_complex(&grad_rec_acc[b][r_eff][c], final_grad);
+
+    // On the x=0 line, also insert Friedel-symmetric conjugate counterpart
+    if (c == 0) {
+        r *= -1;
+        int64_t r_eff2 = r < 0 ? rec_boxsize + r : r;
+        if (r_eff2 >= rec_boxsize || r_eff2 == r_eff) return;
+
+        atomic_add_complex(&grad_rec_acc[b][r_eff2][c], std::conj(final_grad));
+    }
 }
 
 /**

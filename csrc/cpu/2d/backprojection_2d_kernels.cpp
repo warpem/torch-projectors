@@ -225,7 +225,7 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
                             
                             // Distribute projection data to reconstruction using backward kernel
                             auto data_accumulate_func = [&](int64_t r, int64_t c, scalar_t grad) {
-                                accumulate_2d_gradient(data_rec_acc, b, rec_boxsize, rec_boxsize_half, r, c, grad);
+                                accumulate_2d_data(data_rec_acc, b, rec_boxsize, rec_boxsize_half, r, c, grad);
                             };
                             backward_kernel.distribute_gradient(data_accumulate_func, proj_val, rot_r, rot_c);
                             
@@ -394,6 +394,11 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                             real_t proj_coord_c = j;
 
                             if (should_filter_frequency<real_t>({proj_coord_r, proj_coord_c}, radius_cutoff_sq)) {
+                                continue;
+                            }
+
+                            if (j == 0 && i >= proj_boxsize / 2) {
+                                // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
                                 continue;
                             }
 

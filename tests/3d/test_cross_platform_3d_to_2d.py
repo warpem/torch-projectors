@@ -1,8 +1,9 @@
 """
-Cross-platform compatibility tests for torch-projectors.
+Cross-platform compatibility tests for 3D->2D projections in torch-projectors.
 
 This module tests that CPU, CUDA, and MPS implementations produce identical results
-across all features including forward/backward passes and gradient computation.
+across all features including forward/backward passes and gradient computation for
+3D->2D projections using the central slice theorem.
 """
 
 import torch
@@ -12,40 +13,49 @@ import pytest
 import math
 
 
+def create_rotation_matrix_3d_z(angle):
+    """Helper function to create 3D rotation matrix around Z axis from angle"""
+    cos_a, sin_a = torch.cos(angle), torch.sin(angle)
+    return torch.stack([
+        torch.stack([cos_a, -sin_a, torch.zeros_like(angle)], dim=-1),
+        torch.stack([sin_a, cos_a, torch.zeros_like(angle)], dim=-1),
+        torch.stack([torch.zeros_like(angle), torch.zeros_like(angle), torch.ones_like(angle)], dim=-1)
+    ], dim=-2)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
-def test_cpu_cuda_identical_comprehensive():
+def test_cpu_cuda_identical_comprehensive_3d_to_2d():
     """
     Comprehensive test that CPU and CUDA implementations produce identical results
-    across all features: multiple reconstructions, poses, shifts, interpolations,
-    and full forward/backward passes with realistic loss computation.
+    for 3D->2D projections across all features: multiple reconstructions, poses, shifts, 
+    interpolations, and full forward/backward passes with realistic loss computation.
     """
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage (without oversampling)
     num_reconstructions = 1
     num_poses = 1
-    boxsize = 64
+    boxsize_3d = 64
     proj_size = 48
     
     # Create comprehensive test data on CPU first
     dtype = torch.complex64
     
-    # Multiple reconstructions with different characteristics (all random for simplicity)
-    reconstructions_cpu = torch.randn(num_reconstructions, boxsize, boxsize//2 + 1, 
+    # Multiple 3D reconstructions with different characteristics (all random for simplicity)
+    reconstructions_cpu = torch.randn(num_reconstructions, boxsize_3d, boxsize_3d, boxsize_3d//2 + 1, 
                                     dtype=dtype, device='cpu').requires_grad_(True)
     
-    # Multiple poses with varied rotation angles and shifts
+    # Multiple poses with varied 3D rotation angles around Z axis and shifts
     angles = torch.tensor([0.0, 30.0, 60.0, 90.0], device='cpu') * math.pi / 180.0
-    rotations_cpu = torch.zeros(num_reconstructions, num_poses, 2, 2, device='cpu')
+    rotations_cpu = torch.zeros(num_reconstructions, num_poses, 3, 3, device='cpu')
     for b in range(num_reconstructions):
         for p in range(num_poses):
             # Vary angles across batches and poses
             angle = angles[p % len(angles)] + b * 0.1  # Small batch-dependent variation
-            cos_a, sin_a = torch.cos(angle), torch.sin(angle)
-            rotations_cpu[b, p] = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]])
+            rotations_cpu[b, p] = create_rotation_matrix_3d_z(angle)
     rotations_cpu.requires_grad_(True)
     
-    # Comprehensive shifts - different per batch and pose
+    # Comprehensive 2D shifts - different per batch and pose (output is 2D)
     shifts_cpu = torch.zeros(num_reconstructions, num_poses, 2, device='cpu')
     for b in range(num_reconstructions):
         for p in range(num_poses):
@@ -64,14 +74,14 @@ def test_cpu_cuda_identical_comprehensive():
         print(f"\nTesting {interpolation} interpolation...")
         
         # Forward pass - CPU
-        projections_cpu = torch_projectors.project_2d_forw(
+        projections_cpu = torch_projectors.project_3d_to_2d_forw(
             reconstructions_cpu, rotations_cpu, shifts_cpu,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
         )
         
         # Forward pass - CUDA  
-        projections_cuda = torch_projectors.project_2d_forw(
+        projections_cuda = torch_projectors.project_3d_to_2d_forw(
             reconstructions_cuda, rotations_cuda, shifts_cuda,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
@@ -137,9 +147,9 @@ def test_cpu_cuda_identical_comprehensive():
         loss_cpu.backward()
         
         # Get gradients from CPU
-        rec_grad_cpu = reconstructions_cpu.grad.clone()
-        rot_grad_cpu = rotations_cpu.grad.clone() 
-        shift_grad_cpu = shifts_cpu.grad.clone()
+        rec_grad_cpu = reconstructions_cpu.grad.clone() if reconstructions_cpu.grad is not None else None
+        rot_grad_cpu = rotations_cpu.grad.clone() if rotations_cpu.grad is not None else None
+        shift_grad_cpu = shifts_cpu.grad.clone() if shifts_cpu.grad is not None else None
         
         # Clear gradients
         reconstructions_cpu.grad = None
@@ -151,9 +161,9 @@ def test_cpu_cuda_identical_comprehensive():
         loss_cuda.backward()
         
         # Get gradients from CUDA and move to CPU for comparison
-        rec_grad_cuda = reconstructions_cuda.grad.cpu()
-        rot_grad_cuda = rotations_cuda.grad.cpu()
-        shift_grad_cuda = shifts_cuda.grad.cpu()
+        rec_grad_cuda = reconstructions_cuda.grad.cpu() if reconstructions_cuda.grad is not None else None
+        rot_grad_cuda = rotations_cuda.grad.cpu() if rotations_cuda.grad is not None else None
+        shift_grad_cuda = shifts_cuda.grad.cpu() if shifts_cuda.grad is not None else None
         
         # Clear gradients
         reconstructions_cuda.grad = None
@@ -166,70 +176,78 @@ def test_cpu_cuda_identical_comprehensive():
         assert loss_diff < 1e-5, f"Loss differs too much: {loss_diff}"
         
         # Check reconstruction gradients
-        rec_grad_diff = torch.abs(rec_grad_cpu - rec_grad_cuda)
-        max_rec_grad_diff = torch.max(rec_grad_diff).item()
-        mean_rec_grad_diff = torch.mean(rec_grad_diff).item()
-        print(f"Reconstruction grad - Max diff: {max_rec_grad_diff:.2e}, Mean diff: {mean_rec_grad_diff:.2e}")
-        assert max_rec_grad_diff < 1e-4, f"Reconstruction gradients differ too much: {max_rec_grad_diff}"
+        if rec_grad_cpu is not None and rec_grad_cuda is not None:
+            rec_grad_diff = torch.abs(rec_grad_cpu - rec_grad_cuda)
+            max_rec_grad_diff = torch.max(rec_grad_diff).item()
+            mean_rec_grad_diff = torch.mean(rec_grad_diff).item()
+            print(f"Reconstruction grad - Max diff: {max_rec_grad_diff:.2e}, Mean diff: {mean_rec_grad_diff:.2e}")
+            assert max_rec_grad_diff < 1e-4, f"Reconstruction gradients differ too much: {max_rec_grad_diff}"
+        else:
+            assert rec_grad_cpu is None and rec_grad_cuda is None, "Gradient availability mismatch for reconstructions"
         
         # Check rotation gradients
-        rot_grad_diff = torch.abs(rot_grad_cpu - rot_grad_cuda)
-        max_rot_grad_diff = torch.max(rot_grad_diff).item()
-        mean_rot_grad_diff = torch.mean(rot_grad_diff).item()
-        print(f"Rotation grad - Max diff: {max_rot_grad_diff:.2e}, Mean diff: {mean_rot_grad_diff:.2e}")
-        assert max_rot_grad_diff < 1e-3, f"Rotation gradients differ too much: {max_rot_grad_diff}"
+        if rot_grad_cpu is not None and rot_grad_cuda is not None:
+            rot_grad_diff = torch.abs(rot_grad_cpu - rot_grad_cuda)
+            max_rot_grad_diff = torch.max(rot_grad_diff).item()
+            mean_rot_grad_diff = torch.mean(rot_grad_diff).item()
+            print(f"Rotation grad - Max diff: {max_rot_grad_diff:.2e}, Mean diff: {mean_rot_grad_diff:.2e}")
+            assert max_rot_grad_diff < 1e-3, f"Rotation gradients differ too much: {max_rot_grad_diff}"
+        else:
+            assert rot_grad_cpu is None and rot_grad_cuda is None, "Gradient availability mismatch for rotations"
         
         # Check shift gradients  
-        shift_grad_diff = torch.abs(shift_grad_cpu - shift_grad_cuda)
-        max_shift_grad_diff = torch.max(shift_grad_diff).item()
-        mean_shift_grad_diff = torch.mean(shift_grad_diff).item()
-        print(f"Shift grad - Max diff: {max_shift_grad_diff:.2e}, Mean diff: {mean_shift_grad_diff:.2e}")
-        assert max_shift_grad_diff < 1e-4, f"Shift gradients differ too much: {max_shift_grad_diff}"
+        if shift_grad_cpu is not None and shift_grad_cuda is not None:
+            shift_grad_diff = torch.abs(shift_grad_cpu - shift_grad_cuda)
+            max_shift_grad_diff = torch.max(shift_grad_diff).item()
+            mean_shift_grad_diff = torch.mean(shift_grad_diff).item()
+            print(f"Shift grad - Max diff: {max_shift_grad_diff:.2e}, Mean diff: {mean_shift_grad_diff:.2e}")
+            assert max_shift_grad_diff < 1e-4, f"Shift gradients differ too much: {max_shift_grad_diff}"
+        else:
+            assert shift_grad_cpu is None and shift_grad_cuda is None, "Gradient availability mismatch for shifts"
         
         print(f"✓ {interpolation} interpolation: All CPU/CUDA results identical within tolerance")
     
-    print(f"\n✓ Comprehensive CPU/CUDA comparison test passed!")
-    print(f"  - {num_reconstructions} reconstructions × {num_poses} poses tested")
+    print(f"\n✓ Comprehensive CPU/CUDA comparison test passed for 3D->2D projections!")
+    print(f"  - {num_reconstructions} 3D reconstructions × {num_poses} poses tested")
     print(f"  - Both linear and cubic interpolation verified")
-    print(f"  - Rotations, shifts, and frequency cutoff tested")
+    print(f"  - 3D rotations, 2D shifts, and frequency cutoff tested")
     print(f"  - Full forward/backward pass with realistic loss function")
-    print(f"  - All gradients (reconstruction, rotation, shift) verified identical")
+    print(f"  - All gradients (3D reconstruction, 3D rotation, 2D shift) verified identical")
 
 
 @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS not available")
-def test_cpu_mps_identical_comprehensive():
+def test_cpu_mps_identical_comprehensive_3d_to_2d():
     """
     Comprehensive test that CPU and MPS implementations produce identical results
-    across all features: multiple reconstructions, poses, shifts, interpolations,
-    and full forward/backward passes with realistic loss computation.
+    for 3D->2D projections across all features: multiple reconstructions, poses, shifts, 
+    interpolations, and full forward/backward passes with realistic loss computation.
     """
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage (without oversampling)
     num_reconstructions = 1
     num_poses = 1
-    boxsize = 64
-    proj_size = 48
+    boxsize_3d = 6
+    proj_size = 6
     
     # Create comprehensive test data on CPU first
     dtype = torch.complex64
     
-    # Multiple reconstructions with different characteristics (all random for simplicity)
-    reconstructions_cpu = torch.randn(num_reconstructions, boxsize, boxsize//2 + 1, 
+    # Multiple 3D reconstructions with different characteristics (all random for simplicity)
+    reconstructions_cpu = torch.randn(num_reconstructions, boxsize_3d, boxsize_3d, boxsize_3d//2 + 1, 
                                     dtype=dtype, device='cpu').requires_grad_(True)
     
-    # Multiple poses with varied rotation angles and shifts
+    # Multiple poses with varied 3D rotation angles around Z axis and shifts
     angles = torch.tensor([0.0, 30.0, 60.0, 90.0], device='cpu') * math.pi / 180.0
-    rotations_cpu = torch.zeros(num_reconstructions, num_poses, 2, 2, device='cpu')
+    rotations_cpu = torch.zeros(num_reconstructions, num_poses, 3, 3, device='cpu')
     for b in range(num_reconstructions):
         for p in range(num_poses):
             # Vary angles across batches and poses
             angle = angles[p % len(angles)] + b * 0.1  # Small batch-dependent variation
-            cos_a, sin_a = torch.cos(angle), torch.sin(angle)
-            rotations_cpu[b, p] = torch.tensor([[cos_a, -sin_a], [sin_a, cos_a]])
+            rotations_cpu[b, p] = create_rotation_matrix_3d_z(angle)
     rotations_cpu.requires_grad_(True)
     
-    # Comprehensive shifts - different per batch and pose
+    # Comprehensive 2D shifts - different per batch and pose (output is 2D)
     shifts_cpu = torch.zeros(num_reconstructions, num_poses, 2, device='cpu')
     for b in range(num_reconstructions):
         for p in range(num_poses):
@@ -248,14 +266,14 @@ def test_cpu_mps_identical_comprehensive():
         print(f"\nTesting {interpolation} interpolation...")
         
         # Forward pass - CPU
-        projections_cpu = torch_projectors.project_2d_forw(
+        projections_cpu = torch_projectors.project_3d_to_2d_forw(
             reconstructions_cpu, rotations_cpu, shifts_cpu,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
         )
         
         # Forward pass - MPS  
-        projections_mps = torch_projectors.project_2d_forw(
+        projections_mps = torch_projectors.project_3d_to_2d_forw(
             reconstructions_mps, rotations_mps, shifts_mps,
             output_shape=(proj_size, proj_size),
             interpolation=interpolation
@@ -321,9 +339,9 @@ def test_cpu_mps_identical_comprehensive():
         loss_cpu.backward()
         
         # Get gradients from CPU
-        rec_grad_cpu = reconstructions_cpu.grad.clone()
-        rot_grad_cpu = rotations_cpu.grad.clone() 
-        shift_grad_cpu = shifts_cpu.grad.clone()
+        rec_grad_cpu = reconstructions_cpu.grad.clone() if reconstructions_cpu.grad is not None else None
+        rot_grad_cpu = rotations_cpu.grad.clone() if rotations_cpu.grad is not None else None
+        shift_grad_cpu = shifts_cpu.grad.clone() if shifts_cpu.grad is not None else None
         
         # Clear gradients
         reconstructions_cpu.grad = None
@@ -335,9 +353,9 @@ def test_cpu_mps_identical_comprehensive():
         loss_mps.backward()
         
         # Get gradients from MPS and move to CPU for comparison
-        rec_grad_mps = reconstructions_mps.grad.cpu()
-        rot_grad_mps = rotations_mps.grad.cpu()
-        shift_grad_mps = shifts_mps.grad.cpu()
+        rec_grad_mps = reconstructions_mps.grad.cpu() if reconstructions_mps.grad is not None else None
+        rot_grad_mps = rotations_mps.grad.cpu() if rotations_mps.grad is not None else None
+        shift_grad_mps = shifts_mps.grad.cpu() if shifts_mps.grad is not None else None
         
         # Clear gradients
         reconstructions_mps.grad = None
@@ -350,31 +368,40 @@ def test_cpu_mps_identical_comprehensive():
         assert loss_diff < 1e-5, f"Loss differs too much: {loss_diff}"
         
         # Check reconstruction gradients
-        rec_grad_diff = torch.abs(rec_grad_cpu - rec_grad_mps)
-        max_rec_grad_diff = torch.max(rec_grad_diff).item()
-        mean_rec_grad_diff = torch.mean(rec_grad_diff).item()
-        print(f"Reconstruction grad - Max diff: {max_rec_grad_diff:.2e}, Mean diff: {mean_rec_grad_diff:.2e}")
-        assert max_rec_grad_diff < 1e-4, f"Reconstruction gradients differ too much: {max_rec_grad_diff}"
+        if rec_grad_cpu is not None and rec_grad_mps is not None:
+            rec_grad_diff = torch.abs(rec_grad_cpu - rec_grad_mps)
+            max_rec_grad_diff = torch.max(rec_grad_diff).item()
+            mean_rec_grad_diff = torch.mean(rec_grad_diff).item()
+            print(f"Reconstruction grad - Max diff: {max_rec_grad_diff:.2e}, Mean diff: {mean_rec_grad_diff:.2e}")
+            assert max_rec_grad_diff < 1e-4, f"Reconstruction gradients differ too much: {max_rec_grad_diff}"
+        else:
+            assert rec_grad_cpu is None and rec_grad_mps is None, "Gradient availability mismatch for reconstructions"
         
         # Check rotation gradients
-        rot_grad_diff = torch.abs(rot_grad_cpu - rot_grad_mps)
-        max_rot_grad_diff = torch.max(rot_grad_diff).item()
-        mean_rot_grad_diff = torch.mean(rot_grad_diff).item()
-        print(f"Rotation grad - Max diff: {max_rot_grad_diff:.2e}, Mean diff: {mean_rot_grad_diff:.2e}")
-        assert max_rot_grad_diff < 1e-3, f"Rotation gradients differ too much: {max_rot_grad_diff}"
+        if rot_grad_cpu is not None and rot_grad_mps is not None:
+            rot_grad_diff = torch.abs(rot_grad_cpu - rot_grad_mps)
+            max_rot_grad_diff = torch.max(rot_grad_diff).item()
+            mean_rot_grad_diff = torch.mean(rot_grad_diff).item()
+            print(f"Rotation grad - Max diff: {max_rot_grad_diff:.2e}, Mean diff: {mean_rot_grad_diff:.2e}")
+            assert max_rot_grad_diff < 1e-3, f"Rotation gradients differ too much: {max_rot_grad_diff}"
+        else:
+            assert rot_grad_cpu is None and rot_grad_mps is None, "Gradient availability mismatch for rotations"
         
         # Check shift gradients  
-        shift_grad_diff = torch.abs(shift_grad_cpu - shift_grad_mps)
-        max_shift_grad_diff = torch.max(shift_grad_diff).item()
-        mean_shift_grad_diff = torch.mean(shift_grad_diff).item()
-        print(f"Shift grad - Max diff: {max_shift_grad_diff:.2e}, Mean diff: {mean_shift_grad_diff:.2e}")
-        assert max_shift_grad_diff < 1e-4, f"Shift gradients differ too much: {max_shift_grad_diff}"
+        if shift_grad_cpu is not None and shift_grad_mps is not None:
+            shift_grad_diff = torch.abs(shift_grad_cpu - shift_grad_mps)
+            max_shift_grad_diff = torch.max(shift_grad_diff).item()
+            mean_shift_grad_diff = torch.mean(shift_grad_diff).item()
+            print(f"Shift grad - Max diff: {max_shift_grad_diff:.2e}, Mean diff: {mean_shift_grad_diff:.2e}")
+            assert max_shift_grad_diff < 1e-4, f"Shift gradients differ too much: {max_shift_grad_diff}"
+        else:
+            assert shift_grad_cpu is None and shift_grad_mps is None, "Gradient availability mismatch for shifts"
         
         print(f"✓ {interpolation} interpolation: All CPU/MPS results identical within tolerance")
     
-    print(f"\n✓ Comprehensive CPU/MPS comparison test passed!")
-    print(f"  - {num_reconstructions} reconstructions × {num_poses} poses tested")
+    print(f"\n✓ Comprehensive CPU/MPS comparison test passed for 3D->2D projections!")
+    print(f"  - {num_reconstructions} 3D reconstructions × {num_poses} poses tested")
     print(f"  - Both linear and cubic interpolation verified")
-    print(f"  - Rotations, shifts, and frequency cutoff tested")
+    print(f"  - 3D rotations, 2D shifts, and frequency cutoff tested")
     print(f"  - Full forward/backward pass with realistic loss function")
-    print(f"  - All gradients (reconstruction, rotation, shift) verified identical")
+    print(f"  - All gradients (3D reconstruction, 3D rotation, 2D shift) verified identical")

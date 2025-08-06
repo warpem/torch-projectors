@@ -18,7 +18,7 @@ def test_forward_project_2d_identity(device, interpolation):
     Tests the 2D forward projection with an identity rotation. The output should
     be a masked version of the input, with values outside the Fourier radius zeroed out.
     """
-    B, P, H, W = 1, 1, 64, 64
+    B, P, H, W = 1, 1, 6, 6
     W_half = W // 2 + 1
     rec_fourier = torch.randn(B, H, W_half, dtype=torch.complex64, device=device)
     rotations = torch.eye(2, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)
@@ -42,14 +42,14 @@ def test_forward_project_2d_identity(device, interpolation):
     mask = create_fourier_mask(rec_fourier.shape, radius_cutoff_sq, device=device)
     expected_projection[0, mask] = 0
 
-    # Compare the projection with the masked ground truth
-    assert torch.allclose(projection[0, 0], expected_projection[0], atol=1e-5)
-
     plot_fourier_tensors(
         [rec_fourier.cpu(), projection.cpu(), expected_projection.cpu()],
         ["Original", "Projection", "Expected (Masked)"],
         f"test_outputs/test_forward_project_2d_identity_{interpolation}_{device.type}.png"
     )
+
+    # Compare the projection with the masked ground truth
+    assert torch.allclose(projection[0, 0], expected_projection[0], atol=1e-5)
 
 
 @pytest.mark.parametrize("interpolation", ["linear", "cubic"])

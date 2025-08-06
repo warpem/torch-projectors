@@ -51,11 +51,13 @@ def test_forward_project_3d_to_2d_identity(device, interpolation):
     correspond to the central slice (z=0 plane) of the 3D volume, filtered by the
     Fourier radius cutoff.
     """
-    B, P, D, H, W = 1, 1, 64, 64, 64
+    B, P, D, H, W = 1, 1, 16, 16, 16
     W_half = W // 2 + 1
+
+    torch.manual_seed(42)
     
     # Create a 3D Fourier reconstruction with some structure
-    rec_3d_fourier = torch.randn(B, D, H, W_half, dtype=torch.complex64, device=device)
+    rec_3d_fourier = torch.randn(B, D, H, W_half, dtype=torch.complex64, device='cpu').to(device)
     
     # Identity rotation (3x3)
     rotations = torch.eye(3, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)

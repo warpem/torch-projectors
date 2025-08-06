@@ -158,6 +158,11 @@ kernel void backward_project_2d_kernel(
         // Convert array indices to Fourier coordinates
         float proj_coord_c = float(j);
         float proj_coord_r = (i <= params.proj_boxsize / 2) ? float(i) : float(i) - float(params.proj_boxsize);
+
+        if (j == 0 && i >= params.proj_boxsize / 2) {
+            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+            continue;
+        }
         
         // Apply Fourier space filtering
         float radius_sq = proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r;
