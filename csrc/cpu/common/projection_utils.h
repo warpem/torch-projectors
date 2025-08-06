@@ -442,6 +442,56 @@ inline void accumulate_3d_gradient(
     atomic_add_complex(&grad_rec_acc[b][d_eff][r_eff][c], final_grad);
 }
 
+/**
+ * 3D Gradient accumulator with Friedel symmetry handling
+ * 
+ * Handles atomic accumulation of gradients into 3D reconstruction with proper
+ * 3D Friedel symmetry and bounds checking.
+ */
+template <typename scalar_t, typename real_t = typename scalar_t::value_type>
+inline void accumulate_3d_data(
+    torch::PackedTensorAccessor32<scalar_t, 4, torch::DefaultPtrTraits>& grad_rec_acc,
+    int64_t b, int64_t boxsize, int64_t rec_boxsize_half,
+    int64_t d, int64_t r, int64_t c, scalar_t grad
+) {
+    bool needs_conj = false;
+    
+    // Handle 3D Friedel symmetry for negative column indices
+    if (c < 0) { 
+        c = -c;
+        r = -r;
+        d = -d;
+        needs_conj = true;
+    }
+    
+    // Bounds checking
+    if (c >= rec_boxsize_half) return;
+    if (r > boxsize / 2 || r < -boxsize / 2 + 1) return;
+    if (d > boxsize / 2 || d < -boxsize / 2 + 1) return;
+
+    // Convert negative indices to positive (FFTW wrapping)
+    int64_t r_eff = r < 0 ? boxsize + r : r;
+    int64_t d_eff = d < 0 ? boxsize + d : d;
+    if (r_eff >= boxsize || d_eff >= boxsize) return;
+
+    // Accumulate gradient with conjugation for Friedel symmetry
+    scalar_t final_grad = needs_conj ? std::conj(grad) : grad;
+    atomic_add_complex(&grad_rec_acc[b][d_eff][r_eff][c], final_grad);
+
+    // On the x=0 line, also insert Friedel-symmetric conjugate counterpart
+    if (c == 0) {
+        r *= -1;
+        d *= -1;
+        int64_t d_eff2 = d < 0 ? boxsize + d : d;
+        int64_t r_eff2 = r < 0 ? boxsize + r : r;
+        if (d_eff2 >= boxsize || 
+            r_eff2 >= boxsize || 
+            (r_eff2 == r_eff && d_eff2 == d_eff)) return;
+
+        atomic_add_complex(&grad_rec_acc[b][d_eff2][r_eff2][c], std::conj(final_grad));
+    }
+}
+
 } // namespace common
 } // namespace cpu
 } // namespace torch_projectors

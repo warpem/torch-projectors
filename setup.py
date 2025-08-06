@@ -16,6 +16,7 @@ sources = [
     "csrc/cpu/2d/projection_2d_kernels.cpp",
     "csrc/cpu/2d/backprojection_2d_kernels.cpp",
     "csrc/cpu/3d/projection_3d_to_2d_kernels.cpp",
+    "csrc/cpu/3d/backprojection_2d_to_3d_kernels.cpp",
 ]
 
 # Platform-specific compilation flags

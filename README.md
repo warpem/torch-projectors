@@ -26,6 +26,10 @@ The library provides several main functions:
 - `project_3d_to_2d_forw()`: Project 3D Fourier volumes to 2D projections
 - `project_3d_to_2d_back()`: Backward projection for 3D gradient computation
 
+### 2D-to-3D Operations
+- `backproject_2d_to_3d_forw()`: Accumulate 2D projections into 3D reconstructions (adjoint operation)
+- `backproject_2d_to_3d_back()`: Backward projection for 2D gradient computation
+
 ## Installation & Development Setup
 
 ### Prerequisites
@@ -62,6 +66,7 @@ The build system automatically detects and enables:
   - `csrc/cpu/2d/projection_2d_kernels.cpp` - 2D forward/backward projection
   - `csrc/cpu/2d/backprojection_2d_kernels.cpp` - 2D back-projection (adjoint)
   - `csrc/cpu/3d/projection_3d_to_2d_kernels.cpp` - 3D-to-2D projection
+  - `csrc/cpu/3d/backprojection_2d_to_3d_kernels.cpp` - 2D-to-3D back-projection (adjoint)
 - **CUDA Kernels**: `csrc/cuda/*.cu` - GPU acceleration (when available)
 - **Metal Shaders**: `csrc/mps/*.metal` - Apple Silicon optimization
 - **Operator Registration**: `csrc/torch_projectors.cpp` - PyTorch integration
@@ -123,7 +128,7 @@ This project is under active development. Current capabilities include:
 - ✅ 2D-to-2D forward projection with full gradient support
 - ✅ 2D-to-2D back-projection (adjoint) with weight accumulation
 - ✅ 3D-to-2D forward projection with full gradient support
-- ✅ 3D-to-2D back-projection (adjoint) with weight accumulation
+- ✅ 2D-to-3D back-projection (adjoint) with full gradient support
 - 🚧 3D-to-3D projection operations
 - 🚧 3D-to-3D back-projection (adjoint) with weight accumulation
 - 🚧 CUDA and MPS backend implementations
