@@ -27,18 +27,18 @@ def generate_header(output_path, csrc_mps_path):
     
     # Read the 2D Metal files
     utilities_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "utilities_2d.metal"))
-    forward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "forward_2d.metal"))
-    backward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backward_2d.metal"))
+    forward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "project_2d_forw.metal"))
+    backward_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "project_2d_back.metal"))
     
     # Read the 2D backprojection Metal files
     backproject_utilities_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backproject_utilities_2d.metal"))
-    forward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "forward_backproject_2d.metal"))
-    backward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backward_backproject_2d.metal"))
+    forward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backproject_2d_forw.metal"))
+    backward_backproject_2d_content = read_metal_file(os.path.join(csrc_mps_path, "2d", "backproject_2d_back.metal"))
     
     # Read the 3D Metal files
     utilities_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "utilities_3d.metal"))
-    forward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "forward_3d_to_2d.metal"))
-    backward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "backward_3d_to_2d.metal"))
+    forward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "project_3d_to_2d_forw.metal"))
+    backward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "project_3d_to_2d_back.metal"))
     
     # Assemble the complete 2D shader source
     complete_2d_source = f"""#include <metal_stdlib>

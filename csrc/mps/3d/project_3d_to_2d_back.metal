@@ -104,7 +104,7 @@ inline void distribute_tricubic_gradient(
 }
 
 // Unified backward 3D->2D projection kernel (matches CPU structure)
-kernel void backward_project_3d_to_2d_kernel(
+kernel void project_3d_to_2d_back_kernel(
     device const float2* grad_projections [[buffer(0)]],
     device const float2* reconstruction   [[buffer(1)]],
     device const float*  rotations        [[buffer(2)]],

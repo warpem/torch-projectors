@@ -1,5 +1,5 @@
 // Backward backproject 2D kernel - computes gradients for backprojection operation
-kernel void backward_backproject_2d_kernel(
+kernel void backproject_2d_back_kernel(
     device const float2* grad_data_rec    [[buffer(0)]],
     device const float*  grad_weight_rec  [[buffer(1)]],
     device const float2* projections      [[buffer(2)]],

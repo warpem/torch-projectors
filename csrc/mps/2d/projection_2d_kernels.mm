@@ -57,7 +57,7 @@ id<MTLComputePipelineState> get_forward_projection_pipeline(id<MTLDevice> device
                                                         error:&error];
         TORCH_CHECK(library != nil, "Failed to compile Metal library: ", error.localizedDescription.UTF8String);
         
-        id<MTLFunction> function = [library newFunctionWithName:@"forward_project_2d_kernel"];
+        id<MTLFunction> function = [library newFunctionWithName:@"project_2d_forw_kernel"];
         TORCH_CHECK(function != nil, "Failed to load Metal function");
         
         pipeline = [device newComputePipelineStateWithFunction:function error:&error];
@@ -221,8 +221,8 @@ id<MTLComputePipelineState> get_backward_projection_pipeline(id<MTLDevice> devic
                                                     options:opts
                                                         error:&error];
         TORCH_CHECK(library != nil, "Failed to compile Metal library: ", error.localizedDescription.UTF8String);
-        
-        id<MTLFunction> function = [library newFunctionWithName:@"backward_project_2d_kernel"];
+
+        id<MTLFunction> function = [library newFunctionWithName:@"project_2d_back_kernel"];
         TORCH_CHECK(function != nil, "Failed to load Metal function");
         
         pipeline = [device newComputePipelineStateWithFunction:function error:&error];

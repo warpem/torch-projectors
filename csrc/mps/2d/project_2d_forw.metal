@@ -1,10 +1,10 @@
-// Main forward 3D->2D projection compute kernel - OPTIMIZED VERSION
-kernel void forward_project_3d_to_2d_kernel(
+// Main forward projection compute kernel - OPTIMIZED VERSION
+kernel void project_2d_forw_kernel(
     device const float2* reconstruction [[buffer(0)]],
     device const float*  rotations      [[buffer(1)]],
     device const float*  shifts         [[buffer(2)]],
     device float2*       projections    [[buffer(3)]],
-    constant Params3D&   params         [[buffer(4)]],
+    constant Params&     params         [[buffer(4)]],
     uint2 gpos [[threadgroup_position_in_grid]],
     uint  tid  [[thread_index_in_threadgroup]],
     uint2 tpg  [[threads_per_threadgroup]]
@@ -21,18 +21,13 @@ kernel void forward_project_3d_to_2d_kernel(
     
     // Pre-compute shared parameters for this projection (pose p, batch b)
     
-    // 3x3 Rotation matrix (shared for all pixels in this projection)
+    // Rotation matrix (shared for all pixels in this projection)
     int rot_b_idx = (params.B_rot == 1) ? 0 : b;
-    int rot_idx_base = ((rot_b_idx * params.P + p) * 3 * 3);  // Index to start of 3x3 matrix
+    int rot_idx_base = ((rot_b_idx * params.P + p) * 2 * 2);  // Index to start of 2x2 matrix
     float rot_00 = rotations[rot_idx_base + 0];     // R[0][0]
     float rot_01 = rotations[rot_idx_base + 1];     // R[0][1] 
-    float rot_02 = rotations[rot_idx_base + 2];     // R[0][2]
-    float rot_10 = rotations[rot_idx_base + 3];     // R[1][0]
-    float rot_11 = rotations[rot_idx_base + 4];     // R[1][1]
-    float rot_12 = rotations[rot_idx_base + 5];     // R[1][2]
-    float rot_20 = rotations[rot_idx_base + 6];     // R[2][0]
-    float rot_21 = rotations[rot_idx_base + 7];     // R[2][1]
-    float rot_22 = rotations[rot_idx_base + 8];     // R[2][2]
+    float rot_10 = rotations[rot_idx_base + 2];     // R[1][0]
+    float rot_11 = rotations[rot_idx_base + 3];     // R[1][1]
     
     // Shifts (shared for all pixels in this projection)
     float shift_r = 0.0, shift_c = 0.0;
@@ -49,10 +44,8 @@ kernel void forward_project_3d_to_2d_kernel(
     int32_t proj_row_stride = params.proj_boxsize_half;
     int32_t proj_base_idx = b * proj_batch_stride + p * proj_pose_stride;
     
-    // 4D reconstruction strides: [B, D, H, W/2+1]
-    int32_t rec_batch_stride = params.boxsize * params.boxsize * params.boxsize_half;  // B stride
-    int32_t rec_depth_stride = params.boxsize * params.boxsize_half;                   // D stride  
-    int32_t rec_row_stride = params.boxsize_half;                                      // H stride
+    int32_t rec_batch_stride = params.boxsize * params.boxsize_half;
+    int32_t rec_row_stride = params.boxsize_half;
     
     float fourier_cutoff_sq = params.fourier_radius_cutoff * params.fourier_radius_cutoff;
     
@@ -64,9 +57,9 @@ kernel void forward_project_3d_to_2d_kernel(
         int32_t i = pixel_idx / params.proj_boxsize_half;  // Row
         int32_t j = pixel_idx % params.proj_boxsize_half;  // Column
         
-        // Convert array indices to 2D Fourier coordinates (must match CPU logic exactly)
+        // Convert array indices to Fourier coordinates (must match CPU logic exactly)
         float proj_coord_c = float(j);  // Column: always positive (FFTW half-space)
-        float proj_coord_r = (i <= params.proj_boxsize / 2) ? float(i) : float(i) - float(params.proj_boxsize); // Row: handle wrap-around
+        float proj_coord_r = (i <= params.proj_boxsize / 2) ? float(i) : float(i) - float(params.proj_boxsize);
         
         // Apply Fourier space filtering (low-pass)
         float radius_sq = proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r;
@@ -75,32 +68,25 @@ kernel void forward_project_3d_to_2d_kernel(
             continue;
         }
         
-        // Apply oversampling scaling to 2D coordinates
-        // Oversampling > 1 simulates zero-padding in real space
+        // Apply oversampling scaling to coordinates
         float sample_c = proj_coord_c * params.oversampling;
         float sample_r = proj_coord_r * params.oversampling;
         
-        // Central slice: extend 2D coordinates to 3D with d=0
-        float sample_d = 0.0;  // Central slice through origin
+        // Apply rotation matrix (using pre-computed matrix elements)
+        float rot_c = rot_00 * sample_c + rot_01 * sample_r;
+        float rot_r = rot_10 * sample_c + rot_11 * sample_r;
         
-        // Apply 3x3 rotation matrix to get sampling coordinates in 3D reconstruction
-        // Matrix multiplication: [rot_c; rot_r; rot_d] = R * [sample_c; sample_r; sample_d]
-        float rot_c = rot_00 * sample_c + rot_01 * sample_r + rot_02 * sample_d;
-        float rot_r = rot_10 * sample_c + rot_11 * sample_r + rot_12 * sample_d;
-        float rot_d = rot_20 * sample_c + rot_21 * sample_r + rot_22 * sample_d;
-        
-        // Interpolate from 4D reconstruction at rotated 3D coordinates
+        // Interpolate from reconstruction at rotated coordinates
         float2 val;
-        if (params.interpolation_method == 0) {  // linear (trilinear)
-            val = trilinear_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
-                                       rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c);
-        } else {  // cubic (tricubic)
-            val = tricubic_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
-                                      rec_batch_stride, rec_depth_stride, rec_row_stride, rot_d, rot_r, rot_c);
+        if (params.interpolation_method == 0) {  // linear
+            val = bilinear_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
+                                      rec_batch_stride, rec_row_stride, rot_r, rot_c);
+        } else {  // cubic
+            val = bicubic_interpolate(reconstruction, b, params.boxsize, params.boxsize_half,
+                                     rec_batch_stride, rec_row_stride, rot_r, rot_c);
         }
         
         // Apply phase shift if translations are provided (using pre-computed shifts)
-        // Shift in real space = phase modulation in Fourier space
         if (params.has_shifts) {
             float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
                                            proj_coord_c * shift_c / params.boxsize);
