@@ -376,6 +376,19 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_to_3d_
             auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
             auto proj_acc = projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
 
+            // Optional weight accessors
+            c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> weights_acc;
+            c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> grad_weights_acc;
+            c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> grad_weight_rec_acc;
+            
+            if (weights.has_value()) {
+                weights_acc.emplace(weights->packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>());
+                grad_weights_acc.emplace(grad_weights.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>());
+            }
+            if (grad_weight_rec.has_value()) {
+                grad_weight_rec_acc.emplace(grad_weight_rec->packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>());
+            }
+
             const real_t default_radius = proj_boxsize / 2.0;
             const real_t radius_cutoff = fourier_radius_cutoff.value_or(default_radius);
             const real_t radius_cutoff_sq = radius_cutoff * radius_cutoff;
@@ -440,6 +453,58 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_to_3d_
                             }
                             
                             grad_proj_acc[b][p][i][j] = rec_val;
+
+                            // Compute grad_weights if needed
+                            if (grad_weight_rec_acc.has_value() && grad_weights_acc.has_value()) {
+                                // Use trilinear interpolation for 3D real-valued gradient
+                                const int64_t c_floor = floor(rot_c);
+                                const int64_t r_floor = floor(rot_r);
+                                const int64_t d_floor = floor(rot_d);
+                                const real_t c_frac = rot_c - c_floor;
+                                const real_t r_frac = rot_r - r_floor;
+                                const real_t d_frac = rot_d - d_floor;
+
+                                // Sample 2x2x2 grid from grad_weight_rec with bounds checking
+                                auto sample_weight_grad = [&](int64_t d, int64_t r, int64_t c) -> rot_real_t {
+                                    // Handle Friedel symmetry and bounds for 3D
+                                    if (c < 0) { 
+                                        c = -c;
+                                        r = -r;
+                                        d = -d;
+                                    }
+                                    if (c >= rec_boxsize_half) return 0.0;
+                                    if (d > rec_depth / 2 || d < -rec_depth / 2 + 1) return 0.0;
+                                    if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return 0.0;
+                                    
+                                    int64_t d_eff = d < 0 ? rec_depth + d : d;
+                                    int64_t r_eff = r < 0 ? rec_boxsize + r : r;
+                                    if (d_eff >= rec_depth || r_eff >= rec_boxsize) return 0.0;
+                                    
+                                    return (*grad_weight_rec_acc)[b][d_eff][r_eff][c];
+                                };
+
+                                // Sample all 8 corners of the 3D cube
+                                const rot_real_t p000 = sample_weight_grad(d_floor, r_floor, c_floor);
+                                const rot_real_t p001 = sample_weight_grad(d_floor, r_floor, c_floor + 1);
+                                const rot_real_t p010 = sample_weight_grad(d_floor, r_floor + 1, c_floor);
+                                const rot_real_t p011 = sample_weight_grad(d_floor, r_floor + 1, c_floor + 1);
+                                const rot_real_t p100 = sample_weight_grad(d_floor + 1, r_floor, c_floor);
+                                const rot_real_t p101 = sample_weight_grad(d_floor + 1, r_floor, c_floor + 1);
+                                const rot_real_t p110 = sample_weight_grad(d_floor + 1, r_floor + 1, c_floor);
+                                const rot_real_t p111 = sample_weight_grad(d_floor + 1, r_floor + 1, c_floor + 1);
+
+                                // Trilinear interpolation
+                                const rot_real_t p00 = p000 + (p001 - p000) * c_frac;
+                                const rot_real_t p01 = p010 + (p011 - p010) * c_frac;
+                                const rot_real_t p10 = p100 + (p101 - p100) * c_frac;
+                                const rot_real_t p11 = p110 + (p111 - p110) * c_frac;
+                                
+                                const rot_real_t p0 = p00 + (p01 - p00) * r_frac;
+                                const rot_real_t p1 = p10 + (p11 - p10) * r_frac;
+                                const rot_real_t weight_grad = p0 + (p1 - p0) * d_frac;
+                                
+                                (*grad_weights_acc)[b][p][i][j] = weight_grad;
+                            }
 
                             // Compute 3x3 rotation gradients if needed
                             if (grad_tensors.need_rotation_grads) {
