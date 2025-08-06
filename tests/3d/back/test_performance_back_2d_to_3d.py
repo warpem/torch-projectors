@@ -394,14 +394,14 @@ def test_benchmark_torch_fourier_slice_2d_to_3d(device):
     """
 
     # Skip MPS - torch-fourier-slice operators not implemented for MPS
-    if device.type == "mps":
-        pytest.skip("torch-fourier-slice operators not implemented for MPS")
+    #if device.type == "mps":
+    #    pytest.skip("torch-fourier-slice operators not implemented for MPS")
 
     torch.manual_seed(42)
     
     # Use same benchmark parameters as our performance test
     num_projection_sets = 1
-    num_projections_per_set = 8192
+    num_projections_per_set = 1
     D, H, W = 128, 128, 128
     W_half = W // 2 + 1
     num_warmup_runs = 3

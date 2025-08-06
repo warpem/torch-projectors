@@ -1,0 +1,135 @@
+// Forward backproject 2D->3D kernel - accumulates 2D projections into 3D reconstructions
+kernel void backproject_2d_to_3d_forw_kernel(
+    device const float2* projections      [[buffer(0)]],
+    device const float*  weights          [[buffer(1)]], 
+    device const float*  rotations        [[buffer(2)]],
+    device const float*  shifts           [[buffer(3)]],
+    device float2*       data_reconstruction [[buffer(4)]],
+    device float*        weight_reconstruction [[buffer(5)]],
+    constant Params3D&   params           [[buffer(6)]],
+    uint2 gpos [[threadgroup_position_in_grid]],
+    uint  tid  [[thread_index_in_threadgroup]],
+    uint2 tpg  [[threads_per_threadgroup]]
+) {
+    // Thread organization: each threadgroup handles one entire projection
+    // Grid: (P, B, 1), Threadgroup: (256, 1, 1)
+    int32_t p = gpos.x;  // Pose index
+    int32_t b = gpos.y;  // Batch index
+    
+    // Check bounds for batch and pose
+    if (p >= params.P || b >= params.B) {
+        return;
+    }
+    
+    // Pre-compute shared parameters for this projection (pose p, batch b)
+    
+    // 3x3 rotation matrix (shared for all pixels in this projection)
+    int rot_b_idx = (params.B_rot == 1) ? 0 : b;
+    int rot_idx_base = ((rot_b_idx * params.P + p) * 3 * 3);  // Index to start of 3x3 matrix
+    
+    // Load 3x3 rotation matrix elements
+    float rot_00 = rotations[rot_idx_base + 0];     // R[0][0]
+    float rot_01 = rotations[rot_idx_base + 1];     // R[0][1] 
+    float rot_02 = rotations[rot_idx_base + 2];     // R[0][2]
+    float rot_10 = rotations[rot_idx_base + 3];     // R[1][0]
+    float rot_11 = rotations[rot_idx_base + 4];     // R[1][1]
+    float rot_12 = rotations[rot_idx_base + 5];     // R[1][2]
+    float rot_20 = rotations[rot_idx_base + 6];     // R[2][0]
+    float rot_21 = rotations[rot_idx_base + 7];     // R[2][1]
+    float rot_22 = rotations[rot_idx_base + 8];     // R[2][2]
+    
+    // Shifts (shared for all pixels in this projection)
+    float shift_r = 0.0, shift_c = 0.0;
+    if (params.has_shifts) {
+        int shift_b_idx = (params.B_shift == 1) ? 0 : b;
+        int shift_idx_base = ((shift_b_idx * params.P + p) * 2);
+        shift_r = shifts[shift_idx_base + 0];
+        shift_c = shifts[shift_idx_base + 1];
+    }
+    
+    // Pre-compute constants
+    int32_t proj_batch_stride = params.P * params.proj_boxsize * params.proj_boxsize_half;
+    int32_t proj_pose_stride = params.proj_boxsize * params.proj_boxsize_half;
+    int32_t proj_base_idx = b * proj_batch_stride + p * proj_pose_stride;
+    
+    // 3D reconstruction strides
+    int32_t rec_batch_stride = params.boxsize * params.boxsize * params.boxsize_half;
+    int32_t rec_depth_stride = params.boxsize * params.boxsize_half;
+    int32_t rec_row_stride = params.boxsize_half;
+    
+    float fourier_cutoff_sq = params.fourier_radius_cutoff * params.fourier_radius_cutoff;
+    
+    bool has_weights = (weights != 0);
+    
+    // Loop over all pixels in this projection
+    int32_t total_pixels = params.proj_boxsize * params.proj_boxsize_half;
+    
+    for (int32_t pixel_idx = tid; pixel_idx < total_pixels; pixel_idx += tpg.x) {
+        // Convert linear pixel index to (i, j) coordinates
+        int32_t i = pixel_idx / params.proj_boxsize_half;  // Row
+        int32_t j = pixel_idx % params.proj_boxsize_half;  // Column
+        
+        // Convert array indices to Fourier coordinates (same as CPU)
+        float proj_coord_c = float(j);  // Column: always positive (FFTW half-space)
+        float proj_coord_r = (i <= params.proj_boxsize / 2) ? float(i) : float(i) - float(params.proj_boxsize);
+        
+        // Apply Fourier space filtering
+        float radius_sq = proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r;
+        if (radius_sq > fourier_cutoff_sq) {
+            continue;
+        }
+        
+        // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
+        if (j == 0 && i >= params.proj_boxsize / 2) {
+            continue;
+        }
+        
+        // Apply oversampling scaling to 2D coordinates
+        float sample_c = proj_coord_c * params.oversampling;
+        float sample_r = proj_coord_r * params.oversampling;
+        float sample_d = 0.0;  // Central slice through origin
+        
+        // Apply 3x3 rotation matrix to get 3D sampling coordinates
+        // This is the inverse transformation of the forward 3D->2D projection
+        float rot_c = rot_00 * sample_c + rot_01 * sample_r + rot_02 * sample_d;
+        float rot_r = rot_10 * sample_c + rot_11 * sample_r + rot_12 * sample_d;
+        float rot_d = rot_20 * sample_c + rot_21 * sample_r + rot_22 * sample_d;
+        
+        // Get projection data
+        float2 proj_val = projections[proj_base_idx + pixel_idx];
+        
+        // Apply conjugate phase shift for back-projection
+        if (params.has_shifts) {
+            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
+                                           proj_coord_c * shift_c / params.boxsize);
+            float2 phase_factor = float2(cos(phase), sin(phase));
+            proj_val = complex_mul(proj_val, complex_conj(phase_factor));  // conjugate for backprojection
+        }
+        
+        // Distribute projection data to 3D reconstruction 
+        if (params.interpolation_method == 0) {  // linear
+            distribute_trilinear_data(data_reconstruction, b, params.boxsize, params.boxsize_half,
+                                    rec_batch_stride, rec_depth_stride, rec_row_stride, 
+                                    proj_val, rot_d, rot_r, rot_c);
+        } else {  // cubic
+            distribute_tricubic_data(data_reconstruction, b, params.boxsize, params.boxsize_half,
+                                   rec_batch_stride, rec_depth_stride, rec_row_stride, 
+                                   proj_val, rot_d, rot_r, rot_c);
+        }
+        
+        // Distribute weights if provided
+        if (has_weights) {
+            float weight_val = weights[proj_base_idx + pixel_idx];
+            
+            if (params.interpolation_method == 0) {  // linear
+                distribute_trilinear_weights(weight_reconstruction, b, params.boxsize, params.boxsize_half,
+                                           rec_batch_stride, rec_depth_stride, rec_row_stride, 
+                                           weight_val, rot_d, rot_r, rot_c);
+            } else {  // cubic  
+                distribute_tricubic_weights(weight_reconstruction, b, params.boxsize, params.boxsize_half,
+                                          rec_batch_stride, rec_depth_stride, rec_row_stride, 
+                                          weight_val, rot_d, rot_r, rot_c);
+            }
+        }
+    }
+}

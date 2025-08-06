@@ -8,6 +8,7 @@
 #include "mps/2d/projection_2d_kernels.h"
 #include "mps/2d/backprojection_2d_kernels.h"
 #include "mps/3d/projection_3d_to_2d_kernels.h"
+#include "mps/3d/backprojection_2d_to_3d_kernels.h"
 #endif
 
 #ifdef USE_CUDA
@@ -64,6 +65,10 @@ TORCH_LIBRARY_IMPL(torch_projectors, MPS, m) {
   // 3D->2D projection implementations
   m.impl("project_3d_to_2d_forw", &project_3d_to_2d_forw_mps);
   m.impl("project_3d_to_2d_back", &project_3d_to_2d_back_mps);
+  
+  // 2D->3D back-projection implementations
+  m.impl("backproject_2d_to_3d_forw", &backproject_2d_to_3d_forw_mps);
+  m.impl("backproject_2d_to_3d_back", &backproject_2d_to_3d_back_mps);
 }
 #endif
 

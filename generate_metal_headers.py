@@ -40,6 +40,11 @@ def generate_header(output_path, csrc_mps_path):
     forward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "project_3d_to_2d_forw.metal"))
     backward_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "project_3d_to_2d_back.metal"))
     
+    # Read the 3D backprojection Metal files
+    backproject_utilities_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "backproject_utilities_3d.metal"))
+    forward_backproject_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "backproject_2d_to_3d_forw.metal"))
+    backward_backproject_3d_content = read_metal_file(os.path.join(csrc_mps_path, "3d", "backproject_2d_to_3d_back.metal"))
+    
     # Assemble the complete 2D shader source
     complete_2d_source = f"""#include <metal_stdlib>
 using namespace metal;
@@ -75,12 +80,26 @@ using namespace metal;
 {backward_3d_content}
 """
     
+    # Assemble the complete 3D backprojection shader source
+    complete_3d_backproject_source = f"""#include <metal_stdlib>
+using namespace metal;
+
+{utilities_3d_content}
+
+{backproject_utilities_3d_content}
+
+{forward_backproject_3d_content}
+
+{backward_backproject_3d_content}
+"""
+    
     # Escape the source code for C++ string literals
     escaped_2d_source = complete_2d_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
     escaped_2d_backproject_source = complete_2d_backproject_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
     escaped_3d_source = complete_3d_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
+    escaped_3d_backproject_source = complete_3d_backproject_source.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n"\n    "')
     
-    # Generate the header content with 2D projection, 2D backprojection, and 3D sources
+    # Generate the header content with 2D projection, 2D backprojection, 3D projection, and 3D backprojection sources
     header_content = f'''#pragma once
 
 #ifdef __APPLE__
@@ -101,6 +120,10 @@ constexpr const char* BACKPROJECT_KERNEL_SOURCE =
 constexpr const char* PROJECTION_3D_KERNEL_SOURCE = 
     "{escaped_3d_source}";
 
+// 3D backprojection (2D->3D) kernels (utilities_3d.metal, backproject_utilities_3d.metal, forward_backproject_3d.metal, backward_backproject_3d.metal)
+constexpr const char* BACKPROJECT_3D_KERNEL_SOURCE = 
+    "{escaped_3d_backproject_source}";
+
 #endif // __APPLE__
 '''
     
@@ -113,6 +136,7 @@ constexpr const char* PROJECTION_3D_KERNEL_SOURCE =
     print("  - Includes 2D projection kernels: PROJECTION_KERNEL_SOURCE")
     print("  - Includes 2D backprojection kernels: BACKPROJECT_KERNEL_SOURCE")  
     print("  - Includes 3D->2D projection kernels: PROJECTION_3D_KERNEL_SOURCE")
+    print("  - Includes 3D backprojection (2D->3D) kernels: BACKPROJECT_3D_KERNEL_SOURCE")
 
 if __name__ == "__main__":
     # Get the script directory
