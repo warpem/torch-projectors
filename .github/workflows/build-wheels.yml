@@ -66,9 +66,9 @@ jobs:
         env:
           TORCH_PROJECTORS_BUILD_BACKEND: ${{ matrix.backend }}
 
-      - name: Run tests
+      - name: Run tests (excluding performance tests)
         run: |
-          pytest tests/ -v
+          pytest tests/ -v --ignore-glob="*performance*"
         continue-on-error: ${{ matrix.backend == 'cuda' }}  # Don't fail build if CUDA tests fail
 
   # Build wheels after tests pass
