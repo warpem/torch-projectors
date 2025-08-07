@@ -13,7 +13,9 @@
 
 #ifdef USE_CUDA
 #include "cuda/2d/projection_2d_kernels.h"
+#include "cuda/2d/backprojection_2d_kernels.h"
 #include "cuda/3d/projection_3d_to_2d_kernels.h"
+#include "cuda/3d/backprojection_2d_to_3d_kernels.h"
 #endif
 
 TORCH_LIBRARY(torch_projectors, m) {
@@ -78,9 +80,17 @@ TORCH_LIBRARY_IMPL(torch_projectors, CUDA, m) {
   m.impl("project_2d_forw", &project_2d_forw_cuda);
   m.impl("project_2d_back", &project_2d_back_cuda);
   
+  // 2D back-projection implementations
+  m.impl("backproject_2d_forw", &backproject_2d_forw_cuda);
+  m.impl("backproject_2d_back", &backproject_2d_back_cuda);
+  
   // 3D->2D projection implementations
   m.impl("project_3d_to_2d_forw", &project_3d_to_2d_forw_cuda);
   m.impl("project_3d_to_2d_back", &project_3d_to_2d_back_cuda);
+  
+  // 2D->3D back-projection implementations
+  m.impl("backproject_2d_to_3d_forw", &backproject_2d_to_3d_forw_cuda);
+  m.impl("backproject_2d_to_3d_back", &backproject_2d_to_3d_back_cuda);
 }
 #endif
 
