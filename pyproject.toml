@@ -32,6 +32,8 @@ repair-wheel-command = ""
 # Compatible with RHEL 8+, Ubuntu 20.04+, Debian 11+
 # Force manylinux_2_28 to match PyTorch wheel tags
 manylinux-x86_64-image = "manylinux_2_28"
+# Pass environment variables from GitHub Actions matrix
+environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_CUDA_VERSION"]
 before-all = [
     # Handle both manylinux (yum) and musllinux (apk) package managers
     """
@@ -71,17 +73,12 @@ before-all = [
     """
 ]
 before-build = [
-    "source /opt/rh/gcc-toolset-13/enable || echo 'GCC toolset not available'",
-    "mkdir -p /tmp/gcc13-bin",
-    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc",
-    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++", 
-    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++",
-    "export PATH=/tmp/gcc13-bin:$PATH",
-    "echo \"PATH GCC version: $(gcc --version | head -1)\"",
-    "echo \"PATH G++ version: $(g++ --version | head -1)\"",
-    "echo \"PATH C++ version: $(c++ --version | head -1)\"",
-    "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     "echo \"TORCH_PROJECTORS_BUILD_BACKEND is: $TORCH_PROJECTORS_BUILD_BACKEND\"",
+    "echo \"TORCH_PROJECTORS_TORCH_VERSION is: $TORCH_PROJECTORS_TORCH_VERSION\"", 
+    "echo \"TORCH_PROJECTORS_CUDA_VERSION is: $TORCH_PROJECTORS_CUDA_VERSION\"",
+    # Set up GCC 13 for CUDA builds
+    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == cuda* ]]; then source /opt/rh/gcc-toolset-13/enable && mkdir -p /tmp/gcc13-bin && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++ && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++ && export PATH=/tmp/gcc13-bin:$PATH && echo \"Using GCC 13: $(gcc --version | head -1)\"; else echo \"Using system GCC for CPU build: $(gcc --version | head -1)\"; fi",
+    "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     "TORCH_VERSION=${TORCH_PROJECTORS_TORCH_VERSION:-2.6.0}",
     "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cpu\"* ]]; then echo \"Installing CPU PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cpu; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then echo \"Installing CUDA 12.6 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu126; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda128\" ]]; then echo \"Installing CUDA 12.8 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu128; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda129\" ]]; then echo \"Installing CUDA 12.9 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu129; else echo \"Unknown backend: $TORCH_PROJECTORS_BUILD_BACKEND, installing CPU PyTorch\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cpu; fi"
 ]
@@ -97,45 +94,5 @@ repair-wheel-command = "delvewheel repair --exclude c10.dll --exclude torch_cpu.
 test-command = "python -c \"import torch_projectors; print('torch-projectors imported successfully')\""
 test-requires = ["pytest", "torch", "matplotlib"]
 
-# Build variants - separate override for each backend
-# Linux CUDA 12.6 
-[[tool.cibuildwheel.overrides]]
-select = "cp*-manylinux*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_CUDA_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cuda126'"
-
-# Linux CUDA 12.8
-[[tool.cibuildwheel.overrides]]
-select = "cp*-manylinux*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda128", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_CUDA_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cuda128'"
-
-# Linux CUDA 12.9
-[[tool.cibuildwheel.overrides]]
-select = "cp*-manylinux*"  
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda129", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_CUDA_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cuda129'"
-
-# Linux CPU
-[[tool.cibuildwheel.overrides]]
-select = "cp*-manylinux*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cpu'"
-
-# Windows CPU
-[[tool.cibuildwheel.overrides]]
-select = "*-win*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cpu'"
-
-# macOS CPU + MPS
-[[tool.cibuildwheel.overrides]]
-select = "*-macos*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu-mps", MACOSX_DEPLOYMENT_TARGET = "10.15" }
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION"]
-only-if = "env:TORCH_PROJECTORS_BUILD_BACKEND == 'cpu-mps'" 
+# Build variants - use environment variable passing without overrides
+# The backend is passed from the GitHub Actions matrix directly 
