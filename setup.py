@@ -158,6 +158,9 @@ setup(
     author="Dimitry Tegunov",
     author_email="tegunov@gmail.com",
     description="Differentiable forward and backward projectors for cryo-EM with fast native implementations for CPU, CUDA, and MPS backends.",
+    install_requires=[
+        "torch>=2.6.0",  # Lower bound - built against PyTorch 2.8, likely compatible back to 2.6
+    ],
     ext_modules=[
         extension_class(
             name="torch_projectors._C",
