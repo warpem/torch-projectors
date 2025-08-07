@@ -101,8 +101,9 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Extract version from tag
-        id: version
+      - name: Extract version from tag (Unix)
+        if: runner.os != 'Windows'
+        id: version_unix
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -113,10 +114,31 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          
-          # Set backend suffix for wheel naming
-          BACKEND_SUFFIX="+cpu"  # TODO: Update based on matrix backend when full matrix enabled
-          echo "backend_suffix=$BACKEND_SUFFIX" >> $GITHUB_OUTPUT
+          echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT
+
+      - name: Extract version from tag (Windows)
+        if: runner.os == 'Windows'
+        id: version_windows
+        run: |
+          if ("${{ github.ref }}" -like "refs/tags/v*") {
+            $VERSION = "${{ github.ref }}".Replace("refs/tags/v", "")
+            $BUILD_NUMBER = $env:GITHUB_RUN_NUMBER
+          } else {
+            $VERSION = "0.0.0+dev$env:GITHUB_RUN_NUMBER"
+            $BUILD_NUMBER = $env:GITHUB_RUN_NUMBER
+          }
+          echo "version=$VERSION" >> $env:GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $env:GITHUB_OUTPUT
+          echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Set version outputs
+        id: version
+        run: |
+          echo "version=${{ steps.version_unix.outputs.version || steps.version_windows.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "build_number=${{ steps.version_unix.outputs.build_number || steps.version_windows.outputs.build_number }}" >> $GITHUB_OUTPUT
+          echo "backend_suffix=${{ steps.version_unix.outputs.backend_suffix || steps.version_windows.outputs.backend_suffix }}" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23
