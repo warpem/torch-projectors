@@ -72,7 +72,7 @@ before-build = [
     "echo \"pip version: $(pip --version)\"",
     "echo \"Testing index access: curl -I https://download.pytorch.org/whl/cu126/\"",
     "curl -I https://download.pytorch.org/whl/cu126/ || echo 'curl failed'",
-    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then echo \"Installing CUDA 12.6 PyTorch\" && pip install -vvv --force-reinstall torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126; else echo \"Skipping PyTorch install for debugging\"; fi"
+    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then echo \"Installing CUDA 12.6 PyTorch\" && pip install --force-reinstall torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126; else echo \"Skipping PyTorch install for debugging\"; fi"
 ]
 # Skip bundling PyTorch libraries - users should have their own PyTorch  
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
