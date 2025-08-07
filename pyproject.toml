@@ -70,8 +70,8 @@ before-build = [
     # Set RPATH for proper library linking
     "export LDFLAGS=\"-Wl,-rpath,\\$ORIGIN\""
 ]
-# Skip bundling PyTorch libraries - users should have their own PyTorch
-repair-wheel-command = "auditwheel repair --exclude libtorch_cpu.so --exclude libtorch_cuda.so --exclude libc10.so --exclude libc10_cuda.so -w {dest_dir} {wheel}"
+# Skip bundling PyTorch libraries - users should have their own PyTorch  
+repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install pybind11 setuptools wheel numpy delvewheel"
