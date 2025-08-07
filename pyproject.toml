@@ -73,8 +73,8 @@ before-build = "pip install pybind11 setuptools wheel numpy delvewheel"
 # Skip bundling PyTorch libraries - users should have their own PyTorch
 repair-wheel-command = "delvewheel repair --exclude c10.dll --exclude torch_cpu.dll --exclude torch_python.dll --exclude torch.dll -w {dest_dir} {wheel}"
 
-# Test command for all platforms - basic import test
-test-command = "python -c 'import torch_projectors; print(\"torch-projectors imported successfully\")'"
+# Test command for all platforms - basic import test (Windows-compatible quotes)
+test-command = "python -c \"import torch_projectors; print('torch-projectors imported successfully')\""
 test-requires = ["pytest", "torch", "matplotlib"]
 
 # Build variants - simplified for initial testing
