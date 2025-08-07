@@ -46,22 +46,29 @@ repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest
 # Use manylinux_2_28 following PyTorch's 2024 migration
 # Compatible with RHEL 8+, Ubuntu 20.04+, Debian 11+
 before-all = [
-    "yum update -y && yum install -y wget curl gcc-c++",
-    # Install CUDA toolkit based on version
+    # Handle both manylinux (yum) and musllinux (apk) package managers
     """
-    if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
-        CUDA_VERSION=$(echo $TORCH_PROJECTORS_BUILD_BACKEND | sed 's/cuda//')
-        case $CUDA_VERSION in
-            126) CUDA_PKG="cuda-toolkit-12-6" ;;
-            128) CUDA_PKG="cuda-toolkit-12-8" ;;
-            129) CUDA_PKG="cuda-toolkit-12-9" ;;
-            *) CUDA_PKG="cuda-toolkit-12-6" ;;
-        esac
-        wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
-        cp cuda-rhel8.repo /etc/yum.repos.d/
-        yum clean all && yum install -y $CUDA_PKG
-        export PATH=/usr/local/cuda/bin:$PATH
-        export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    if command -v yum >/dev/null 2>&1; then
+        # manylinux (RHEL/CentOS based)
+        yum update -y && yum install -y wget curl gcc-c++
+        if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+            CUDA_VERSION=$(echo $TORCH_PROJECTORS_BUILD_BACKEND | sed 's/cuda//')
+            case $CUDA_VERSION in
+                126) CUDA_PKG="cuda-toolkit-12-6" ;;
+                128) CUDA_PKG="cuda-toolkit-12-8" ;;
+                129) CUDA_PKG="cuda-toolkit-12-9" ;;
+                *) CUDA_PKG="cuda-toolkit-12-6" ;;
+            esac
+            wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+            cp cuda-rhel8.repo /etc/yum.repos.d/
+            yum clean all && yum install -y $CUDA_PKG
+            export PATH=/usr/local/cuda/bin:$PATH
+            export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+        fi
+    elif command -v apk >/dev/null 2>&1; then
+        # musllinux (Alpine based)
+        apk update && apk add --no-cache wget curl gcc g++ musl-dev
+        # Note: CUDA not typically available on musllinux
     fi
     """
 ]
