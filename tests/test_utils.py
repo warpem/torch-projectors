@@ -17,7 +17,7 @@ def plot_real_space_tensors(tensors, titles, filename, shape=None):
     """
     Plots a list of real-space tensors.
     """
-    os.makedirs('test_outputs', exist_ok=True)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     if shape is None:
         shape = (1, len(tensors))
     
@@ -52,7 +52,7 @@ def plot_fourier_tensors(tensors, titles, filename, shape=None):
     filename: the output PNG file name.
     shape: a tuple for subplot shape (rows, cols) for the tensor grid.
     """
-    os.makedirs('test_outputs', exist_ok=True)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     if shape is None:
         shape = (1, len(tensors))
     
