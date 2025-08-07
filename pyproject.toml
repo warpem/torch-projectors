@@ -15,11 +15,8 @@ build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 # Skip 32-bit builds, PyPy, and musllinux (PyTorch not available)
 skip = "*-win32 *-manylinux_i686 *-musllinux* pp*"
 
-# Install build requirements with matching PyTorch
-before-build = [
-    "pip install pybind11 setuptools wheel numpy auditwheel ninja",
-    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cpu\"* ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu126; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda128\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu128; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda129\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu129; else pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu; fi"
-]
+# Install build requirements with matching PyTorch (moved to platform-specific sections)
+# before-build = [] # Global before-build moved to platform sections
 
 # Platform-specific configuration
 [tool.cibuildwheel.macos]
@@ -62,8 +59,7 @@ before-all = [
 ]
 before-build = [
     "pip install pybind11 setuptools wheel numpy auditwheel ninja",
-    # Set RPATH for proper library linking
-    "export LDFLAGS=\"-Wl,-rpath,\\$ORIGIN\""
+    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cpu\"* ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu126; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda128\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu128; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda129\" ]]; then pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu129; else pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu; fi"
 ]
 # Skip bundling PyTorch libraries - users should have their own PyTorch  
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
