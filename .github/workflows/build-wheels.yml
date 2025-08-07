@@ -81,23 +81,41 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux - CUDA (initial testing)
+          # Linux CUDA builds (separate jobs for each CUDA version)
           - os: linux-cpu-x64
             cibw-arch: "x86_64"
+            backend: "cuda126"
+            torch-version: "2.6.0"
+            cuda-version: "12.6"
+          - os: linux-cpu-x64
+            cibw-arch: "x86_64" 
+            backend: "cuda128"
+            torch-version: "2.7.0"
+            cuda-version: "12.8"
+          - os: linux-cpu-x64
+            cibw-arch: "x86_64"
+            backend: "cuda129" 
+            torch-version: "2.8.0"
+            cuda-version: "12.9"
           
-          # TODO: Uncomment for full testing
-          # # Windows - CPU only (initial testing)
-          # - os: windows-x64-cpu
-          #   cibw-arch: "AMD64"
-          # # Linux - CPU only (initial testing)  
-          # - os: linux-cpu-x64
-          #   cibw-arch: "x86_64"
+          # Linux CPU build
+          - os: linux-cpu-x64
+            cibw-arch: "x86_64"
+            backend: "cpu"
+            torch-version: "2.6.0"
+          
+          # TODO: Re-enable after Linux builds are working
           # # macOS Apple Silicon - Sequoia for atomics, ARM64 native
           # - os: macos-15-xlarge
           #   cibw-arch: "arm64"
-          # # macOS Intel cross-compile (if needed later)
-          # - os: macos-15-xlarge  
-          #   cibw-arch: "x86_64"
+          #   backend: "cpu-mps"
+          #   torch-version: "2.6.0"
+          # 
+          # # Windows CPU build
+          # - os: windows-x64-cpu
+          #   cibw-arch: "AMD64"
+          #   backend: "cpu"
+          #   torch-version: "2.6.0"
 
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +135,14 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          echo "backend_suffix=+cu126" >> $GITHUB_OUTPUT
+          # Set backend suffix based on matrix backend
+          case "${{ matrix.backend }}" in
+            cuda126) echo "backend_suffix=+cu126" >> $GITHUB_OUTPUT ;;
+            cuda128) echo "backend_suffix=+cu128" >> $GITHUB_OUTPUT ;;
+            cuda129) echo "backend_suffix=+cu129" >> $GITHUB_OUTPUT ;;
+            cpu-mps) echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT ;;
+            *) echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT ;;
+          esac
 
       - name: Extract version from tag (Windows)
         if: runner.os == 'Windows'
@@ -132,7 +157,14 @@ jobs:
           }
           echo "version=$VERSION" >> $env:GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $env:GITHUB_OUTPUT
-          echo "backend_suffix=+cu126" >> $env:GITHUB_OUTPUT
+          # Set backend suffix based on matrix backend
+          switch ("${{ matrix.backend }}") {
+            "cuda126" { echo "backend_suffix=+cu126" >> $env:GITHUB_OUTPUT }
+            "cuda128" { echo "backend_suffix=+cu128" >> $env:GITHUB_OUTPUT }
+            "cuda129" { echo "backend_suffix=+cu129" >> $env:GITHUB_OUTPUT }
+            "cpu-mps" { echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT }
+            default { echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT }
+          }
         shell: pwsh
 
       - name: Set version outputs
@@ -152,11 +184,15 @@ jobs:
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
           TORCH_PROJECTORS_BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          # Pass matrix variables to cibuildwheel
+          TORCH_PROJECTORS_BUILD_BACKEND: ${{ matrix.backend }}
+          TORCH_PROJECTORS_TORCH_VERSION: ${{ matrix.torch-version }}
+          TORCH_PROJECTORS_CUDA_VERSION: ${{ matrix.cuda-version || '' }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.cibw-arch }}-cpu  # TODO: Add backend suffix for CUDA variants
+          name: wheels-${{ matrix.os }}-${{ matrix.cibw-arch }}-${{ matrix.backend }}
           path: ./wheelhouse/*.whl
 
   # Create release and upload wheels
