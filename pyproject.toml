@@ -30,6 +30,8 @@ repair-wheel-command = ""
 [tool.cibuildwheel.linux]
 # Use manylinux_2_28 following PyTorch's 2024 migration
 # Compatible with RHEL 8+, Ubuntu 20.04+, Debian 11+
+# Force manylinux_2_28 to match PyTorch wheel tags
+manylinux-x86_64-image = "manylinux_2_28"
 before-all = [
     # Handle both manylinux (yum) and musllinux (apk) package managers
     """
