@@ -147,7 +147,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.23
         env:
           # Build matrix for different backends (using standard pip instead of uv)
-          CIBW_BUILD_FRONTEND: "build"
+          CIBW_BUILD_FRONTEND: "pip"
           CIBW_ARCHS: ${{ matrix.cibw-arch }}
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
