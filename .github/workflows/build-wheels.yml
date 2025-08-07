@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           # Linux - CPU (initial testing)
-          - os: ubuntu-latest
+          - os: linux-cpu-x64
             backend: cpu
             torch-index: https://download.pytorch.org/whl/cpu
           
@@ -81,7 +81,7 @@ jobs:
       matrix:
         include:
           # Linux - CPU only (initial testing)
-          - os: ubuntu-latest
+          - os: linux-cpu-x64
             cibw-arch: "x86_64"
           
           # TODO: Uncomment for full testing
