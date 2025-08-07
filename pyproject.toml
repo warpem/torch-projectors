@@ -73,7 +73,7 @@ before-all = [
     """
 ]
 before-build = [
-    "pip install pybind11 setuptools wheel numpy auditwheel",
+    "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     # Set RPATH for proper library linking
     "export LDFLAGS=\"-Wl,-rpath,\\$ORIGIN\""
 ]
