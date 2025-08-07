@@ -118,6 +118,9 @@ jobs:
           BACKEND_SUFFIX="+cpu"  # TODO: Update based on matrix backend when full matrix enabled
           echo "backend_suffix=$BACKEND_SUFFIX" >> $GITHUB_OUTPUT
 
+      - name: Install uv (required for build frontend)
+        run: pip install uv
+        
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23
         env:
