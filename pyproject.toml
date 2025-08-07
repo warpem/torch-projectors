@@ -4,7 +4,7 @@
 requires = [
     "pybind11",
     "setuptools",
-    # Note: torch installed via before-build to control CUDA/CPU variant
+    "torch",  # Default version, overridden in before-build for specific variants
 ]
 build-backend = "setuptools.build_meta"
 
