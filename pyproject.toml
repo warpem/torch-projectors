@@ -69,10 +69,6 @@ before-build = [
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.windows]
-before-all = [
-    # Install CUDA toolkit for CUDA builds (Windows PowerShell)
-    "if ($env:TORCH_PROJECTORS_BUILD_BACKEND -like 'cuda*') { Write-Host 'Installing CUDA toolkit...'; Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/12.6.0/network_installers/cuda_12.6.0_windows_network.exe' -OutFile 'cuda_installer.exe'; Start-Process -FilePath '.\\cuda_installer.exe' -ArgumentList '-s', 'nvcc_12.6', 'cudart_12.6' -Wait }"
-]
 before-build = "pip install pybind11 setuptools wheel numpy delvewheel"
 # Skip bundling PyTorch libraries - users should have their own PyTorch
 repair-wheel-command = "delvewheel repair --exclude c10.dll --exclude torch_cpu.dll --exclude torch_python.dll --exclude torch.dll -w {dest_dir} {wheel}"
