@@ -65,13 +65,16 @@ before-all = [
 ]
 before-build = [
     "source /opt/rh/gcc-toolset-13/enable || echo 'GCC toolset not available'",
-    "echo \"GCC version: $(gcc --version | head -1)\"",
+    "mkdir -p /tmp/gcc13-bin",
+    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc",
+    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++", 
+    "ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++",
+    "export PATH=/tmp/gcc13-bin:$PATH",
+    "echo \"PATH GCC version: $(gcc --version | head -1)\"",
+    "echo \"PATH G++ version: $(g++ --version | head -1)\"",
+    "echo \"PATH C++ version: $(c++ --version | head -1)\"",
     "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     "echo \"TORCH_PROJECTORS_BUILD_BACKEND is: $TORCH_PROJECTORS_BUILD_BACKEND\"",
-    "echo \"Python version: $(python --version)\"",
-    "echo \"pip version: $(pip --version)\"",
-    "echo \"Testing index access: curl -I https://download.pytorch.org/whl/cu126/\"",
-    "curl -I https://download.pytorch.org/whl/cu126/ || echo 'curl failed'",
     "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then echo \"Installing CUDA 12.6 PyTorch\" && pip install --force-reinstall torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126; else echo \"Skipping PyTorch install for debugging\"; fi"
 ]
 # Skip bundling PyTorch libraries - users should have their own PyTorch  
@@ -89,7 +92,7 @@ test-requires = ["pytest", "torch", "matplotlib"]
 # Build variants - simplified for initial testing
 [[tool.cibuildwheel.overrides]]
 select = "cp*-manylinux*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++" }
 
 # TODO: Uncomment for full testing
 # [[tool.cibuildwheel.overrides]]
