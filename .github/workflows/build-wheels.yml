@@ -110,6 +110,10 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          
+          # Set backend suffix for wheel naming
+          BACKEND_SUFFIX="+cpu"  # TODO: Update based on matrix backend when full matrix enabled
+          echo "backend_suffix=$BACKEND_SUFFIX" >> $GITHUB_OUTPUT
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23
@@ -124,7 +128,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.cibw-arch }}
+          name: wheels-${{ matrix.os }}-${{ matrix.cibw-arch }}-cpu  # TODO: Add backend suffix for CUDA variants
           path: ./wheelhouse/*.whl
 
   # Create release and upload wheels

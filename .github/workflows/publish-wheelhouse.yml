@@ -1,0 +1,111 @@
+name: Publish Wheelhouse
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  publish-wheelhouse:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: all-wheels/
+
+      - name: Install wheel indexing tools
+        run: |
+          pip install dir2pi
+
+      - name: Organize wheels by backend
+        run: |
+          mkdir -p dist/{cpu,cu126,cu128,cu129}
+          
+          # Sort wheels by CUDA version in filename
+          for wheel in all-wheels/*.whl; do
+            if [[ "$wheel" == *"+cpu"* ]] || [[ "$wheel" != *"+cu"* ]]; then
+              cp "$wheel" dist/cpu/
+            elif [[ "$wheel" == *"+cu126"* ]]; then
+              cp "$wheel" dist/cu126/
+            elif [[ "$wheel" == *"+cu128"* ]]; then
+              cp "$wheel" dist/cu128/
+            elif [[ "$wheel" == *"+cu129"* ]]; then
+              cp "$wheel" dist/cu129/
+            else
+              # Default to CPU if unclear
+              cp "$wheel" dist/cpu/
+            fi
+          done
+
+      - name: Generate PyPI-compatible indices
+        run: |
+          mkdir -p pages
+          
+          for backend in cpu cu126 cu128 cu129; do
+            if [ -n "$(ls dist/$backend/*.whl 2>/dev/null)" ]; then
+              echo "Creating index for $backend"
+              dir2pi dist/$backend --output-dir pages/$backend
+              
+              # Create a simple index.html for the backend
+              cat > pages/$backend/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>torch-projectors wheels ($backend)</title>
+          </head>
+          <body>
+              <h1>torch-projectors wheels ($backend)</h1>
+              <p>Install with: <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/$backend/simple/</code></p>
+              <p><a href="simple/">Package Index</a></p>
+          </body>
+          </html>
+          EOF
+            fi
+          done
+
+          # Create main index page
+          cat > pages/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>torch-projectors wheelhouse</title>
+          </head>
+          <body>
+              <h1>torch-projectors wheelhouse</h1>
+              <p>Select your PyTorch CUDA version:</p>
+              <ul>
+                  <li><a href="cpu/">CPU only</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cpu/simple/</code></li>
+                  <li><a href="cu126/">CUDA 12.6</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu126/simple/</code></li>
+                  <li><a href="cu128/">CUDA 12.8</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu128/simple/</code></li>
+                  <li><a href="cu129/">CUDA 12.9</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu129/simple/</code></li>
+              </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

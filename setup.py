@@ -130,19 +130,34 @@ package_name = os.environ.get("TORCH_PROJECTORS_PACKAGE_NAME", "torch-projectors
 build_version = os.environ.get("TORCH_PROJECTORS_BUILD_VERSION", "0.1.0")
 build_number = os.environ.get("TORCH_PROJECTORS_BUILD_NUMBER", "1")
 
+# Add backend suffix to version for wheelhouse organization
+backend_suffix = ""
+if build_backend in ["cuda126"]:
+    backend_suffix = "+cu126"
+elif build_backend in ["cuda128"]:
+    backend_suffix = "+cu128"
+elif build_backend in ["cuda129"]:
+    backend_suffix = "+cu129"
+else:
+    backend_suffix = "+cpu"
+
+final_version = f"{build_version}{backend_suffix}"
+
 # Normalize package name (convert hyphens to underscores for wheel)
 normalized_name = package_name.replace("-", "_")
 
 print(f"Package name: {package_name}")
 print(f"Build version: {build_version}")  
+print(f"Backend suffix: {backend_suffix}")
+print(f"Final version: {final_version}")
 print(f"Build number: {build_number}")
 
 setup(
     name=package_name,
-    version=build_version,
-    author="[Your Name]",
-    author_email="[Your Email]",
-    description="Differentiable forward and backward projectors for cryo-EM.",
+    version=final_version,
+    author="Dimitry Tegunov",
+    author_email="tegunov@gmail.com",
+    description="Differentiable forward and backward projectors for cryo-EM with fast native implementations for CPU, CUDA, and MPS backends.",
     ext_modules=[
         extension_class(
             name="torch_projectors._C",
