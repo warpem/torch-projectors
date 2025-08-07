@@ -84,11 +84,14 @@ jobs:
           # Linux - CPU only (initial testing)
           - os: linux-cpu-x64
             cibw-arch: "x86_64"
+          # macOS Apple Silicon - Sequoia for atomics, ARM64 native
+          - os: macos-15-xlarge
+            cibw-arch: "arm64"
           
           # TODO: Uncomment for full testing
-          # # macOS - Sequoia for atomics, targets 10.15+
-          # - os: macos-15
-          #   cibw-arch: "x86_64 arm64"
+          # # macOS Intel cross-compile (if needed later)
+          # - os: macos-15-xlarge  
+          #   cibw-arch: "x86_64"
           # # Windows - multiple CUDA versions  
           # - os: windows-latest
           #   cibw-arch: "AMD64"
