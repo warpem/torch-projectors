@@ -133,15 +133,22 @@ build_number = os.environ.get("TORCH_PROJECTORS_BUILD_NUMBER", "1")
 # Add backend suffix to version for wheelhouse organization
 backend_suffix = ""
 if build_backend in ["cuda126"]:
-    backend_suffix = "+cu126"
+    backend_suffix = "cu126"
 elif build_backend in ["cuda128"]:
-    backend_suffix = "+cu128"
+    backend_suffix = "cu128"
 elif build_backend in ["cuda129"]:
-    backend_suffix = "+cu129"
+    backend_suffix = "cu129"
 else:
-    backend_suffix = "+cpu"
+    backend_suffix = "cpu"
 
-final_version = f"{build_version}{backend_suffix}"
+# Handle version format properly (PEP 440 compliant)
+if "+" in build_version:
+    # Version already has local part (e.g., "1.0.0+dev12")
+    base_version, local_part = build_version.split("+", 1)
+    final_version = f"{base_version}+{local_part}.{backend_suffix}"
+else:
+    # Version has no local part (e.g., "1.0.0")
+    final_version = f"{build_version}+{backend_suffix}"
 
 # Normalize package name (convert hyphens to underscores for wheel)
 normalized_name = package_name.replace("-", "_")
