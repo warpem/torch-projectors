@@ -37,7 +37,11 @@ before-all = [
     """
     if command -v yum >/dev/null 2>&1; then
         # manylinux (RHEL/CentOS based)
-        yum update -y && yum install -y wget curl gcc-c++
+        yum update -y && yum install -y wget curl
+        # Install GCC 13 (supported by CUDA 12.6)
+        yum install -y gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
+        # Enable GCC 13 toolset
+        source /opt/rh/gcc-toolset-13/enable
         if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
             CUDA_VERSION=$(echo $TORCH_PROJECTORS_BUILD_BACKEND | sed 's/cuda//')
             case $CUDA_VERSION in
@@ -60,6 +64,8 @@ before-all = [
     """
 ]
 before-build = [
+    "source /opt/rh/gcc-toolset-13/enable || echo 'GCC toolset not available'",
+    "echo \"GCC version: $(gcc --version | head -1)\"",
     "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     "echo \"TORCH_PROJECTORS_BUILD_BACKEND is: $TORCH_PROJECTORS_BUILD_BACKEND\"",
     "echo \"Python version: $(python --version)\"",
