@@ -6,4 +6,114 @@ requires = [
     "setuptools",
     "torch",
 ]
-build-backend = "setuptools.build_meta" 
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+# Build for Python 3.9-3.13
+build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
+
+# Skip 32-bit builds and PyPy
+skip = "*-win32 *-manylinux_i686 pp*"
+
+# Install build requirements with matching PyTorch
+before-build = [
+    "pip install pybind11 setuptools wheel numpy",
+    # Install PyTorch matching the backend being built
+    """
+    if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cpu"* ]]; then
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+    elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda126" ]]; then
+        pip install torch --index-url https://download.pytorch.org/whl/cu126
+    elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda128" ]]; then
+        pip install torch --index-url https://download.pytorch.org/whl/cu128
+    elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda129" ]]; then
+        pip install torch --index-url https://download.pytorch.org/whl/cu129
+    else
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+    fi
+    """
+]
+
+# Platform-specific configuration
+[tool.cibuildwheel.macos]
+# Build on Sequoia but target older macOS for compatibility
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+# Install delocate for wheel repair
+before-build = "pip install pybind11 setuptools wheel numpy delocate"
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
+
+[tool.cibuildwheel.linux]
+# Use manylinux_2_28 following PyTorch's 2024 migration
+# Compatible with RHEL 8+, Ubuntu 20.04+, Debian 11+
+before-all = [
+    "yum update -y && yum install -y wget curl gcc-c++",
+    # Install CUDA toolkit based on version
+    """
+    if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+        CUDA_VERSION=$(echo $TORCH_PROJECTORS_BUILD_BACKEND | sed 's/cuda//')
+        case $CUDA_VERSION in
+            126) CUDA_PKG="cuda-toolkit-12-6" ;;
+            128) CUDA_PKG="cuda-toolkit-12-8" ;;
+            129) CUDA_PKG="cuda-toolkit-12-9" ;;
+            *) CUDA_PKG="cuda-toolkit-12-6" ;;
+        esac
+        wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+        cp cuda-rhel8.repo /etc/yum.repos.d/
+        yum clean all && yum install -y $CUDA_PKG
+        export PATH=/usr/local/cuda/bin:$PATH
+        export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    fi
+    """
+]
+before-build = [
+    "pip install pybind11 setuptools wheel numpy auditwheel",
+    # Set RPATH for proper library linking
+    "export LDFLAGS=\"-Wl,-rpath,\\$ORIGIN\""
+]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+
+[tool.cibuildwheel.windows]
+before-build = "pip install pybind11 setuptools wheel numpy delvewheel"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+
+# Test command for all platforms - basic import test
+test-command = "python -c 'import torch_projectors; print(\"torch-projectors imported successfully\")'"
+test-requires = ["pytest", "torch", "matplotlib"]
+
+# Build variants - simplified for initial testing
+[[tool.cibuildwheel.overrides]]
+select = "*-linux*"
+environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu" }
+
+# TODO: Uncomment for full testing
+# [[tool.cibuildwheel.overrides]]
+# select = "*-linux*"  
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-linux*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda128", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-linux*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda129", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-win*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-win*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-win*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda128", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-win*"
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda129", TORCH_CUDA_ARCH_LIST = "7.0;7.5;8.0;8.6;8.9;9.0" }
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-macos*" 
+# environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu-mps", MACOSX_DEPLOYMENT_TARGET = "10.15" } 

@@ -1,0 +1,148 @@
+name: Build Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.1.0, v1.2.3
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  # Test before building wheels
+  test:
+    name: Test on ${{ matrix.os }} - ${{ matrix.backend }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux - CPU (initial testing)
+          - os: ubuntu-latest
+            backend: cpu
+            torch-index: https://download.pytorch.org/whl/cpu
+          
+          # TODO: Uncomment for full testing
+          # # macOS - CPU + MPS (requires Sequoia for build)
+          # - os: macos-15  # Sequoia for atomics build support
+          #   backend: cpu-mps
+          #   torch-index: https://download.pytorch.org/whl/cpu
+          # # Linux - CUDA (Tesla T4 for testing)
+          # - os: gpu-t4-4-core-linux
+          #   backend: cuda
+          #   torch-index: https://download.pytorch.org/whl/cu121
+          # # Windows - CPU
+          # - os: windows-latest
+          #   backend: cpu
+          #   torch-index: https://download.pytorch.org/whl/cpu
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyTorch (matching CUDA version)
+        run: |
+          python -m pip install --upgrade pip
+          # Install PyTorch matching the target CUDA version
+          if [[ "${{ matrix.backend }}" == "cpu"* ]]; then
+            pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          elif [[ "${{ matrix.backend }}" == "cuda" ]]; then
+            pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+          else
+            pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          fi
+
+      - name: Install build requirements  
+        run: |
+          pip install pytest matplotlib pybind11 setuptools wheel numpy
+
+      - name: Build extension
+        run: |
+          python -m pip install -e .
+        env:
+          TORCH_PROJECTORS_BUILD_BACKEND: ${{ matrix.backend }}
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+        continue-on-error: ${{ matrix.backend == 'cuda' }}  # Don't fail build if CUDA tests fail
+
+  # Build wheels after tests pass
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }}
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux - CPU only (initial testing)
+          - os: ubuntu-latest
+            cibw-arch: "x86_64"
+          
+          # TODO: Uncomment for full testing
+          # # macOS - Sequoia for atomics, targets 10.15+
+          # - os: macos-15
+          #   cibw-arch: "x86_64 arm64"
+          # # Windows - multiple CUDA versions  
+          # - os: windows-latest
+          #   cibw-arch: "AMD64"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            BUILD_NUMBER=${GITHUB_RUN_NUMBER}
+          else
+            VERSION="0.0.0+dev${GITHUB_RUN_NUMBER}"
+            BUILD_NUMBER=${GITHUB_RUN_NUMBER}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23
+        env:
+          # Build matrix for different backends
+          CIBW_BUILD_FRONTEND: "build[uv]"
+          CIBW_ARCHS: ${{ matrix.cibw-arch }}
+          # Version management following PyTorch pattern
+          TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
+          TORCH_PROJECTORS_BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.cibw-arch }}
+          path: ./wheelhouse/*.whl
+
+  # Create release and upload wheels
+  release:
+    name: Create Release
+    needs: build-wheels
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.whl
+          generate_release_notes: true

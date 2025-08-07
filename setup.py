@@ -52,21 +52,31 @@ else:
         extra_compile_args["cxx"].extend(["-fopenmp"])
         extra_link_args.extend(["-lgomp"])
 
-# Check for CUDA availability
+# Check build backend from environment variable
+build_backend = os.environ.get("TORCH_PROJECTORS_BUILD_BACKEND", "auto")
+print(f"Build backend: {build_backend}")
 print(f"PyTorch CUDA available: {torch.cuda.is_available()}")
 print(f"PyTorch version: {torch.__version__}")
 print(f"Platform: {platform.system()}")
 
-cuda_available = torch.cuda.is_available()
+# Determine CUDA usage based on backend
+if build_backend in ["cuda", "cuda126", "cuda128", "cuda129"]:
+    use_cuda = True
+    print(f"Forcing CUDA build due to backend: {build_backend}")
+elif build_backend in ["cpu", "cpu-mps"]:
+    use_cuda = False
+    print(f"Using CPU-only build due to backend: {build_backend}")
+else:
+    # Auto-detect (original behavior)
+    use_cuda = torch.cuda.is_available()
+    print(f"Auto-detected CUDA: {use_cuda}")
 
-# Set CUDA architectures if not specified and CUDA is available
-if cuda_available and "TORCH_CUDA_ARCH_LIST" not in os.environ:
+# Set CUDA architectures if not specified and CUDA is being used
+if use_cuda and "TORCH_CUDA_ARCH_LIST" not in os.environ:
     os.environ["TORCH_CUDA_ARCH_LIST"] = "7.0;7.5;8.0;8.6;8.9;9.0"
     print(f"Set TORCH_CUDA_ARCH_LIST to: {os.environ['TORCH_CUDA_ARCH_LIST']}")
 else:
-    print(f"TORCH_CUDA_ARCH_LIST already set to: {os.environ.get('TORCH_CUDA_ARCH_LIST', 'Not set')}")
-
-use_cuda = cuda_available
+    print(f"TORCH_CUDA_ARCH_LIST: {os.environ.get('TORCH_CUDA_ARCH_LIST', 'Not set')}")
 
 # Add CUDA backend if available
 if use_cuda:
@@ -115,9 +125,21 @@ print(f"Final sources list: {sources}")
 print(f"Final compile args: {extra_compile_args}")
 print(f"Final link args: {extra_link_args}")
 
+# Version management following PyTorch pattern
+package_name = os.environ.get("TORCH_PROJECTORS_PACKAGE_NAME", "torch-projectors")
+build_version = os.environ.get("TORCH_PROJECTORS_BUILD_VERSION", "0.1.0")
+build_number = os.environ.get("TORCH_PROJECTORS_BUILD_NUMBER", "1")
+
+# Normalize package name (convert hyphens to underscores for wheel)
+normalized_name = package_name.replace("-", "_")
+
+print(f"Package name: {package_name}")
+print(f"Build version: {build_version}")  
+print(f"Build number: {build_number}")
+
 setup(
-    name="torch-projectors",
-    version="0.1.0",
+    name=package_name,
+    version=build_version,
     author="[Your Name]",
     author_email="[Your Email]",
     description="Differentiable forward and backward projectors for cryo-EM.",
