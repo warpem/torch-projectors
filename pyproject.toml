@@ -28,7 +28,7 @@ environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 # Install delocate for wheel repair
 before-build = "pip install pybind11 setuptools wheel numpy delocate"
 # Skip bundling PyTorch libraries - users should have their own PyTorch
-repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} --exclude 'libtorch*.dylib' --exclude 'libc10*.dylib' --exclude 'libomp.dylib' -w {dest_dir} -v {wheel}"
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} --exclude libtorch*.dylib --exclude libc10*.dylib --exclude libomp.dylib -w {dest_dir} -v {wheel}"
 
 [tool.cibuildwheel.linux]
 # Use manylinux_2_28 following PyTorch's 2024 migration
