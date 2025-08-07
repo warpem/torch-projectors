@@ -81,12 +81,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows - CPU only (initial testing)
-          - os: windows-x64-cpu
-            cibw-arch: "AMD64"
+          # Linux - CUDA (initial testing)
+          - os: linux-cpu-x64
+            cibw-arch: "x86_64"
           
           # TODO: Uncomment for full testing
-          # # Linux - CPU only (initial testing)
+          # # Windows - CPU only (initial testing)
+          # - os: windows-x64-cpu
+          #   cibw-arch: "AMD64"
+          # # Linux - CPU only (initial testing)  
           # - os: linux-cpu-x64
           #   cibw-arch: "x86_64"
           # # macOS Apple Silicon - Sequoia for atomics, ARM64 native
@@ -114,7 +117,7 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT
+          echo "backend_suffix=+cu126" >> $GITHUB_OUTPUT
 
       - name: Extract version from tag (Windows)
         if: runner.os == 'Windows'
@@ -129,7 +132,7 @@ jobs:
           }
           echo "version=$VERSION" >> $env:GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $env:GITHUB_OUTPUT
-          echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT
+          echo "backend_suffix=+cu126" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
       - name: Set version outputs

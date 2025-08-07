@@ -80,7 +80,7 @@ test-requires = ["pytest", "torch", "matplotlib"]
 # Build variants - simplified for initial testing
 [[tool.cibuildwheel.overrides]]
 select = "*-linux*"
-environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cpu" }
+environment = { TORCH_PROJECTORS_BUILD_BACKEND = "cuda126" }
 
 # TODO: Uncomment for full testing
 # [[tool.cibuildwheel.overrides]]
