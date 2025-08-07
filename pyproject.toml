@@ -18,18 +18,18 @@ skip = "*-win32 *-manylinux_i686 *-musllinux* pp*"
 # Install build requirements with matching PyTorch
 before-build = [
     "pip install pybind11 setuptools wheel numpy",
-    # Install PyTorch matching the backend being built
+    # Reinstall PyTorch with correct variant (force reinstall over build-system version)
     """
     if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cpu"* ]]; then
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu
     elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda126" ]]; then
-        pip install torch --index-url https://download.pytorch.org/whl/cu126
+        pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu126
     elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda128" ]]; then
-        pip install torch --index-url https://download.pytorch.org/whl/cu128
+        pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu128
     elif [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == "cuda129" ]]; then
-        pip install torch --index-url https://download.pytorch.org/whl/cu129
+        pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu129
     else
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cpu
     fi
     """
 ]
