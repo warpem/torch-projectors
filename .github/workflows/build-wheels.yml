@@ -118,16 +118,11 @@ jobs:
           BACKEND_SUFFIX="+cpu"  # TODO: Update based on matrix backend when full matrix enabled
           echo "backend_suffix=$BACKEND_SUFFIX" >> $GITHUB_OUTPUT
 
-      - name: Install uv (required for build frontend)
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install uv
-        
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23
         env:
-          # Build matrix for different backends
-          CIBW_BUILD_FRONTEND: "build[uv]"
+          # Build matrix for different backends (using standard pip instead of uv)
+          CIBW_BUILD_FRONTEND: "build"
           CIBW_ARCHS: ${{ matrix.cibw-arch }}
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
