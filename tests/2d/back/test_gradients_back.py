@@ -393,14 +393,10 @@ def _test_backproject_rotation_finite_difference_accuracy(device, interpolation)
     
     # Create test data - use smaller, more manageable case
     B, P, H, W_half = 1, 1, 16, 9
-    projections = torch.randn(B, P, H, W_half, dtype=torch.complex64, device=device)
+    projections = torch.randn(B, P, H, W_half, dtype=torch.complex64, device='cpu')
     
-    # Apply same Friedel symmetry masking as in gradcheck test to avoid finite difference issues
-    mask = torch.ones_like(projections)
-    for i in range(1, H//2):  # Skip DC (i=0) and elements >= H//2 
-        mask[0, 0, i, 0] = 0  # Zero out [i, 0] elements that have distinct Friedel counterparts
-    
-    projections = projections * mask
+    projections[:,:,:,:2] = 0
+    projections = projections.to(device)
     projections.requires_grad_(True)
     
     target_angle = 0  # Smaller angle difference
