@@ -1,11 +1,7 @@
 # pyproject.toml
 
 [build-system]
-requires = [
-    "pybind11",
-    "setuptools",
-    # torch installed in CIBW_BEFORE_ALL_LINUX to avoid build isolation issues
-]
+requires = []
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
@@ -81,6 +77,8 @@ if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
     echo "GCC version: $(gcc --version | head -1)"
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 fi
+
+pip install pybind11 setuptools
 
 # Install PyTorch for this Python version
 echo "Installing PyTorch $TORCH_PROJECTORS_TORCH_VERSION for Python $(python --version)"
