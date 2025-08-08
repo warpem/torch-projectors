@@ -110,16 +110,16 @@ jobs:
           
           # TODO: Re-enable after Linux builds are working
           # macOS Apple Silicon - Sequoia for atomics, ARM64 native
-          - os: macos-15-xlarge
-            cibw-arch: "arm64"
-            backend: "cpu-mps"
-            torch-version: "2.6.0"
-          
-          # # Windows CPU build
-          # - os: windows-x64-cpu
-          #   cibw-arch: "AMD64"
-          #   backend: "cpu"
+          # - os: macos-15-xlarge
+          #   cibw-arch: "arm64"
+          #   backend: "cpu-mps"
           #   torch-version: "2.6.0"
+          
+          # Windows CPU build
+          - os: windows-x64-cpu
+            cibw-arch: "AMD64"
+            backend: "cpu"
+            torch-version: "2.6.0"
 
     steps:
       - uses: actions/checkout@v4
