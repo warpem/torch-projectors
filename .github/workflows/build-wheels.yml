@@ -82,38 +82,37 @@ jobs:
       matrix:
         include:
           # Linux CUDA builds (separate jobs for each CUDA version)
-          # - os: linux-cpu-x64-1
-          #   cibw-arch: "x86_64"
-          #   backend: "cu126"
-          #   torch-version: "2.6.0"
-          #   torch-index: "https://download.pytorch.org/whl/cu126"
-          #   cuda-version: "12.6"
-          # - os: linux-cpu-x64-2
-          #   cibw-arch: "x86_64" 
-          #   backend: "cu128"
-          #   torch-version: "2.7.0"
-          #   torch-index: "https://download.pytorch.org/whl/cu128"
-          #   cuda-version: "12.8"
-          # - os: linux-cpu-x64-3
-          #   cibw-arch: "x86_64"
-          #   backend: "cu129" 
-          #   torch-version: "2.8.0"
-          #   torch-index: "https://download.pytorch.org/whl/cu129"
-          #   cuda-version: "12.9"
+          - os: linux-cpu-x64-1
+            cibw-arch: "x86_64"
+            backend: "cu126"
+            torch-version: "2.6.0"
+            torch-index: "https://download.pytorch.org/whl/cu126"
+            cuda-version: "12.6"
+          - os: linux-cpu-x64-2
+            cibw-arch: "x86_64" 
+            backend: "cu128"
+            torch-version: "2.7.0"
+            torch-index: "https://download.pytorch.org/whl/cu128"
+            cuda-version: "12.8"
+          - os: linux-cpu-x64-3
+            cibw-arch: "x86_64"
+            backend: "cu129" 
+            torch-version: "2.8.0"
+            torch-index: "https://download.pytorch.org/whl/cu129"
+            cuda-version: "12.9"
           
           # # Linux CPU build
-          # - os: linux-cpu-x64-4
-          #   cibw-arch: "x86_64"
-          #   backend: "cpu"
-          #   torch-version: "2.6.0"
-          #   torch-index: "https://download.pytorch.org/whl/cpu"
+          - os: linux-cpu-x64-4
+            cibw-arch: "x86_64"
+            backend: "cpu"
+            torch-version: "2.6.0"
+            torch-index: "https://download.pytorch.org/whl/cpu"
           
-          # TODO: Re-enable after Linux builds are working
           # macOS Apple Silicon - Sequoia for atomics, ARM64 native
-          # - os: macos-15-xlarge
-          #   cibw-arch: "arm64"
-          #   backend: "cpu-mps"
-          #   torch-version: "2.6.0"
+          - os: macos-15-xlarge
+            cibw-arch: "arm64"
+            backend: "cpu-mps"
+            torch-version: "2.6.0"
           
           # Windows CPU build
           - os: windows-x64-cpu
