@@ -65,7 +65,7 @@ echo "PyTorch index: $TORCH_PROJECTORS_TORCH_INDEX"
 echo "Python version: $(python --version)"
 
 # Set up GCC 13 for CUDA builds
-if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cu* ]]; then
     echo "Setting up GCC 13 for CUDA build"
     source /opt/rh/gcc-toolset-13/enable
     mkdir -p /tmp/gcc13-bin
