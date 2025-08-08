@@ -34,62 +34,67 @@ repair-wheel-command = ""
 manylinux-x86_64-image = "manylinux_2_28"
 # Pass environment variables from GitHub Actions matrix
 environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_TORCH_INDEX", "TORCH_PROJECTORS_CUDA_VERSION"]
-before-all = [
-    # Handle both manylinux (yum) and musllinux (apk) package managers
-    """
-    if command -v yum >/dev/null 2>&1; then
-        # manylinux (RHEL/CentOS based)
-        yum update -y && yum install -y wget curl
-        # Install GCC 13 (supported by CUDA 12.6)
-        yum install -y gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
-        # Enable GCC 13 toolset
-        source /opt/rh/gcc-toolset-13/enable
-        if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
-            # Use CUDA version from matrix or extract from backend name
-            if [[ -n "$TORCH_PROJECTORS_CUDA_VERSION" ]]; then
-                CUDA_VERSION_DOT="$TORCH_PROJECTORS_CUDA_VERSION"
-            else
-                CUDA_VERSION=$(echo $TORCH_PROJECTORS_BUILD_BACKEND | sed 's/cuda//')
-                CUDA_VERSION_DOT="${CUDA_VERSION:0:2}.${CUDA_VERSION:2}"
-            fi
-            echo "Installing CUDA toolkit for version: $CUDA_VERSION_DOT"
-            case "$CUDA_VERSION_DOT" in
-                "12.6") CUDA_PKG="cuda-toolkit-12-6" ;;
-                "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;
-                "12.9") CUDA_PKG="cuda-toolkit-12-9" ;;
-                *) CUDA_PKG="cuda-toolkit-12-6" ;;
-            esac
-            wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
-            cp cuda-rhel8.repo /etc/yum.repos.d/
-            yum clean all && yum install -y $CUDA_PKG
-            export PATH=/usr/local/cuda/bin:$PATH
-            export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-        fi
-    elif command -v apk >/dev/null 2>&1; then
-        # musllinux (Alpine based)
-        apk update && apk add --no-cache wget curl gcc g++ musl-dev
-        # Note: CUDA not typically available on musllinux
-    fi
-    """
-]
-before-build = [
-    "echo \"TORCH_PROJECTORS_BUILD_BACKEND is: $TORCH_PROJECTORS_BUILD_BACKEND\"",
-    "echo \"TORCH_PROJECTORS_TORCH_VERSION is: $TORCH_PROJECTORS_TORCH_VERSION\"", 
-    "echo \"TORCH_PROJECTORS_CUDA_VERSION is: $TORCH_PROJECTORS_CUDA_VERSION\"",
-    # Set up GCC 13 for CUDA builds
-    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == cuda* ]]; then echo \"Setting up GCC 13 for CUDA build: $TORCH_PROJECTORS_BUILD_BACKEND\" && source /opt/rh/gcc-toolset-13/enable && mkdir -p /tmp/gcc13-bin && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++ && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++ && export PATH=/tmp/gcc13-bin:$PATH && echo \"GCC 13 setup complete - gcc version: $(gcc --version | head -1)\" && echo \"PATH: $PATH\" && echo \"which gcc: $(which gcc)\" && echo \"which g++: $(which g++)\" && echo \"which c++: $(which c++)\"; else echo \"Using system GCC for CPU build: $(gcc --version | head -1)\"; fi",
-    "pip install pybind11 setuptools wheel numpy auditwheel ninja",
-    "TORCH_VERSION=${TORCH_PROJECTORS_TORCH_VERSION:-2.6.0}",
-    "TORCH_INDEX=${TORCH_PROJECTORS_TORCH_INDEX:-https://download.pytorch.org/whl/cpu}",
-    "echo \"Installing PyTorch $TORCH_VERSION from $TORCH_INDEX\"",
-    "pip install --force-reinstall torch==$TORCH_VERSION --index-url $TORCH_INDEX",
-    "echo \"=== PyTorch Installation Verification ===\"",
-    "echo \"Installed PyTorch version: $(python -c 'import torch; print(torch.__version__)')\"",
-    "echo \"PyTorch installation location: $(python -c 'import torch; print(torch.__file__)')\"",
-    "echo \"CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())')\"",
-    "echo \"Python site-packages: $(python -c 'import site; print(site.getsitepackages())')\"",
-    "find $(python -c 'import site; print(site.getsitepackages()[0])') -name 'torch*' -type d 2>/dev/null | head -5 || echo 'torch directories not found'"
-]
+
+# System-level setup (once per container)
+before-all = """
+# Install system dependencies and CUDA toolkit
+yum update -y && yum install -y wget curl
+yum install -y gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
+source /opt/rh/gcc-toolset-13/enable
+
+# Install CUDA toolkit if needed
+if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+    case "$TORCH_PROJECTORS_CUDA_VERSION" in
+        "12.6") CUDA_PKG="cuda-toolkit-12-6" ;;
+        "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;  
+        "12.9") CUDA_PKG="cuda-toolkit-12-9" ;;
+        *) CUDA_PKG="cuda-toolkit-12-6" ;;
+    esac
+    echo "Installing CUDA toolkit: $CUDA_PKG"
+    wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+    cp cuda-rhel8.repo /etc/yum.repos.d/
+    yum clean all && yum install -y $CUDA_PKG
+fi
+"""
+
+# Per-wheel setup (once per Python version) 
+before-build = """
+echo "=== Build Environment Setup ==="
+echo "Backend: $TORCH_PROJECTORS_BUILD_BACKEND"
+echo "PyTorch version: $TORCH_PROJECTORS_TORCH_VERSION"
+echo "PyTorch index: $TORCH_PROJECTORS_TORCH_INDEX"
+echo "Python version: $(python --version)"
+
+# Set up GCC 13 for CUDA builds
+if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+    echo "Setting up GCC 13 for CUDA build"
+    source /opt/rh/gcc-toolset-13/enable
+    mkdir -p /tmp/gcc13-bin
+    ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc
+    ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++
+    ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++
+    export PATH=/tmp/gcc13-bin:$PATH
+    export CC=/tmp/gcc13-bin/gcc
+    export CXX=/tmp/gcc13-bin/g++
+    echo "GCC version: $(gcc --version | head -1)"
+    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+fi
+
+# Install PyTorch for this Python version
+echo "Installing PyTorch $TORCH_PROJECTORS_TORCH_VERSION for Python $(python --version)"
+pip install torch==$TORCH_PROJECTORS_TORCH_VERSION --index-url $TORCH_PROJECTORS_TORCH_INDEX
+echo "Installed PyTorch: $(python -c 'import torch; print(torch.__version__)')"
+echo "PyTorch CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())')"
+"""
+
+# Environment variables for build process
+environment = """
+CC=/tmp/gcc13-bin/gcc
+CXX=/tmp/gcc13-bin/g++
+PATH=/tmp/gcc13-bin:/opt/rh/gcc-toolset-13/root/usr/bin:$PATH
+LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+"""
+
 # Skip bundling PyTorch libraries - users should have their own PyTorch  
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
 
