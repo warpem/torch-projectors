@@ -83,7 +83,19 @@ jobs:
           for backend in cpu cu126 cu128 cu129; do
             if [ -n "$(ls dist/$backend/*.whl 2>/dev/null)" ]; then
               echo "Creating index for $backend"
-              dumb-pypi --package-dir dist/$backend --output-dir pages/$backend
+              
+              # Create package list for dumb-pypi
+              ls dist/$backend/*.whl | xargs -n1 basename > dist/$backend/package-list.txt
+              
+              # Copy wheels to output directory for serving
+              mkdir -p pages/$backend
+              cp dist/$backend/*.whl pages/$backend/
+              
+              # Generate index with dumb-pypi
+              dumb-pypi \
+                --package-list dist/$backend/package-list.txt \
+                --packages-url "./" \
+                --output-dir pages/$backend
               
               # Count wheels and versions for this backend
               wheel_count=$(ls dist/$backend/*.whl 2>/dev/null | wc -l || echo "0")
