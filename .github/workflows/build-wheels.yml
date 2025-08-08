@@ -84,19 +84,19 @@ jobs:
           # Linux CUDA builds (separate jobs for each CUDA version)
           # - os: linux-cpu-x64-1
           #   cibw-arch: "x86_64"
-          #   backend: "cuda126"
+          #   backend: "cu126"
           #   torch-version: "2.6.0"
           #   torch-index: "https://download.pytorch.org/whl/cu126"
           #   cuda-version: "12.6"
           # - os: linux-cpu-x64-2
           #   cibw-arch: "x86_64" 
-          #   backend: "cuda128"
+          #   backend: "cu128"
           #   torch-version: "2.7.0"
           #   torch-index: "https://download.pytorch.org/whl/cu128"
           #   cuda-version: "12.8"
           # - os: linux-cpu-x64-3
           #   cibw-arch: "x86_64"
-          #   backend: "cuda129" 
+          #   backend: "cu129" 
           #   torch-version: "2.8.0"
           #   torch-index: "https://download.pytorch.org/whl/cu129"
           #   cuda-version: "12.9"
@@ -141,9 +141,9 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           # Set backend suffix based on matrix backend
           case "${{ matrix.backend }}" in
-            cuda126) echo "backend_suffix=+cu126" >> $GITHUB_OUTPUT ;;
-            cuda128) echo "backend_suffix=+cu128" >> $GITHUB_OUTPUT ;;
-            cuda129) echo "backend_suffix=+cu129" >> $GITHUB_OUTPUT ;;
+            cu126) echo "backend_suffix=+cu126" >> $GITHUB_OUTPUT ;;
+            cu128) echo "backend_suffix=+cu128" >> $GITHUB_OUTPUT ;;
+            cu129) echo "backend_suffix=+cu129" >> $GITHUB_OUTPUT ;;
             cpu-mps) echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT ;;
             *) echo "backend_suffix=+cpu" >> $GITHUB_OUTPUT ;;
           esac
@@ -163,9 +163,9 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $env:GITHUB_OUTPUT
           # Set backend suffix based on matrix backend
           switch ("${{ matrix.backend }}") {
-            "cuda126" { echo "backend_suffix=+cu126" >> $env:GITHUB_OUTPUT }
-            "cuda128" { echo "backend_suffix=+cu128" >> $env:GITHUB_OUTPUT }
-            "cuda129" { echo "backend_suffix=+cu129" >> $env:GITHUB_OUTPUT }
+            "cu126" { echo "backend_suffix=+cu126" >> $env:GITHUB_OUTPUT }
+            "cu128" { echo "backend_suffix=+cu128" >> $env:GITHUB_OUTPUT }
+            "cu129" { echo "backend_suffix=+cu129" >> $env:GITHUB_OUTPUT }
             "cpu-mps" { echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT }
             default { echo "backend_suffix=+cpu" >> $env:GITHUB_OUTPUT }
           }

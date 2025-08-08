@@ -69,7 +69,7 @@ except Exception as e:
     print(f"Error checking sys.path: {e}")
 
 # Determine CUDA usage based on backend
-if build_backend in ["cuda", "cuda126", "cuda128", "cuda129"]:
+if build_backend in ["cuda", "cu126", "cu128", "cu129"]:
     use_cuda = True
     print(f"Forcing CUDA build due to backend: {build_backend}")
 elif build_backend in ["cpu", "cpu-mps"]:
@@ -141,11 +141,11 @@ build_number = os.environ.get("TORCH_PROJECTORS_BUILD_NUMBER", "1")
 
 # Add backend suffix to version for wheelhouse organization
 backend_suffix = ""
-if build_backend in ["cuda126"]:
+if build_backend in ["cu126"]:
     backend_suffix = "cu126"
-elif build_backend in ["cuda128"]:
+elif build_backend in ["cu128"]:
     backend_suffix = "cu128"
-elif build_backend in ["cuda129"]:
+elif build_backend in ["cu129"]:
     backend_suffix = "cu129"
 else:
     backend_suffix = "cpu"
