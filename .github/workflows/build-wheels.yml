@@ -185,21 +185,48 @@ jobs:
           # Build matrix for different backends (using standard pip instead of uv)
           CIBW_BUILD_FRONTEND: "pip"
           CIBW_ARCHS: ${{ matrix.cibw-arch }}
-          # Pass environment variables into build isolation
-          CIBW_ENVIRONMENT_PASS_LINUX: "TORCH_PROJECTORS_BUILD_BACKEND TORCH_PROJECTORS_TORCH_VERSION TORCH_PROJECTORS_TORCH_INDEX TORCH_PROJECTORS_CUDA_VERSION CC CXX PATH LD_LIBRARY_PATH"
-          # Set compiler environment for build isolation
-          CC: "/opt/rh/gcc-toolset-13/root/usr/bin/gcc"
-          CXX: "/opt/rh/gcc-toolset-13/root/usr/bin/g++"
-          # Pass PyTorch requirements to isolated build
-          CIBW_BUILD_FRONTEND_ARGS_LINUX: "--find-links ${{ matrix.torch-index }} --extra-index-url ${{ matrix.torch-index }}"
+          # Setup CUDA toolkit and PyTorch in manylinux container
+          CIBW_BEFORE_ALL_LINUX: |
+            # Install CUDA toolkit and GCC 13
+            yum update -y && yum install -y wget curl
+            yum install -y gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
+            source /opt/rh/gcc-toolset-13/enable
+            if [[ "${{ matrix.backend }}" == cuda* ]]; then
+              case "${{ matrix.cuda-version }}" in
+                "12.6") CUDA_PKG="cuda-toolkit-12-6" ;;
+                "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;
+                "12.9") CUDA_PKG="cuda-toolkit-12-9" ;;
+                *) CUDA_PKG="cuda-toolkit-12-6" ;;
+              esac
+              wget https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+              cp cuda-rhel8.repo /etc/yum.repos.d/
+              yum clean all && yum install -y $CUDA_PKG
+              export PATH=/usr/local/cuda/bin:$PATH
+              export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+            fi
+            # Install PyTorch with correct version and CUDA support
+            pip install torch==${{ matrix.torch-version }} --index-url ${{ matrix.torch-index }}
+            echo "Installed PyTorch: $(python -c 'import torch; print(torch.__version__)')"
+          # Set environment variables for build process
+          CIBW_ENVIRONMENT_LINUX: |
+            TORCH_PROJECTORS_BUILD_BACKEND=${{ matrix.backend }}
+            TORCH_PROJECTORS_TORCH_VERSION=${{ matrix.torch-version }}
+            TORCH_PROJECTORS_CUDA_VERSION=${{ matrix.cuda-version || '' }}
+            CC=/opt/rh/gcc-toolset-13/root/usr/bin/gcc
+            CXX=/opt/rh/gcc-toolset-13/root/usr/bin/g++
+            PATH=/tmp/gcc13-bin:/opt/rh/gcc-toolset-13/root/usr/bin:$PATH
+            LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+          # Setup GCC 13 symlinks before build
+          CIBW_BEFORE_BUILD_LINUX: |
+            source /opt/rh/gcc-toolset-13/enable
+            mkdir -p /tmp/gcc13-bin
+            ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc
+            ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++
+            ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++
+            echo "GCC setup: $(gcc --version | head -1)"
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
           TORCH_PROJECTORS_BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-          # Pass matrix variables to cibuildwheel
-          TORCH_PROJECTORS_BUILD_BACKEND: ${{ matrix.backend }}
-          TORCH_PROJECTORS_TORCH_VERSION: ${{ matrix.torch-version }}
-          TORCH_PROJECTORS_TORCH_INDEX: ${{ matrix.torch-index }}
-          TORCH_PROJECTORS_CUDA_VERSION: ${{ matrix.cuda-version || '' }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
