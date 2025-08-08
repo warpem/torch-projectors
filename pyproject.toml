@@ -42,7 +42,7 @@ yum install -y gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
 source /opt/rh/gcc-toolset-13/enable
 
 # Install CUDA toolkit if needed
-if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
+if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cu* ]]; then
     case "$TORCH_PROJECTORS_CUDA_VERSION" in
         "12.6") CUDA_PKG="cuda-toolkit-12-6" ;;
         "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;  
