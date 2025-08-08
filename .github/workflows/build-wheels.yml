@@ -115,10 +115,10 @@ jobs:
             torch-version: "2.6.0"
           
           # Windows CPU build
-          # - os: windows-x64-cpu
-          #   cibw-arch: "AMD64"
-          #   backend: "cpu"
-          #   torch-version: "2.6.0"
+          - os: windows-x64-cpu
+            cibw-arch: "AMD64"
+            backend: "cpu"
+            torch-version: "2.6.0"
 
     steps:
       - uses: actions/checkout@v4
