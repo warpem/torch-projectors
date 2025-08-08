@@ -112,7 +112,7 @@ jobs:
               <h1>torch-projectors wheels ($backend)</h1>
               <p><strong>$wheel_count wheels available</strong></p>
               <p><strong>Versions:</strong> $versions</p>
-              <p>Install with: <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/$backend/simple/</code></p>
+              <p>Install with: <code>pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/$backend/simple/</code></p>
               <p><a href="simple/">Package Index</a></p>
           </body>
           </html>
@@ -131,10 +131,10 @@ jobs:
               <h1>torch-projectors wheelhouse</h1>
               <p>Select your PyTorch CUDA version:</p>
               <ul>
-                  <li><a href="cpu/">CPU only</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cpu/simple/</code></li>
-                  <li><a href="cu126/">CUDA 12.6</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu126/simple/</code></li>
-                  <li><a href="cu128/">CUDA 12.8</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu128/simple/</code></li>
-                  <li><a href="cu129/">CUDA 12.9</a> - <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/cu129/simple/</code></li>
+                  <li><a href="cpu/">CPU only</a> - <code>pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cpu/simple/</code></li>
+                  <li><a href="cu126/">CUDA 12.6</a> - <code>pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu126/simple/</code></li>
+                  <li><a href="cu128/">CUDA 12.8</a> - <code>pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu128/simple/</code></li>
+                  <li><a href="cu129/">CUDA 12.9</a> - <code>pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu129/simple/</code></li>
               </ul>
           </body>
           </html>
