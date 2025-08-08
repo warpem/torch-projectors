@@ -220,3 +220,4 @@ jobs:
         with:
           files: dist/*.whl
           generate_release_notes: true
+          token: ${{ secrets.PAT_TOKEN }}
