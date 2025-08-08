@@ -33,7 +33,7 @@ repair-wheel-command = ""
 # Force manylinux_2_28 to match PyTorch wheel tags
 manylinux-x86_64-image = "manylinux_2_28"
 # Pass environment variables from GitHub Actions matrix
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_CUDA_VERSION"]
+environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_TORCH_INDEX", "TORCH_PROJECTORS_CUDA_VERSION"]
 before-all = [
     # Handle both manylinux (yum) and musllinux (apk) package managers
     """
@@ -80,7 +80,15 @@ before-build = [
     "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == cuda* ]]; then echo \"Setting up GCC 13 for CUDA build: $TORCH_PROJECTORS_BUILD_BACKEND\" && source /opt/rh/gcc-toolset-13/enable && mkdir -p /tmp/gcc13-bin && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/gcc /tmp/gcc13-bin/gcc && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/g++ && ln -sf /opt/rh/gcc-toolset-13/root/usr/bin/g++ /tmp/gcc13-bin/c++ && export PATH=/tmp/gcc13-bin:$PATH && echo \"GCC 13 setup complete - gcc version: $(gcc --version | head -1)\" && echo \"PATH: $PATH\" && echo \"which gcc: $(which gcc)\" && echo \"which g++: $(which g++)\" && echo \"which c++: $(which c++)\"; else echo \"Using system GCC for CPU build: $(gcc --version | head -1)\"; fi",
     "pip install pybind11 setuptools wheel numpy auditwheel ninja",
     "TORCH_VERSION=${TORCH_PROJECTORS_TORCH_VERSION:-2.6.0}",
-    "if [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cpu\"* ]]; then echo \"Installing CPU PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cpu; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda126\" ]]; then echo \"Installing CUDA 12.6 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu126; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda128\" ]]; then echo \"Installing CUDA 12.8 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu128; elif [[ \"$TORCH_PROJECTORS_BUILD_BACKEND\" == \"cuda129\" ]]; then echo \"Installing CUDA 12.9 PyTorch $TORCH_VERSION\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cu129; else echo \"Unknown backend: $TORCH_PROJECTORS_BUILD_BACKEND, installing CPU PyTorch\" && pip install --force-reinstall torch==$TORCH_VERSION --index-url https://download.pytorch.org/whl/cpu; fi"
+    "TORCH_INDEX=${TORCH_PROJECTORS_TORCH_INDEX:-https://download.pytorch.org/whl/cpu}",
+    "echo \"Installing PyTorch $TORCH_VERSION from $TORCH_INDEX\"",
+    "pip install --force-reinstall torch==$TORCH_VERSION --index-url $TORCH_INDEX",
+    "echo \"=== PyTorch Installation Verification ===\"",
+    "echo \"Installed PyTorch version: $(python -c 'import torch; print(torch.__version__)')\"",
+    "echo \"PyTorch installation location: $(python -c 'import torch; print(torch.__file__)')\"",
+    "echo \"CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())')\"",
+    "echo \"Python site-packages: $(python -c 'import site; print(site.getsitepackages())')\"",
+    "find $(python -c 'import site; print(site.getsitepackages()[0])') -name 'torch*' -type d 2>/dev/null | head -5 || echo 'torch directories not found'"
 ]
 # Skip bundling PyTorch libraries - users should have their own PyTorch  
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"

@@ -57,7 +57,16 @@ build_backend = os.environ.get("TORCH_PROJECTORS_BUILD_BACKEND", "auto")
 print(f"Build backend: {build_backend}")
 print(f"PyTorch CUDA available: {torch.cuda.is_available()}")
 print(f"PyTorch version: {torch.__version__}")
+print(f"PyTorch location: {torch.__file__}")
 print(f"Platform: {platform.system()}")
+print("=== Build Environment PyTorch Detection ===")
+try:
+    import sys
+    torch_paths = [p for p in sys.path if 'torch' in p.lower()]
+    print(f"Torch-related paths in sys.path: {torch_paths}")
+    print(f"sys.path first 3 entries: {sys.path[:3]}")
+except Exception as e:
+    print(f"Error checking sys.path: {e}")
 
 # Determine CUDA usage based on backend
 if build_backend in ["cuda", "cuda126", "cuda128", "cuda129"]:
