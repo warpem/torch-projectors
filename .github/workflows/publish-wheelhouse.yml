@@ -21,12 +21,30 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Download all wheel artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: all-wheels/
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Download wheels from all releases
+        run: |
+          mkdir -p all-wheels
+          
+          # Get list of all releases
+          echo "Fetching all releases..."
+          gh release list --limit 100 --json tagName,assets > releases.json
+          
+          # Download wheels from each release
+          for release in $(jq -r '.[].tagName' releases.json); do
+            echo "Processing release: $release"
+            
+            # Download all .whl assets from this release
+            gh release download "$release" --pattern "*.whl" --dir "all-wheels/" --skip-existing || true
+          done
+          
+          echo "Downloaded wheels:"
+          ls -la all-wheels/ || echo "No wheels found"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Install wheel indexing tools
         run: |
@@ -35,6 +53,12 @@ jobs:
       - name: Organize wheels by backend
         run: |
           mkdir -p dist/{cpu,cu126,cu128,cu129}
+          
+          # Check if any wheels exist
+          if ! ls all-wheels/*.whl 1> /dev/null 2>&1; then
+            echo "No wheel files found in all-wheels/"
+            exit 1
+          fi
           
           # Sort wheels by CUDA version in filename
           for wheel in all-wheels/*.whl; do
@@ -61,6 +85,10 @@ jobs:
               echo "Creating index for $backend"
               dumb-pypi --package-dir dist/$backend --output-dir pages/$backend
               
+              # Count wheels and versions for this backend
+              wheel_count=$(ls dist/$backend/*.whl 2>/dev/null | wc -l || echo "0")
+              versions=$(ls dist/$backend/*.whl 2>/dev/null | sed 's/.*-\([0-9][^-]*\)-.*/\1/' | sort -V | uniq | tr '\n' ', ' | sed 's/,$//' || echo "none")
+              
               # Create a simple index.html for the backend
               cat > pages/$backend/index.html << EOF
           <!DOCTYPE html>
@@ -70,6 +98,8 @@ jobs:
           </head>
           <body>
               <h1>torch-projectors wheels ($backend)</h1>
+              <p><strong>$wheel_count wheels available</strong></p>
+              <p><strong>Versions:</strong> $versions</p>
               <p>Install with: <code>pip install torch-projectors --index-url https://{GITHUB_REPOSITORY_OWNER}.github.io/{GITHUB_REPOSITORY_NAME##*/}/$backend/simple/</code></p>
               <p><a href="simple/">Package Index</a></p>
           </body>
