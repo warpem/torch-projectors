@@ -30,7 +30,7 @@ jobs:
 
       - name: Install wheel indexing tools
         run: |
-          pip install dir2pi
+          pip install dumb-pypi
 
       - name: Organize wheels by backend
         run: |
@@ -59,7 +59,7 @@ jobs:
           for backend in cpu cu126 cu128 cu129; do
             if [ -n "$(ls dist/$backend/*.whl 2>/dev/null)" ]; then
               echo "Creating index for $backend"
-              dir2pi dist/$backend --output-dir pages/$backend
+              dumb-pypi --package-dir dist/$backend --output-dir pages/$backend
               
               # Create a simple index.html for the backend
               cat > pages/$backend/index.html << EOF
