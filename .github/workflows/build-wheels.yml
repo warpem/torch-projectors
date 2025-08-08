@@ -185,8 +185,13 @@ jobs:
           # Build matrix for different backends (using standard pip instead of uv)
           CIBW_BUILD_FRONTEND: "pip"
           CIBW_ARCHS: ${{ matrix.cibw-arch }}
-          # Disable build isolation to preserve our environment setup
-          CIBW_BUILD_FRONTEND_ARGS: "--no-build-isolation"
+          # Pass environment variables into build isolation
+          CIBW_ENVIRONMENT_PASS_LINUX: "TORCH_PROJECTORS_BUILD_BACKEND TORCH_PROJECTORS_TORCH_VERSION TORCH_PROJECTORS_TORCH_INDEX TORCH_PROJECTORS_CUDA_VERSION CC CXX PATH LD_LIBRARY_PATH"
+          # Set compiler environment for build isolation
+          CC: "/opt/rh/gcc-toolset-13/root/usr/bin/gcc"
+          CXX: "/opt/rh/gcc-toolset-13/root/usr/bin/g++"
+          # Pass PyTorch requirements to isolated build
+          CIBW_BUILD_FRONTEND_ARGS_LINUX: "--find-links ${{ matrix.torch-index }} --extra-index-url ${{ matrix.torch-index }}"
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
           TORCH_PROJECTORS_BUILD_NUMBER: ${{ steps.version.outputs.build_number }}

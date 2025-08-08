@@ -4,7 +4,7 @@
 requires = [
     "pybind11",
     "setuptools",
-    "torch",  # Default version, overridden in before-build for specific variants
+    "torch",  # Version determined by --extra-index-url passed from matrix
 ]
 build-backend = "setuptools.build_meta"
 
