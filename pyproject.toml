@@ -21,12 +21,8 @@ skip = "*-win32 *-manylinux_i686 *-musllinux* pp*"
 # Build on Sequoia but target older macOS for compatibility
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 
-before-all = """
-pip install pybind11 setuptools torch==2.6.0
-"""
-
 # Install delocate for wheel repair
-before-build = "pip install pybind11 setuptools wheel numpy delocate"
+before-build = "pip install pybind11 setuptools wheel numpy delocate torch==2.6.0"
 # Skip wheel repair - PyTorch extensions don't need library bundling
 repair-wheel-command = ""
 
