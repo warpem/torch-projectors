@@ -31,7 +31,7 @@ jobs:
           
           # Get list of all releases
           echo "Fetching all releases..."
-          gh release list --limit 100 --json tagName,assets > releases.json
+          gh release list --limit 100 --json tagName > releases.json
           
           # Download wheels from each release
           for release in $(jq -r '.[].tagName' releases.json); do
