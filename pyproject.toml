@@ -22,7 +22,7 @@ skip = "*-win32 *-manylinux_i686 *-musllinux* pp*"
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 
 # Install delocate for wheel repair
-before-build = "pip install pybind11 setuptools wheel numpy delocate torch==2.6.0"
+before-build = "pip install pybind11 setuptools wheel numpy delocate ninja torch==2.6.0"
 # Skip wheel repair - PyTorch extensions don't need library bundling
 repair-wheel-command = ""
 
@@ -79,7 +79,7 @@ if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cuda* ]]; then
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 fi
 
-pip install pybind11 setuptools
+pip install pybind11 setuptools ninja
 
 # Install PyTorch for this Python version
 echo "Installing PyTorch $TORCH_PROJECTORS_TORCH_VERSION for Python $(python --version)"
