@@ -20,6 +20,11 @@ skip = "*-win32 *-manylinux_i686 *-musllinux* pp*"
 [tool.cibuildwheel.macos]
 # Build on Sequoia but target older macOS for compatibility
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+
+before-all = """
+pip install pybind11 setuptools torch==2.6.0
+"""
+
 # Install delocate for wheel repair
 before-build = "pip install pybind11 setuptools wheel numpy delocate"
 # Skip wheel repair - PyTorch extensions don't need library bundling
@@ -99,7 +104,7 @@ LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 repair-wheel-command = "auditwheel repair --exclude 'libtorch*.so' --exclude 'libc10*.so' -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install pybind11 setuptools wheel numpy delvewheel"
+before-build = "pip install pybind11 setuptools wheel numpy delvewheel torch==2.6.0"
 # Skip bundling PyTorch libraries - users should have their own PyTorch
 repair-wheel-command = "delvewheel repair --exclude c10.dll --exclude torch_cpu.dll --exclude torch_python.dll --exclude torch.dll -w {dest_dir} {wheel}"
 
