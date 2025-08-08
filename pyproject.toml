@@ -9,8 +9,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-build-frontend = "pip"
-args = "--no-build-isolation"
+build-frontend = { name = "pip", args = ["--no-build-isolation"] }
 
 # Build for Python 3.9-3.13
 build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
