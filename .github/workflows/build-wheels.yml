@@ -185,6 +185,8 @@ jobs:
           # Build matrix for different backends (using standard pip instead of uv)
           CIBW_BUILD_FRONTEND: "pip"
           CIBW_ARCHS: ${{ matrix.cibw-arch }}
+          # Disable build isolation to preserve our environment setup
+          CIBW_BUILD_FRONTEND_ARGS: "--no-build-isolation"
           # Version management following PyTorch pattern
           TORCH_PROJECTORS_BUILD_VERSION: ${{ steps.version.outputs.version }}
           TORCH_PROJECTORS_BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
