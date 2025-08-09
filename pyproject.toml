@@ -32,7 +32,7 @@ repair-wheel-command = ""
 # Force manylinux_2_28 to match PyTorch wheel tags
 manylinux-x86_64-image = "manylinux_2_28"
 # Pass environment variables from GitHub Actions matrix
-environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_TORCH_INDEX", "TORCH_PROJECTORS_CUDA_VERSION"]
+environment-pass = ["TORCH_PROJECTORS_BUILD_BACKEND", "TORCH_PROJECTORS_TORCH_VERSION", "TORCH_PROJECTORS_TORCH_INDEX", "TORCH_PROJECTORS_CUDA_VERSION", "TORCH_PROJECTORS_BUILD_VERSION", "TORCH_PROJECTORS_BUILD_NUMBER"]
 
 # System-level setup (once per container)
 before-all = """
