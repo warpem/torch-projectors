@@ -33,8 +33,8 @@ def test_cpu_cuda_identical_comprehensive_3d_to_2d():
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage (without oversampling)
-    num_reconstructions = 1
-    num_poses = 1
+    num_reconstructions = 3
+    num_poses = 4
     boxsize_3d = 64
     proj_size = 48
     
@@ -225,8 +225,8 @@ def test_cpu_mps_identical_comprehensive_3d_to_2d():
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage (without oversampling)
-    num_reconstructions = 1
-    num_poses = 1
+    num_reconstructions = 3
+    num_poses = 4
     boxsize_3d = 6
     proj_size = 6
     

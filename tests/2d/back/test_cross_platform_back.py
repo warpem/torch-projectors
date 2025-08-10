@@ -27,8 +27,8 @@ def test_cpu_cuda_backproject_identical_comprehensive():
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage
-    num_projection_sets = 1
-    num_poses = 1
+    num_projection_sets = 3
+    num_poses = 4
     boxsize = 64
     proj_size = 48
     
@@ -226,8 +226,8 @@ def test_cpu_mps_backproject_identical_comprehensive():
     torch.manual_seed(42)
     
     # Test parameters - comprehensive feature coverage
-    num_projection_sets = 1
-    num_poses = 1
+    num_projection_sets = 3
+    num_poses = 4
     boxsize = 64
     proj_size = 48
     
