@@ -1,4 +1,5 @@
 from setuptools import setup
+from setuptools.command.build_ext import build_ext
 from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension
 import torch
 import os
@@ -6,6 +7,7 @@ import platform
 import subprocess
 import sys
 import pybind11
+import shutil
 
 # Get PyTorch's library directory to find libomp
 torch_lib_dir = os.path.join(os.path.dirname(torch.__file__), 'lib')
@@ -134,6 +136,41 @@ print(f"Final sources list: {sources}")
 print(f"Final compile args: {extra_compile_args}")
 print(f"Final link args: {extra_link_args}")
 
+class CustomBuildExt(BuildExtension):
+    def build_extension(self, ext):
+        super().build_extension(ext)
+        
+        # Post-build rpath fixing for distributed wheels
+        if ext.name == "torch_projectors._C":
+            built_lib = self.get_ext_fullpath(ext.name)
+            
+            if platform.system() == "Darwin":
+                # macOS: Use install_name_tool to fix rpaths
+                if shutil.which("install_name_tool"):
+                    try:
+                        # Remove any existing absolute rpaths and add relative one
+                        subprocess.run([
+                            "install_name_tool", 
+                            "-add_rpath", "@loader_path/../torch/lib",
+                            built_lib
+                        ], check=True)
+                        print(f"Fixed rpath for {built_lib}")
+                    except subprocess.CalledProcessError:
+                        print(f"Warning: Failed to fix rpath for {built_lib}")
+            
+            elif platform.system() == "Linux":
+                # Linux: Use patchelf if available
+                if shutil.which("patchelf"):
+                    try:
+                        subprocess.run([
+                            "patchelf", 
+                            "--set-rpath", "$ORIGIN/../torch/lib",
+                            built_lib
+                        ], check=True)
+                        print(f"Fixed rpath for {built_lib}")
+                    except subprocess.CalledProcessError:
+                        print(f"Warning: Failed to fix rpath for {built_lib}")
+
 # Version management following PyTorch pattern
 package_name = os.environ.get("TORCH_PROJECTORS_PACKAGE_NAME", "torch-projectors")
 build_version = os.environ.get("TORCH_PROJECTORS_BUILD_VERSION", "0.1.0")
@@ -186,6 +223,6 @@ setup(
             extra_link_args=extra_link_args,
         )
     ],
-    cmdclass={"build_ext": BuildExtension},
+    cmdclass={"build_ext": CustomBuildExt},
     packages=["torch_projectors"],
 ) 
