@@ -94,7 +94,7 @@ jobs:
               # Generate index with dumb-pypi, pointing to packages subdirectory
               dumb-pypi \
                 --package-list dist/$backend/package-list.txt \
-                --packages-url "../packages/" \
+                --packages-url "../../packages/" \
                 --output-dir pages/$backend
               
               # Count wheels and versions for this backend
