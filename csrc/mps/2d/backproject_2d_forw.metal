@@ -88,8 +88,8 @@ kernel void backproject_2d_forw_kernel(
         
         // Apply conjugate phase shift for back-projection
         if (params.has_shifts) {
-            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                           proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                           proj_coord_c * shift_c / params.proj_boxsize);
             float2 phase_factor = float2(cos(phase), sin(phase));
             proj_val = complex_mul(proj_val, complex_conj(phase_factor));  // conjugate for backprojection
         }

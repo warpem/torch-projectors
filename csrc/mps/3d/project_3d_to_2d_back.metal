@@ -221,8 +221,8 @@ kernel void project_3d_to_2d_back_kernel(
         // Apply phase shift correction to gradient if needed (same for both rec and rot gradients)
         float2 grad_proj_for_rec = grad_proj;
         if (params.has_shifts) {
-            float phase = 2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                         proj_coord_c * shift_c / params.boxsize);
+            float phase = 2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                         proj_coord_c * shift_c / params.proj_boxsize);
             float2 phase_factor = float2(cos(phase), sin(phase));
             grad_proj_for_rec = complex_mul(grad_proj_for_rec, phase_factor);
         }
@@ -286,15 +286,15 @@ kernel void project_3d_to_2d_back_kernel(
             }
             
             // Apply phase modulation to reconstruction value
-            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                           proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                           proj_coord_c * shift_c / params.proj_boxsize);
             float2 phase_factor = float2(cos(phase), sin(phase));
             float2 modulated_rec_val = complex_mul(rec_val, phase_factor);
             
             // Compute phase derivatives: ∂φ/∂shift = -2π * coordinate / boxsize
-            float2 phase_grad_r = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_r / params.boxsize), modulated_rec_val);
-            float2 phase_grad_c = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_c / params.boxsize), modulated_rec_val);
-            
+            float2 phase_grad_r = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_r / params.proj_boxsize), modulated_rec_val);
+            float2 phase_grad_c = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_c / params.proj_boxsize), modulated_rec_val);
+
             // Accumulate shift gradients (taking real part)
             local_shift_grad[tid][0] += (complex_mul(grad_proj, complex_conj(phase_grad_r))).x;
             local_shift_grad[tid][1] += (complex_mul(grad_proj, complex_conj(phase_grad_c))).x;

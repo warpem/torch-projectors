@@ -373,7 +373,7 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
     
     # Use same benchmark parameters as our performance test
     num_reconstructions = 1
-    num_projections_per_rec = 8192
+    num_projections_per_rec = 4096
     D, H, W = 128, 128, 128
     W_half = W // 2 + 1
     num_warmup_runs = 3

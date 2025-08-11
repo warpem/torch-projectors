@@ -88,8 +88,8 @@ kernel void project_2d_forw_kernel(
         
         // Apply phase shift if translations are provided (using pre-computed shifts)
         if (params.has_shifts) {
-            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                           proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                           proj_coord_c * shift_c / params.proj_boxsize);
             float2 phase_factor = float2(cos(phase), sin(phase));
             val = complex_mul(val, phase_factor);
         }

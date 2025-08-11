@@ -111,8 +111,8 @@ kernel void backproject_2d_back_kernel(
         
         // Apply conjugate phase shift (opposite of back-projection)
         if (params.has_shifts) {
-            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                           proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                           proj_coord_c * shift_c / params.proj_boxsize);
             float2 phase_factor = float2(cos(phase), sin(phase));
             rec_val = complex_mul(rec_val, phase_factor);  // forward phase for grad_projections
         }
@@ -162,8 +162,8 @@ kernel void backproject_2d_back_kernel(
             
             // Apply conjugate phase shift to projection value
             if (params.has_shifts) {
-                float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                               proj_coord_c * shift_c / params.boxsize);
+                float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                               proj_coord_c * shift_c / params.proj_boxsize);
                 float2 phase_factor = float2(cos(phase), sin(phase));
                 proj_val = complex_mul(proj_val, complex_conj(phase_factor));
             }
@@ -190,14 +190,14 @@ kernel void backproject_2d_back_kernel(
             
             // Apply conjugate phase shift to projection value (consistent with rotation gradient computation)
             if (params.has_shifts) {
-                float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.boxsize + 
-                                               proj_coord_c * shift_c / params.boxsize);
+                float phase = -2.0 * M_PI_F * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                               proj_coord_c * shift_c / params.proj_boxsize);
                 float2 phase_factor = float2(cos(phase), sin(phase));
                 proj_val = complex_mul(proj_val, complex_conj(phase_factor));
             }
             
-            float2 phase_grad_r = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_r / params.boxsize), rec_val_for_shift);
-            float2 phase_grad_c = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_c / params.boxsize), rec_val_for_shift);
+            float2 phase_grad_r = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_r / params.proj_boxsize), rec_val_for_shift);
+            float2 phase_grad_c = complex_mul(float2(0.0, -2.0 * M_PI_F * proj_coord_c / params.proj_boxsize), rec_val_for_shift);
             
             local_shift_grad[tid][0] += (complex_mul(proj_val, complex_conj(phase_grad_r))).x;
             local_shift_grad[tid][1] += (complex_mul(proj_val, complex_conj(phase_grad_c))).x;

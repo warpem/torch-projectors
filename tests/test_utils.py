@@ -171,6 +171,128 @@ def complex_mse_loss(input_tensor, target_tensor):
     return loss
 
 
+def pad_and_fftshift(tensor, oversampling_factor):
+    """
+    Zero-pad a real-space tensor to n times the size and apply fftshift.
+
+    This function pads a real-space tensor and shifts it so that when
+    converted to Fourier space and used with oversampling parameter,
+    the result matches direct oversampling.
+    
+    Args:
+        tensor: 2D, 3D, or batched tensor [..., H, W] or [..., D, H, W]
+        oversampling_factor: Factor by which to pad (e.g., 2.0 for 2x padding)
+    
+    Returns:
+        Padded and shifted tensor with same number of dimensions as input
+    """
+    if oversampling_factor < 1.0:
+        raise ValueError("Oversampling factor must be >= 1.0")
+    
+    # Get the spatial dimensions (last 2 or 3 dims)
+    original_shape = tensor.shape
+    spatial_dims = len(original_shape)
+    
+    if spatial_dims < 2:
+        raise ValueError("Tensor must have at least 2 dimensions")
+    
+    # Determine if 2D or 3D spatial tensor
+    if len(original_shape) >= 3 and original_shape[-3] == original_shape[-2]:
+        # 3D case: [..., D, H, W] where D==H (cube)
+        is_3d = True
+        *batch_dims, D, H, W = original_shape
+        if D != H or H != W:
+            raise ValueError("3D tensors must be cubic (D == H == W)")
+        spatial_size = D
+    else:
+        # 2D case: [..., H, W]
+        is_3d = False
+        *batch_dims, H, W = original_shape
+        if H != W:
+            raise ValueError("2D tensors must be square (H == W)")
+        spatial_size = H
+    
+    # Calculate new size
+    new_size = int(spatial_size * oversampling_factor)
+    if new_size % 2 != 0:
+        new_size += 1  # Ensure even size
+    
+    # Calculate padding
+    pad_total = new_size - spatial_size
+    pad_before = pad_total // 2
+    pad_after = pad_total - pad_before
+    
+    # Create padding specification (pytorch expects in reverse order of dimensions)
+    if is_3d:
+        # For 3D: pad W, H, D dimensions
+        padding = (pad_before, pad_after,  # W
+                  pad_before, pad_after,   # H  
+                  pad_before, pad_after)   # D
+    else:
+        # For 2D: pad W, H dimensions
+        padding = (pad_before, pad_after,  # W
+                  pad_before, pad_after)   # H
+    
+    # Apply zero padding
+    padded = torch.nn.functional.pad(tensor, padding, mode='constant', value=0)
+    
+    # Apply rfftshift - move low frequencies to center
+    if is_3d:
+        # Shift all three spatial dimensions
+        shifted = torch.fft.fftshift(padded, dim=(-3, -2, -1))
+    else:
+        # Shift both spatial dimensions
+        shifted = torch.fft.fftshift(padded, dim=(-2, -1))
+    
+    return shifted
+
+
+def ifftshift_and_crop(real_tensor, oversampling_factor):
+    """
+    Reverse of pad_and_fftshift: apply ifftshift and crop to original size.
+
+    This function:
+    1. Applies inverse fftshift to move low frequencies back from center
+    2. Crops the tensor back to original size (current_size / oversampling_factor)
+    
+    Args:
+        real_tensor: Real-space tensor [..., H, W] or [..., D, H, W] 
+        oversampling_factor: Factor that was used for padding (e.g., 2.0 for 2x padding)
+    
+    Returns:
+        Real-space tensor cropped to original size
+    """
+    if oversampling_factor < 1.0:
+        raise ValueError("Oversampling factor must be >= 1.0")
+    
+    # Determine if 2D or 3D and get current size
+    if len(real_tensor.shape) >= 3 and real_tensor.shape[-3] == real_tensor.shape[-2]:
+        # 3D case: [..., D, H, W]
+        is_3d = True
+        current_size = real_tensor.shape[-3]
+        shifted_tensor = torch.fft.ifftshift(real_tensor, dim=(-3, -2, -1))
+    else:
+        # 2D case: [..., H, W] 
+        is_3d = False
+        current_size = real_tensor.shape[-2]
+        shifted_tensor = torch.fft.ifftshift(real_tensor, dim=(-2, -1))
+    
+    # Calculate original size from current size and oversampling factor
+    original_size = int(current_size / oversampling_factor)
+    
+    # Calculate crop region
+    crop_total = current_size - original_size
+    crop_start = crop_total // 2
+    crop_end = crop_start + original_size
+    
+    if is_3d:
+        cropped = shifted_tensor[..., crop_start:crop_end, crop_start:crop_end, crop_start:crop_end]
+    else:
+        cropped = shifted_tensor[..., crop_start:crop_end, crop_start:crop_end]
+    
+    return cropped
+
+
 def create_friedel_symmetric_noise(shape, device=None):
     """
     Create complex noise that satisfies Friedel symmetry for RFFT format.

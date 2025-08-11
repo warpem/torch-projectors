@@ -126,9 +126,10 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
     const auto B_rot = rotations.size(0);
     TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as projections");
 
-    // Reconstruction size matches projection size
-    const auto rec_boxsize = proj_boxsize;
-    const auto rec_boxsize_half = proj_boxsize_half;
+    // Reconstruction size needs to account for oversampling
+    const auto rec_boxsize_raw = static_cast<int64_t>(std::ceil(proj_boxsize * oversampling));
+    const auto rec_boxsize = rec_boxsize_raw + (rec_boxsize_raw % 2);  // Ensure even number
+    const auto rec_boxsize_half = rec_boxsize / 2 + 1;
     
     // Initialize output tensors
     auto data_reconstruction = torch::zeros({B, rec_boxsize, rec_boxsize_half}, projections.options());
@@ -218,7 +219,7 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
                                                                       (*shifts_acc)[indices.shift_b_idx][p][1]};
                                 std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
                                 scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                    coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                    coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                 // Use conjugate for back-projection
                                 proj_val = proj_val * std::conj(phase_factor);
                             }
@@ -314,8 +315,14 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
     const auto proj_boxsize = projections.size(2);
     const auto proj_boxsize_half = projections.size(3);
     
-    const auto rec_boxsize = grad_data_rec.size(1);
-    const auto rec_boxsize_half = grad_data_rec.size(2);
+    // Reconstruction size should match what was used in forward pass
+    const auto rec_boxsize_raw = static_cast<int64_t>(std::ceil(proj_boxsize * oversampling));
+    const auto rec_boxsize = rec_boxsize_raw + (rec_boxsize_raw % 2);  // Ensure even number
+    const auto rec_boxsize_half = rec_boxsize / 2 + 1;
+    
+    // Validate that grad_data_rec has the expected dimensions
+    TORCH_CHECK(grad_data_rec.size(1) == rec_boxsize, "grad_data_rec height must match expected reconstruction size");
+    TORCH_CHECK(grad_data_rec.size(2) == rec_boxsize_half, "grad_data_rec width must match expected reconstruction size");
     
     // Initialize gradient tensors
     auto grad_projections = torch::zeros_like(projections);
@@ -418,7 +425,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                                                       (*shifts_acc)[indices.shift_b_idx][p][1]};
                                 std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
                                 scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                    coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                    coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                 rec_val = rec_val * phase_factor;  // Forward phase for grad_projections
                             }
                             
@@ -474,7 +481,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                                                           (*shifts_acc)[indices.shift_b_idx][p][1]};
                                     std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
                                     scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                        coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                        coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                     proj_val = proj_val * std::conj(phase_factor);
                                 }
                                 
@@ -496,12 +503,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                                                           (*shifts_acc)[indices.shift_b_idx][p][1]};
                                     std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
                                     scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                        coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                        coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                     proj_val = proj_val * std::conj(phase_factor);
                                 }
                                 
-                                scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / rec_boxsize) * rec_val_for_shift;
-                                scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / rec_boxsize) * rec_val_for_shift;
+                                scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / proj_boxsize) * rec_val_for_shift;
+                                scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / proj_boxsize) * rec_val_for_shift;
                                 
                                 local_shift_grad[0] += (proj_val * std::conj(phase_grad_r)).real();
                                 local_shift_grad[1] += (proj_val * std::conj(phase_grad_c)).real();

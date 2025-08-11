@@ -186,7 +186,7 @@ at::Tensor project_2d_forw_cpu(
                                                                       (*shifts_acc)[indices.shift_b_idx][p][1]};
                                 std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c};
                                 scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                    coord_vals, shift_vals, static_cast<real_t>(boxsize));
+                                    coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                 val = val * phase_factor;
                             }
                             
@@ -310,7 +310,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_cpu(
                                                                       (*shifts_acc)[indices.shift_b_idx][p][1]};
                                 std::vector<real_t> coord_vals = {-proj_coord_r, -proj_coord_c}; // Note: negative for backward
                                 scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                    coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                    coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                 grad_proj = grad_proj * phase_factor;
                             }
 
@@ -340,12 +340,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_cpu(
                                                                           (*shifts_acc)[indices.shift_b_idx][p][1]};
                                     std::vector<real_t> coord_vals = {proj_coord_r, proj_coord_c}; // Use positive coordinates for forward phase
                                     scalar_t phase_factor = compute_phase_factor<scalar_t, real_t, rot_real_t>(
-                                        coord_vals, shift_vals, static_cast<real_t>(rec_boxsize));
+                                        coord_vals, shift_vals, static_cast<real_t>(proj_boxsize));
                                     modulated_rec_val = rec_val * phase_factor;
                                 }
                                 
-                                scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / rec_boxsize) * modulated_rec_val;
-                                scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / rec_boxsize) * modulated_rec_val;
+                                scalar_t phase_grad_r = scalar_t(0, -2.0 * M_PI * proj_coord_r / proj_boxsize) * modulated_rec_val;
+                                scalar_t phase_grad_c = scalar_t(0, -2.0 * M_PI * proj_coord_c / proj_boxsize) * modulated_rec_val;
                                 
                                 scalar_t original_grad_proj = grad_proj_acc[b][p][i][j];
                                 local_shift_grad[0] += (original_grad_proj * std::conj(phase_grad_r)).real();

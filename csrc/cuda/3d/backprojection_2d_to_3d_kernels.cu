@@ -1029,10 +1029,11 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_to_3d_forw_cuda(
     const auto B_rot = rotations.size(0);
     TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as projections");
 
-    // For cubic volumes, depth = height = width, inferred from projection dimensions
-    const auto rec_depth = proj_boxsize;
-    const auto rec_boxsize = proj_boxsize;
-    const auto rec_boxsize_half = proj_boxsize_half;
+    // For cubic volumes, depth = height = width, need to account for oversampling
+    const auto rec_boxsize_raw = static_cast<int64_t>(std::ceil(proj_boxsize * oversampling));
+    const auto rec_boxsize = rec_boxsize_raw + (rec_boxsize_raw % 2);  // Ensure even number
+    const auto rec_boxsize_half = rec_boxsize / 2 + 1;
+    const auto rec_depth = rec_boxsize;
     
     // Initialize output tensors - 3D reconstructions (B, D, H, W/2+1)
     auto data_reconstruction = torch::zeros({B, rec_depth, rec_boxsize, rec_boxsize_half}, projections.options());
@@ -1180,9 +1181,16 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_to_3d_
     const auto proj_boxsize = projections.size(2);
     const auto proj_boxsize_half = projections.size(3);
     
-    const auto rec_depth = grad_data_rec.size(1);
-    const auto rec_boxsize = grad_data_rec.size(2);
-    const auto rec_boxsize_half = grad_data_rec.size(3);
+    // Reconstruction size should match what was used in forward pass
+    const auto rec_boxsize_raw = static_cast<int64_t>(std::ceil(proj_boxsize * oversampling));
+    const auto rec_boxsize = rec_boxsize_raw + (rec_boxsize_raw % 2);  // Ensure even number
+    const auto rec_boxsize_half = rec_boxsize / 2 + 1;
+    const auto rec_depth = rec_boxsize;
+    
+    // Validate that grad_data_rec has the expected dimensions
+    TORCH_CHECK(grad_data_rec.size(1) == rec_depth, "grad_data_rec depth must match expected reconstruction size");
+    TORCH_CHECK(grad_data_rec.size(2) == rec_boxsize, "grad_data_rec height must match expected reconstruction size");
+    TORCH_CHECK(grad_data_rec.size(3) == rec_boxsize_half, "grad_data_rec width must match expected reconstruction size");
     
     const auto B_rot = rotations.size(0);
     TORCH_CHECK(B_rot == B || B_rot == 1, "Batch size of rotations must be 1 or same as projections");
