@@ -87,14 +87,14 @@ jobs:
               # Create package list for dumb-pypi
               ls dist/$backend/*.whl | xargs -n1 basename > dist/$backend/package-list.txt
               
-              # Copy wheels to output directory for serving
-              mkdir -p pages/$backend
-              cp dist/$backend/*.whl pages/$backend/
+              # Copy wheels to packages subdirectory
+              mkdir -p pages/$backend/packages
+              cp dist/$backend/*.whl pages/$backend/packages/
               
-              # Generate index with dumb-pypi
+              # Generate index with dumb-pypi, pointing to packages subdirectory
               dumb-pypi \
                 --package-list dist/$backend/package-list.txt \
-                --packages-url "./" \
+                --packages-url "../packages/" \
                 --output-dir pages/$backend
               
               # Count wheels and versions for this backend
