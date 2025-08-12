@@ -1,0 +1,275 @@
+\documentclass[10pt,a4paper]{article}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{geometry}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Page geometry
+\geometry{margin=2.5cm}
+
+% Paragraph formatting - no indentation, vertical spacing between paragraphs
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.25\baselineskip}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\footnotesize\ttfamily,
+    commentstyle=\color{gray},
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    language=Python
+}
+
+\title{torch-projectors: A High-Performance Differentiable Projection Library for PyTorch}
+
+\author{
+    Dimitry Tegunov \\
+    \texttt{tegunovd@gene.com} \\
+    \texttt{tegunov@gmail.com}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Add abstract content
+\end{abstract}
+
+\section{Introduction}
+% TODO: Add introduction
+
+\section{Methods}
+% TODO: Add mathematical formulations and implementation details
+
+\subsection{Data Conventions}
+
+\texttt{torch-projectors} operates exclusively in Fourier space using PyTorch's RFFT format, following FFTW conventions. For rotations to work correctly, reconstruction and projection data must be shifted (fftshift) in real space to place their center at the 0th tensor element before FFT. Results must be inverse-shifted (ifftshift) in real space to restore conventional centering.
+
+All spatial dimensions must be square (2D) or cubic (3D) with even sizes. 2D reconstructions use shape $[B, N, N/2+1]$ where $B$ is the batch dimension. 3D reconstructions use shape $[B, D, H, W/2+1]$ where the spatial dimensions are equal and even. Projections follow the same RFFT convention with shape $[B, P, N, N/2+1]$, where $B$ is the reconstruction batch dimension, and $P$ is the number of poses.
+
+Rotations are specified as matrices: $[B, P, 2, 2]$ for 2D and $[B, P, 3, 3]$ for 3D. Translation shifts use shape $[B, P, 2]$ and are applied via phase modulation. A positive shift value moves the image contents along the positive direction of the respective axis. In back-projection, the shift is applied in the opposite direction to ensure it is the inverse of the forward projection with the same parameters. Batch broadcasting is supported where $B$ can be 1 or match the reconstruction batch size $B$; or the $P$ dimension in either rotations or shifts (but not both) can be 1 to use the same value over all poses. This enables efficient processing of multiple reconstructions with shared or individual poses.
+
+\subsection{Interpolation}
+
+\texttt{torch-projectors} supports linear and cubic interpolation methods for sampling Fourier-space data at non-integer coordinates. Linear interpolation uses standard multilinear kernels: bilinear for 2D operations (4-point support) and trilinear for 3D operations (8-point support).
+
+Cubic interpolation employs separable Catmull-Rom kernels with parameter $a = -0.5$, providing $C^1$ continuity and exact interpolation through control points. The kernel function is defined as:
+
+\begin{equation}
+w(s) = \begin{cases}
+(a + 2)|s|^3 - (a + 3)|s|^2 + 1 & \text{if } |s| \leq 1 \\
+a|s|^3 - 5a|s|^2 + 8a|s| - 4a & \text{if } 1 < |s| \leq 2 \\
+0 & \text{if } |s| > 2
+\end{cases}
+\end{equation}
+
+For bicubic interpolation, a $4 \times 4$ neighborhood is sampled around each coordinate, while tricubic interpolation samples a $4 \times 4 \times 4$ neighborhood. The final interpolated value is computed as the separable product of 1D kernel evaluations along each dimension.
+
+All interpolation operations support oversampling, where coordinates are scaled by a factor $> 1$ to sample from reconstructions that were previously zero-padded in real space to increase the Fourier space sampling rate. This improves interpolation accuracy at constant computational load, but at the expense of increased memory usage. The sampling grid is sparse, matching the box size of the unpadded reconstruction. Because of this, no additional real-space cropping is required for the final projections.
+
+A hard low-pass filter can be applied during the projection operation.
+
+Shifts can be applied as part of the forward and backward projection operations. This is achieved by applying a phase modulation to the complex Fourier space components according to the Fourier shift theorem: $F\{f(\mathbf{x} - \mathbf{s})\} = F\{f(\mathbf{x})\} \cdot e^{-i2\pi \mathbf{k} \cdot \mathbf{s}}$, where $\mathbf{k}$ are the Fourier coordinates and $\mathbf{s}$ is the shift vector.
+
+\subsection{Implementation Architecture}
+
+\texttt{torch-projectors} follows PyTorch's hybrid C++/Python extension architecture using the \texttt{TORCH\_LIBRARY} registration system. The library implements a multi-backend design with separate optimized kernels for CPU, Apple Silicon (MPS), and CUDA devices.
+
+Each backend maintains its own implementation in dedicated directories (\texttt{csrc/cpu/}, \texttt{csrc/mps/}, \texttt{csrc/cuda/}), with common utilities factored into \texttt{csrc/cpu/common/}. All projection operators are registered in a unified \texttt{torch\_projectors} namespace using \texttt{TORCH\_LIBRARY} declarations, enabling automatic device dispatch through PyTorch's operator registration system.
+
+The Python interface wraps C++ operators with custom \texttt{torch.autograd.Function} classes that handle gradient computation. Library initialization loads the compiled C++ extension and registers Python autograd functions using \texttt{torch.library.register\_autograd}. This architecture provides seamless integration with PyTorch's automatic differentiation while maintaining high performance through backend-specific optimizations.
+
+\subsection{2D $\rightarrow$ 2D Forward Projection}
+
+The 2D forward projection operator generates rotated 2D projections from 2D Fourier-space reconstructions. Given a reconstruction tensor $[B, N, N/2+1]$ and rotation matrices $[B_{rot}, P, 2, 2]$, the operator produces projections $[B, P, N_{out}, N_{out}/2+1]$ by sampling the reconstruction at transformed Fourier coordinates.
+
+\subsubsection{Forward Pass}
+For each output Fourier coordinate $\mathbf{k}_{out}$ in the projection, the operator computes the corresponding coordinate in the reconstruction as:
+
+\begin{equation}
+\label{eq:coord_transform}
+\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{out}
+\end{equation}
+
+where $\mathbf{R}$ is the 2D rotation matrix. The projection value is obtained by interpolating the reconstruction at $\mathbf{k}_{rec}$, then applying phase modulation for translation:
+
+\begin{equation}
+\label{eq:forward_projection}
+P(\mathbf{k}_{out}) = F_{rec}(\mathbf{k}_{rec}) \cdot e^{-i 2\pi \mathbf{k}_{out} \cdot \mathbf{s}}
+\end{equation}
+
+where $\mathbf{s}$ is the shift vector.
+
+\subsubsection{Backward Pass}
+During backpropagation, the incoming projection gradients are first phase-modulated using the conjugate shift:
+
+\begin{equation}
+\label{eq:conjugate_phase}
+\nabla P' = \nabla P \cdot e^{i 2\pi \mathbf{k}_{out} \cdot \mathbf{s}}
+\end{equation}
+
+Reconstruction gradients are then accumulated via transposed interpolation operations at the transformed coordinates $\mathbf{k}_{rec}$.
+
+Analytical rotation matrix gradients require careful application of the chain rule: Since $\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{out}$, the gradient with respect to rotation matrix element $R_{ij}$ is:
+
+\begin{equation}
+\label{eq:rotation_gradient_chain}
+\frac{\partial P}{\partial R_{ij}} = \frac{\partial F_{rec}(\mathbf{k}_{rec})}{\partial \mathbf{k}_{rec}} \cdot \frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}
+\end{equation}
+
+For bilinear interpolation, spatial derivatives are computed from the 2×2 sample grid using separable linear kernel derivatives:
+
+\begin{align}
+\frac{\partial F}{\partial r} &= \sum_{i=0}^{1} \sum_{j=0}^{1} p_{ij} \cdot l'(r_f-i) \cdot l(c_f-j) \label{eq:bilinear_grad_r} \\
+\frac{\partial F}{\partial c} &= \sum_{i=0}^{1} \sum_{j=0}^{1} p_{ij} \cdot l(r_f-i) \cdot l'(c_f-j) \label{eq:bilinear_grad_c}
+\end{align}
+
+where $l(s) = 1-|s|$ for $|s| \leq 1$ and $l'(s) = \text{sign}(s)$ for $|s| < 1$.
+
+For bicubic interpolation, derivatives follow from separable Catmull-Rom kernel derivatives over the 4×4 neighborhood:
+
+\begin{align}
+\label{eq:bicubic_gradients}
+\frac{\partial F}{\partial r} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} p_{ij} \cdot w'(r_f-i) \cdot w(c_f-j) \\
+\frac{\partial F}{\partial c} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} p_{ij} \cdot w(r_f-i) \cdot w'(c_f-j)
+\end{align}
+
+where $w'(s)$ is the cubic kernel derivative. The coordinate transformation derivatives $\frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}$ are computed from the matrix inverse relationships.
+
+Shift gradients follow from the phase modulation derivative:
+
+\begin{equation}
+\label{eq:shift_gradient}
+\frac{\partial P}{\partial \mathbf{s}} = -i 2\pi \mathbf{k}_{out} P(\mathbf{k}_{out})
+\end{equation}
+
+\subsection{2D $\rightarrow$ 2D Backward Projection}
+
+The 2D backward projection operator is the mathematical adjoint of the forward projection operation. It accumulates 2D Fourier-space projections $[B, P, N, N/2+1]$ into 2D reconstructions $[B, N_{rec}, N_{rec}/2+1]$, where the reconstruction size accounts for oversampling: $N_{rec} = N \cdot \text{oversampling}$.
+
+\subsubsection{Forward Pass}
+For each projection coordinate $\mathbf{k}_{proj}$, the operator computes the corresponding reconstruction coordinate using equation~\ref{eq:coord_transform} with the same rotation matrix $\mathbf{R}$. The projection value is then accumulated into the reconstruction at the transformed coordinate. When shifts are present, the projection data is first conjugate phase-modulated:
+
+\begin{equation}
+\label{eq:backproj_conjugate_phase}
+P'(\mathbf{k}_{proj}) = P(\mathbf{k}_{proj}) \cdot e^{i 2\pi \mathbf{k}_{proj} \cdot \mathbf{s}}
+\end{equation}
+
+where the conjugate phase ensures the mathematical adjoint relationship with forward projection.
+
+The accumulation process uses the same interpolation kernels as forward projection, but in transpose mode. For linear interpolation, contributions are distributed to the 2×2 neighborhood around each fractional coordinate. For cubic interpolation, contributions are spread across the 4×4 neighborhood according to the Catmull-Rom weights.
+
+Optional weight accumulation supports applications requiring per-Fourier component weights, such as CTF correction in cryo-EM. Weights are accumulated using the absolute values of the interpolation kernel weights, maintaining a reference for downstream normalization (e.g. for Wiener-like filters).
+
+\subsubsection{Backward Pass}
+During backpropagation, projection gradients are computed using forward projection of reconstruction gradients, exploiting the adjoint relationship. Rotation matrix gradients follow equation~\ref{eq:rotation_gradient_chain} with spatial derivatives computed using equations~\ref{eq:bilinear_grad_r}--\ref{eq:bilinear_grad_c} for bilinear interpolation or equation~\ref{eq:bicubic_gradients} for bicubic interpolation. Shift gradients are computed using equation~\ref{eq:shift_gradient}, applied to the accumulated reconstruction data.
+
+\subsection{3D $\rightarrow$ 2D Forward Projection}
+
+The 3D→2D forward projection operator implements the Central Slice Theorem, generating 2D projections from 3D Fourier-space reconstructions. Given a 3D reconstruction tensor $[B, D, H, W/2+1]$, 3×3 rotation matrices $[B, P, 3, 3]$, and optional 2D shifts $[B, P, 2]$, the operator produces projections $[B, P, H_{out}, W_{out}/2+1]$ by sampling central slices through the 3D volume.
+
+\subsubsection{Forward Pass}
+For each output projection coordinate $\mathbf{k}_{proj} = (k_r, k_c)$, the operator extends it to 3D by setting the third coordinate to zero: $\mathbf{k}_{3D} = (k_c, k_r, 0)$. This implements the central slice through the origin required by the Central Slice Theorem. The 3D sampling coordinate in the reconstruction is computed using the 3×3 rotation matrix:
+
+\begin{equation}
+\label{eq:coord_transform_3d}
+\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{3D}
+\end{equation}
+
+where $\mathbf{R}$ is the 3×3 rotation matrix. The projection value is obtained by trilinear or tricubic interpolation in the 3D volume, followed by phase modulation using equation~\ref{eq:forward_projection} applied to the 2D projection coordinates.
+
+\subsubsection{Backward Pass}
+During backpropagation, reconstruction gradients are accumulated using 3D transposed interpolation at the transformed coordinates. The 3×3 rotation matrix gradients require extension of the chain rule to three dimensions:
+
+\begin{equation}
+\label{eq:rotation_gradient_chain_3d}
+\frac{\partial P}{\partial R_{ij}} = \frac{\partial F_{rec}(\mathbf{k}_{rec})}{{\partial \mathbf{k}_{rec}}} \cdot \frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}
+\end{equation}
+
+For trilinear interpolation, spatial derivatives are computed from the 2×2×2 sample grid using separable linear kernel derivatives:
+
+\begin{align}
+\frac{\partial F}{\partial d} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l'(d_f-i) \cdot l(r_f-j) \cdot l(c_f-k) \label{eq:trilinear_grad_d} \\
+\frac{\partial F}{\partial r} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l(d_f-i) \cdot l'(r_f-j) \cdot l(c_f-k) \label{eq:trilinear_grad_r} \\
+\frac{\partial F}{\partial c} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l(d_f-i) \cdot l(r_f-j) \cdot l'(c_f-k) \label{eq:trilinear_grad_c}
+\end{align}
+
+For tricubic interpolation, derivatives follow from separable Catmull-Rom kernel derivatives over the 4×4×4 neighborhood:
+
+\begin{align}
+\label{eq:tricubic_gradients}
+\frac{\partial F}{\partial d} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w'(d_f-i) \cdot w(r_f-j) \cdot w(c_f-k) \\
+\frac{\partial F}{\partial r} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w(d_f-i) \cdot w'(r_f-j) \cdot w(c_f-k) \\
+\frac{\partial F}{\partial c} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w(d_f-i) \cdot w(r_f-j) \cdot w'(c_f-k)
+\end{align}
+
+where $w'(s)$ is the cubic kernel derivative.
+
+Shift gradients continue to use equation~\ref{eq:shift_gradient} since shifts are applied only to the 2D projection coordinates.
+
+\subsection{2D $\rightarrow$ 3D Backward Projection}
+
+The 2D→3D backward projection operator is the mathematical adjoint of the 3D→2D forward projection operation. It accumulates 2D Fourier-space projections $[B, P, H, W/2+1]$ into 3D reconstructions $[B, D, H_{rec}, W_{rec}/2+1]$, where the reconstruction dimensions account for oversampling and form a cubic volume: $D = H_{rec} = W_{rec} = H \cdot \text{oversampling}$.
+
+\subsubsection{Forward Pass}
+For each projection coordinate $\mathbf{k}_{proj} = (k_r, k_c)$, the operator extends it to 3D by setting the third coordinate to zero, implementing the central slice through the origin required by the Central Slice Theorem:
+
+\begin{equation}
+\label{eq:coord_extension_3d}
+\mathbf{k}_{3D} = (k_c, k_r, 0)
+\end{equation}
+
+The 3D sampling coordinate in the reconstruction is computed using equation~\ref{eq:coord_transform_3d} with the same 3×3 rotation matrix $\mathbf{R}$. The projection value is then accumulated into the reconstruction at the transformed coordinate. When shifts are present, the projection data is first conjugate phase-modulated using equation~\ref{eq:backproj_conjugate_phase} to ensure the mathematical adjoint relationship.
+
+The accumulation process uses 3D interpolation kernels in transpose mode. For trilinear interpolation, contributions are distributed to the 2×2×2 neighborhood around each fractional coordinate. For tricubic interpolation, contributions are spread across the 4×4×4 neighborhood according to the Catmull-Rom weights defined in equations~\ref{eq:trilinear_grad_d}--\ref{eq:trilinear_grad_c} and ~\ref{eq:tricubic_gradients}.
+
+Optional weight accumulation supports applications requiring per-Fourier component weights, such as CTF correction in cryo-EM. Weights are accumulated using the absolute values of the 3D interpolation kernel weights, with proper handling of 3D Friedel symmetry for real-valued reconstructions.
+
+\subsubsection{Backward Pass}
+During backpropagation, projection gradients are computed using 3D→2D forward projection of reconstruction gradients, exploiting the adjoint relationship. The 3×3 rotation matrix gradients follow equation~\ref{eq:rotation_gradient_chain_3d} with spatial derivatives computed using equations~\ref{eq:trilinear_grad_d}--\ref{eq:trilinear_grad_c} for trilinear interpolation or equation~\ref{eq:tricubic_gradients} for tricubic interpolation. Shift gradients are computed using equation~\ref{eq:shift_gradient}, applied to the 2D projection coordinates since shifts affect only the 2D projection plane.
+
+\section{Results}
+% TODO: Benchmarks and performance comparisons
+
+\subsection{Performance Benchmarks}
+% TODO: Timing comparisons across platforms
+
+\subsection{Accuracy Validation}
+% TODO: Numerical accuracy tests
+
+\section{Discussion}
+% TODO: Discussion of results and implications
+
+\section{Availability}
+The torch-projectors library is available as an open-source Python package at \url{https://github.com/warpem/torch-projectors} and can be installed via pip. For CUDA-enabled packages, please refer to the repository's README.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

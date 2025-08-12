@@ -61,3 +61,24 @@ test_outputs/
 
 # Auto-generated Metal shader headers
 csrc/mps/projection_kernels.h 
+
+# LaTeX build files
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+paper/*.lof
+paper/*.lot
+paper/*.nav
+paper/*.snm
+paper/*.vrb
+paper/*.bcf
+paper/*.run.xml
+paper/*.figlist
+paper/*.makefile
+paper/*.auxlock
