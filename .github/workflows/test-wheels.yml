@@ -2,7 +2,7 @@ name: Test Wheels
 
 on:
   workflow_run:
-    workflows: ["Build Wheels"]
+    workflows: ["Publish Wheelhouse"]
     types:
       - completed
     branches:
@@ -21,24 +21,19 @@ jobs:
           # macOS - CPU + MPS
           - os: macos-15-xlarge
             backend: cpu-mps
+            index_url: https://warpem.github.io/torch-projectors/cpu/simple/
             
-          # # Windows - CPU  
-          # - os: windows-x64-cpu
-          #   backend: cpu
+          # Windows - CPU  
+          - os: windows-x64-cpu
+            backend: cpu
+            index_url: https://warpem.github.io/torch-projectors/cpu/simple/
             
-          # # Linux - GPU 
-          # - os: linux-gpu-x64
-          #   backend: cuda
+          # Linux - GPU 
+          - os: linux-gpu-x64
+            backend: cuda
+            index_url: https://warpem.github.io/torch-projectors/cu126/simple/
 
     steps:
-      - name: Download built wheels
-        uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: wheels/
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -65,41 +60,15 @@ jobs:
           pip install pytest pytest-xdist matplotlib
         shell: pwsh
 
-      - name: Find and install built wheel
+      - name: Install torch-projectors from wheelhouse
         run: |
-          # Find the appropriate wheel for this platform/backend
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            if [[ "${{ matrix.backend }}" == "cuda" ]]; then
-              WHEEL=$(find wheels/ -name "*linux*cu126*.whl" | head -1)
-            else
-              WHEEL=$(find wheels/ -name "*linux*cpu*.whl" | head -1)
-            fi
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            WHEEL=$(find wheels/ -name "*macosx*.whl" | head -1)
-          elif [[ "${{ runner.os }}" == "Windows" ]]; then
-            WHEEL=$(find wheels/ -name "*win*.whl" | head -1)
-          fi
-          
-          if [[ -n "$WHEEL" ]]; then
-            echo "Installing wheel: $WHEEL"
-            pip install "$WHEEL"
-          else
-            echo "No suitable wheel found for ${{ runner.os }} ${{ matrix.backend }}"
-            exit 1
-          fi
+          pip install torch-projectors --index-url ${{ matrix.index_url }}
         shell: bash
 
-      - name: Find and install built wheel (Windows)
+      - name: Install torch-projectors from wheelhouse (Windows)
         if: runner.os == 'Windows'
         run: |
-          $WHEEL = Get-ChildItem wheels/ -Filter "*win*.whl" | Select-Object -First 1
-          if ($WHEEL) {
-            Write-Host "Installing wheel: $($WHEEL.FullName)"
-            pip install $WHEEL.FullName
-          } else {
-            Write-Host "No suitable wheel found for Windows"
-            exit 1
-          }
+          pip install torch-projectors --index-url ${{ matrix.index_url }}
         shell: pwsh
 
       - name: Clone repository for tests
