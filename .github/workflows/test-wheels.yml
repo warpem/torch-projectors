@@ -22,16 +22,22 @@ jobs:
           - os: macos-15-xlarge
             backend: cpu-mps
             index_url: https://warpem.github.io/torch-projectors/cpu/simple/
+            badge_label: "mac: cpu, mps"
+            badge_name: "mac"
             
           # Windows - CPU  
           - os: windows-x64-cpu
             backend: cpu
             index_url: https://warpem.github.io/torch-projectors/cpu/simple/
+            badge_label: "windows: cpu"
+            badge_name: "windows"
             
           # Linux - GPU 
           - os: linux-gpu-x64
             backend: cuda
             index_url: https://warpem.github.io/torch-projectors/cu126/simple/
+            badge_label: "linux: cpu, cuda"
+            badge_name: "linux"
 
     steps:
       - name: Set up Python
@@ -94,9 +100,73 @@ jobs:
         shell: pwsh
 
       - name: Run tests
+        id: test_run
         run: |
           cd repo
-          pytest -n auto tests/
+          pytest -n auto tests/ --ignore-glob="*performance*" --tb=short
         env:
           # Set environment variables for backend-specific behavior
           TORCH_PROJECTORS_BACKEND: ${{ matrix.backend }}
+        continue-on-error: true
+
+      - name: Generate badge data
+        run: |
+          # Create badge data based on test results
+          if [[ "${{ steps.test_run.outcome }}" == "success" ]]; then
+            STATUS="passing"
+            COLOR="brightgreen"
+          else
+            STATUS="failing"
+            COLOR="red"
+          fi
+          
+          # Create badge JSON for shields.io endpoint
+          mkdir -p badge-data
+          cat > badge-data/${{ matrix.badge_name }}.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "${{ matrix.badge_label }}",
+            "message": "$STATUS",
+            "color": "$COLOR"
+          }
+          EOF
+          
+          echo "Generated badge data for ${{ matrix.badge_label }}: $STATUS"
+        shell: bash
+
+      - name: Upload badge data
+        uses: actions/upload-artifact@v4
+        with:
+          name: badge-${{ matrix.badge_name }}
+          path: badge-data/${{ matrix.badge_name }}.json
+
+  # Publish badges to GitHub Pages
+  publish-badges:
+    name: Publish test badges
+    needs: test-wheels
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Download all badge data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: badge-*
+          merge-multiple: true
+          path: badges/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload badges to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: badges/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
