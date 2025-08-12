@@ -1,0 +1,133 @@
+name: Test Wheels
+
+on:
+  workflow_run:
+    workflows: ["Build Wheels"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test-wheels:
+    name: Test wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS - CPU + MPS
+          - os: macos-15-xlarge
+            backend: cpu-mps
+            
+          # # Windows - CPU  
+          # - os: windows-x64-cpu
+          #   backend: cpu
+            
+          # # Linux - GPU 
+          # - os: linux-gpu-x64
+          #   backend: cuda
+
+    steps:
+      - name: Download built wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: wheels/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyTorch 2.6 and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install PyTorch 2.6 based on backend
+          if [[ "${{ matrix.backend }}" == "cuda" ]]; then
+            pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
+          else
+            pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          fi
+          # Install test dependencies
+          pip install pytest pytest-xdist matplotlib
+        shell: bash
+
+      - name: Install PyTorch 2.6 and dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install pytest pytest-xdist matplotlib
+        shell: pwsh
+
+      - name: Find and install built wheel
+        run: |
+          # Find the appropriate wheel for this platform/backend
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            if [[ "${{ matrix.backend }}" == "cuda" ]]; then
+              WHEEL=$(find wheels/ -name "*linux*cu126*.whl" | head -1)
+            else
+              WHEEL=$(find wheels/ -name "*linux*cpu*.whl" | head -1)
+            fi
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            WHEEL=$(find wheels/ -name "*macosx*.whl" | head -1)
+          elif [[ "${{ runner.os }}" == "Windows" ]]; then
+            WHEEL=$(find wheels/ -name "*win*.whl" | head -1)
+          fi
+          
+          if [[ -n "$WHEEL" ]]; then
+            echo "Installing wheel: $WHEEL"
+            pip install "$WHEEL"
+          else
+            echo "No suitable wheel found for ${{ runner.os }} ${{ matrix.backend }}"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Find and install built wheel (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $WHEEL = Get-ChildItem wheels/ -Filter "*win*.whl" | Select-Object -First 1
+          if ($WHEEL) {
+            Write-Host "Installing wheel: $($WHEEL.FullName)"
+            pip install $WHEEL.FullName
+          } else {
+            Write-Host "No suitable wheel found for Windows"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Clone repository for tests
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Clean repository (keep only tests)
+        run: |
+          cd repo
+          # Remove everything except tests directory
+          find . -maxdepth 1 -not -name tests -not -name . -not -name .. -exec rm -rf {} +
+          ls -la
+        shell: bash
+
+      - name: Clean repository (keep only tests) - Windows
+        if: runner.os == 'Windows'
+        run: |
+          cd repo
+          # Remove everything except tests directory
+          Get-ChildItem -Force | Where-Object { $_.Name -ne "tests" } | Remove-Item -Recurse -Force
+          Get-ChildItem
+        shell: pwsh
+
+      - name: Run tests
+        run: |
+          cd repo
+          pytest -n auto tests/
+        env:
+          # Set environment variables for backend-specific behavior
+          TORCH_PROJECTORS_BACKEND: ${{ matrix.backend }}
