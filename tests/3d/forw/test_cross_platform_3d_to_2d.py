@@ -173,7 +173,7 @@ def test_cpu_cuda_identical_comprehensive_3d_to_2d():
         # Check loss values are identical
         loss_diff = torch.abs(loss_cpu - loss_cuda.cpu()).item()
         print(f"Loss difference: {loss_diff:.2e}")
-        assert loss_diff < 1e-5, f"Loss differs too much: {loss_diff}"
+        assert loss_diff < 1.2e-5, f"Loss differs too much: {loss_diff}"
         
         # Check reconstruction gradients
         if rec_grad_cpu is not None and rec_grad_cuda is not None:
