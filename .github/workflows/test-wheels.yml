@@ -152,6 +152,12 @@ jobs:
       id-token: write
     
     steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
       - name: Download all badge data
         uses: actions/download-artifact@v4
         with:
@@ -159,11 +165,19 @@ jobs:
           merge-multiple: true
           path: downloaded-badges/
 
-      - name: Create Pages directory structure
+      - name: Update badges in existing Pages content
         run: |
-          mkdir -p pages/badges
-          cp downloaded-badges/*.json pages/badges/
-          ls -la pages/badges/
+          # Create badges directory if it doesn't exist
+          mkdir -p gh-pages/badges
+          
+          # Copy new badge data
+          cp downloaded-badges/*.json gh-pages/badges/
+          
+          echo "Updated badges:"
+          ls -la gh-pages/badges/
+          
+          echo "Wheelhouse content preserved:"
+          ls -la gh-pages/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -171,7 +185,7 @@ jobs:
       - name: Upload badges to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages/
+          path: gh-pages/
 
       - name: Deploy to GitHub Pages
         id: deployment
