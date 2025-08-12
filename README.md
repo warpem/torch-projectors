@@ -1,8 +1,8 @@
 # torch-projectors
 
-![macOS Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/warpem/torch-projectors/gh-pages/badges/mac.json)
-![Windows Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/warpem/torch-projectors/gh-pages/badges/windows.json)
-![Linux Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/warpem/torch-projectors/gh-pages/badges/linux.json)
+![macOS Tests](https://github.com/warpem/torch-projectors/actions/workflows/test-mac.yml/badge.svg)
+![Windows Tests](https://github.com/warpem/torch-projectors/actions/workflows/test-windows.yml/badge.svg)
+![Linux Tests](https://github.com/warpem/torch-projectors/actions/workflows/test-linux.yml/badge.svg)
 
 A high-performance, differentiable 2D and 3D projection library for PyTorch, designed for cryogenic electron microscopy (cryo-EM) and tomography applications. The library provides forward and backward projection operators that work in Fourier space, following the Projection-Slice Theorem.
 

@@ -1,0 +1,51 @@
+name: Linux Tests
+
+on:
+  workflow_run:
+    workflows: ["Publish Wheelhouse"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test-linux:
+    name: Test wheels on Linux (cpu, cuda)
+    runs-on: linux-gpu-x64
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyTorch 2.6 and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
+          pip install pytest pytest-xdist matplotlib
+
+      - name: Install torch-projectors from wheelhouse
+        run: |
+          pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu126/simple/
+
+      - name: Clone repository for tests
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Clean repository (keep only tests)
+        run: |
+          cd repo
+          # Remove everything except tests directory
+          find . -maxdepth 1 -not -name tests -not -name . -not -name .. -exec rm -rf {} +
+          ls -la
+
+      - name: Run tests
+        run: |
+          cd repo
+          pytest -n auto tests/ --ignore-glob="*performance*" --tb=short
+        env:
+          TORCH_PROJECTORS_BACKEND: cuda
