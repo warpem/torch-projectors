@@ -248,8 +248,8 @@ __global__ void project_2d_forw_kernel(
         
         // Apply phase shift if translations are provided (using pre-computed shifts)
         if (params.has_shifts) {
-            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                          proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                          proj_coord_c * shift_c / params.proj_boxsize);
             cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
             val = complex_mul(val, phase_factor);
         }
@@ -544,8 +544,8 @@ __global__ void project_2d_back_kernel(
         
         // Apply phase shift correction to gradient if shifts are present
         if (params.has_shifts) {
-            float phase = 2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                         proj_coord_c * shift_c / params.boxsize);
+            float phase = 2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                         proj_coord_c * shift_c / params.proj_boxsize);
             cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
             grad_proj = complex_mul(grad_proj, phase_factor);
         }
@@ -573,15 +573,15 @@ __global__ void project_2d_back_kernel(
             
             // Apply phase modulation to reconstruction value
             if (params.has_shifts) {
-                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                              proj_coord_c * shift_c / params.boxsize);
+                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                              proj_coord_c * shift_c / params.proj_boxsize);
                 cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
                 rec_val = complex_mul(rec_val, phase_factor);
             }
             
             // Compute phase derivatives
-            cuFloatComplex phase_grad_r = make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_r / params.boxsize);
-            cuFloatComplex phase_grad_c = make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_c / params.boxsize);
+            cuFloatComplex phase_grad_r = make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_r / params.proj_boxsize);
+            cuFloatComplex phase_grad_c = make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_c / params.proj_boxsize);
             phase_grad_r = complex_mul(phase_grad_r, rec_val);
             phase_grad_c = complex_mul(phase_grad_c, rec_val);
             

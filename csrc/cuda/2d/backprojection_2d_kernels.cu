@@ -528,8 +528,8 @@ __global__ void backproject_2d_forw_kernel(
         
         // Apply conjugate phase shift for back-projection
         if (params.has_shifts) {
-            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                          proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                          proj_coord_c * shift_c / params.proj_boxsize);
             cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
             proj_val = complex_mul(proj_val, complex_conj(phase_factor));  // conjugate for backprojection
         }
@@ -691,8 +691,8 @@ __global__ void backproject_2d_back_kernel(
         
         // Apply conjugate phase shift (opposite of back-projection)
         if (params.has_shifts) {
-            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                          proj_coord_c * shift_c / params.boxsize);
+            float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                          proj_coord_c * shift_c / params.proj_boxsize);
             cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
             rec_val = complex_mul(rec_val, phase_factor);  // forward phase for grad_projections
         }
@@ -742,8 +742,8 @@ __global__ void backproject_2d_back_kernel(
             
             // Apply conjugate phase shift to projection value
             if (params.has_shifts) {
-                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                              proj_coord_c * shift_c / params.boxsize);
+                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                              proj_coord_c * shift_c / params.proj_boxsize);
                 cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
                 proj_val = complex_mul(proj_val, complex_conj(phase_factor));
             }
@@ -770,14 +770,14 @@ __global__ void backproject_2d_back_kernel(
             
             // Apply conjugate phase shift to projection value (consistent with rotation gradient computation)
             if (params.has_shifts) {
-                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.boxsize + 
-                                              proj_coord_c * shift_c / params.boxsize);
+                float phase = -2.0f * M_PI * (proj_coord_r * shift_r / params.proj_boxsize + 
+                                              proj_coord_c * shift_c / params.proj_boxsize);
                 cuFloatComplex phase_factor = make_cuFloatComplex(cosf(phase), sinf(phase));
                 proj_val = complex_mul(proj_val, complex_conj(phase_factor));
             }
             
-            cuFloatComplex phase_grad_r = complex_mul(make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_r / params.boxsize), rec_val_for_shift);
-            cuFloatComplex phase_grad_c = complex_mul(make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_c / params.boxsize), rec_val_for_shift);
+            cuFloatComplex phase_grad_r = complex_mul(make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_r / params.proj_boxsize), rec_val_for_shift);
+            cuFloatComplex phase_grad_c = complex_mul(make_cuFloatComplex(0.0f, -2.0f * M_PI * proj_coord_c / params.proj_boxsize), rec_val_for_shift);
             
             local_shift_grad[tid][0] += cuCrealf(complex_mul(proj_val, complex_conj(phase_grad_r)));
             local_shift_grad[tid][1] += cuCrealf(complex_mul(proj_val, complex_conj(phase_grad_c)));
