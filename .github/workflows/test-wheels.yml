@@ -157,7 +157,13 @@ jobs:
         with:
           pattern: badge-*
           merge-multiple: true
-          path: badges/
+          path: downloaded-badges/
+
+      - name: Create Pages directory structure
+        run: |
+          mkdir -p pages/badges
+          cp downloaded-badges/*.json pages/badges/
+          ls -la pages/badges/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -165,7 +171,7 @@ jobs:
       - name: Upload badges to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: badges/
+          path: pages/
 
       - name: Deploy to GitHub Pages
         id: deployment
