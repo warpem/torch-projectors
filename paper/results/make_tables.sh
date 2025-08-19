@@ -1,0 +1,1 @@
+python paper/results/json_to_latex.py paper/results/data/forward_2d paper/results/tables/project-2d-performance.tex --caption "2D \$\\rightarrow\$ 2D forward projection throughput in \$10^3\$ projections/second" --label "tab:project-2d-performance"

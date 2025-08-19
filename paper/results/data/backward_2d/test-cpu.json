@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "platform_name": "test-cpu",
+    "timestamp": "2025-08-14T16:11:38.434636",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.1",
+    "device_info": {
+      "type": "cpu",
+      "name": "arm",
+      "cores": 12,
+      "threads": 12,
+      "memory_gb": 51.539607552
+    },
+    "system_info": {
+      "platform": "macOS-26.0-arm64-arm-64bit-Mach-O",
+      "cpu": "arm",
+      "memory_gb": 51.539607552,
+      "python_version": "3.13.5",
+      "architecture": "arm64"
+    }
+  },
+  "benchmarks": {
+    "backward_2d_linear_32x32_batch1_proj2_grad": {
+      "parameters": {
+        "operation": "backward_2d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "num_projections": 2,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0001756249985191971,
+          "mean_time": 0.0001756249985191971,
+          "std_dev": 3.712297709562086e-06,
+          "min_time": 0.00017300000763498247,
+          "max_time": 0.00017824998940341175
+        },
+        "backward": {
+          "median_time": 8.99170117918402e-05,
+          "mean_time": 0.00012599999899975955,
+          "std_dev": 0.0,
+          "min_time": 8.99170117918402e-05,
+          "max_time": 0.00016208298620767891
+        },
+        "forward_and_backward": {
+          "median_time": 0.00030162499751895666,
+          "mean_time": 0.00030162499751895666,
+          "std_dev": 4.731675217081237e-05,
+          "min_time": 0.00026816700119525194,
+          "max_time": 0.0003350829938426614
+        },
+        "throughput_forward_backproj_per_sec": 11387.900451890311,
+        "throughput_total_backproj_per_sec": 6630.750158147297
+      }
+    },
+    "backward_2d_linear_32x32_batch1_proj2_nograd": {
+      "parameters": {
+        "operation": "backward_2d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "num_projections": 2,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.00013362501340452582,
+          "mean_time": 0.00013362501340452582,
+          "std_dev": 6.540725791831991e-06,
+          "min_time": 0.00012900002184323967,
+          "max_time": 0.00013825000496581197
+        },
+        "throughput_backproj_per_sec": 14967.257619240478
+      }
+    }
+  }
+}
