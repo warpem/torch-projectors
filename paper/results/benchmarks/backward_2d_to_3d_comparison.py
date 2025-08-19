@@ -170,23 +170,28 @@ class Backward2DTo3DComparisonBenchmark(BenchmarkBase):
             backward_times = []
             
             # Can we safely do backward pass? Only if batch=1 and projections=1, unless safety is disabled
-            safe_for_backward = (batch_size < 8 and image_size < 256 and num_projections < 2048)
+            safe_for_backward = (batch_size < 8 or image_size < 256 or num_projections < 2048)
             
             print(f"        torch-fourier-slice backward pass: {'ENABLED' if safe_for_backward else 'DISABLED (memory constraint)'}")
             
             # Warmup runs
             for _ in range(self.warmup_runs):
                 projections_tfs.grad = None
-                if not safe_for_backward:
-                    continue
+                
                 all_volumes = []
                 for i in range(batch_size):
                     projections = projections_tfs[i]  # Single projection set (num_projections, image_size, W_half)
                     rotations_batch = rotations_tfs[i]  # Rotations for this set (num_projections, 3, 3)
                     # Use 2D->3D back-projection API with image_shape parameter
-                    volume, weight_volume = insert_central_slices_rfft_3d(
-                        projections, (image_size, image_size, image_size), rotations_batch
-                    )
+                    if safe_for_backward:
+                        volume, weight_volume = insert_central_slices_rfft_3d(
+                            projections, (image_size, image_size, image_size), rotations_batch
+                        )
+                    else:
+                        with torch.no_grad():
+                            volume, weight_volume = insert_central_slices_rfft_3d(
+                                projections, (image_size, image_size, image_size), rotations_batch
+                            )
                     all_volumes.append(volume)
                 
                 if safe_for_backward:
@@ -197,8 +202,7 @@ class Backward2DTo3DComparisonBenchmark(BenchmarkBase):
             # Timing runs
             for _ in range(self.timing_runs):
                 projections_tfs.grad = None
-                if not safe_for_backward:
-                    continue
+                
                 # Time forward pass
                 self._synchronize()
                 start_time = time.perf_counter()
@@ -208,9 +212,15 @@ class Backward2DTo3DComparisonBenchmark(BenchmarkBase):
                     projections = projections_tfs[i]  # Single projection set (num_projections, image_size, W_half)
                     rotations_batch = rotations_tfs[i]  # Rotations for this set (num_projections, 3, 3)
                     # Use 2D->3D back-projection API with image_shape parameter
-                    volume, weight_volume = insert_central_slices_rfft_3d(
-                        projections, (image_size, image_size, image_size), rotations_batch
-                    )
+                    if safe_for_backward:
+                        volume, weight_volume = insert_central_slices_rfft_3d(
+                            projections, (image_size, image_size, image_size), rotations_batch
+                        )
+                    else:
+                        with torch.no_grad():
+                            volume, weight_volume = insert_central_slices_rfft_3d(
+                                projections, (image_size, image_size, image_size), rotations_batch
+                            )
                     all_volumes.append(volume)
                 
                 all_volumes = torch.stack(all_volumes)

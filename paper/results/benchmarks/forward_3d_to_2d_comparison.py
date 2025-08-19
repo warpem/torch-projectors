@@ -173,9 +173,15 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
                 for i in range(batch_size):
                     volume = volume_tfs[i]  # Single volume
                     rotations_batch = rotations_tfs[i]  # Rotations for this volume
-                    projections = extract_central_slices_rfft_3d(
-                        volume, (volume_size, volume_size, volume_size), rotations_batch
-                    )
+                    if safe_for_backward:
+                        projections = extract_central_slices_rfft_3d(
+                            volume, (volume_size, volume_size, volume_size), rotations_batch
+                        )
+                    else:
+                        with torch.no_grad():
+                            projections = extract_central_slices_rfft_3d(
+                                volume, (volume_size, volume_size, volume_size), rotations_batch
+                            )
                     all_projections.append(projections)
                 
                 if safe_for_backward:
@@ -195,9 +201,15 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
                 for i in range(batch_size):
                     volume = volume_tfs[i]  # Single volume
                     rotations_batch = rotations_tfs[i]  # Rotations for this volume
-                    projections = extract_central_slices_rfft_3d(
-                        volume, (volume_size, volume_size, volume_size), rotations_batch
-                    )
+                    if safe_for_backward:
+                        projections = extract_central_slices_rfft_3d(
+                            volume, (volume_size, volume_size, volume_size), rotations_batch
+                        )
+                    else:
+                        with torch.no_grad():
+                            projections = extract_central_slices_rfft_3d(
+                                volume, (volume_size, volume_size, volume_size), rotations_batch
+                            )
                     all_projections.append(projections)
                 
                 all_projections = torch.stack(all_projections)
