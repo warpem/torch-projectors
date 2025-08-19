@@ -1,0 +1,2724 @@
+{
+  "metadata": {
+    "platform_name": "h100-cuda",
+    "timestamp": "2025-08-19T16:45:42.115201",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.0",
+    "device_info": {
+      "type": "cuda",
+      "name": "NVIDIA H100 80GB HBM3",
+      "memory_gb": 85.028896768,
+      "compute_capability": "9.0"
+    },
+    "system_info": {
+      "platform": "Linux-6.8.0-60-generic-x86_64-with-glibc2.35",
+      "cpu": "x86_64",
+      "memory_gb": 237.49095424,
+      "python_version": "3.10.12",
+      "architecture": "x86_64"
+    },
+    "title": "H100: CUDA"
+  },
+  "benchmarks": {
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 5.237100003796513e-05,
+          "mean_time": 5.3782466663202894e-05,
+          "std_dev": 3.969896955603143e-06,
+          "min_time": 4.941199995300849e-05,
+          "max_time": 6.295100001807441e-05
+        },
+        "backward": {
+          "median_time": 0.00032206500009124284,
+          "mean_time": 0.0003433799999887318,
+          "std_dev": 0.0,
+          "min_time": 0.00031765799985805643,
+          "max_time": 0.000375606000488915
+        },
+        "forward_and_backward": {
+          "median_time": 0.00039098200022635865,
+          "mean_time": 0.00039716246665193465,
+          "std_dev": 2.3246467810641835e-05,
+          "min_time": 0.00037002899989602156,
+          "max_time": 0.00043635100018946105
+        },
+        "throughput_forward_backproj_per_sec": 152756.2963128561,
+        "throughput_total_backproj_per_sec": 20461.299996850004,
+        "gpu_peak_memory_mb": 34.235392
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 5.5715000144118676e-05,
+          "mean_time": 5.915813332345958e-05,
+          "std_dev": 6.8463106493233845e-06,
+          "min_time": 5.3699000091000926e-05,
+          "max_time": 7.509899978686008e-05
+        },
+        "throughput_backproj_per_sec": 143587.90234777532,
+        "gpu_peak_memory_mb": 33.816576
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.8753609320001488,
+          "mean_time": 0.8752514402000088,
+          "std_dev": 0.0005375275517564388,
+          "min_time": 0.8739676209997924,
+          "max_time": 0.8759810299998207
+        },
+        "backward": {
+          "median_time": 0.06566425700020773,
+          "mean_time": 0.06639757346665646,
+          "std_dev": 0.0,
+          "min_time": 0.06465286400043624,
+          "max_time": 0.06792709899991678
+        },
+        "forward_and_backward": {
+          "median_time": 0.9414954490002856,
+          "mean_time": 0.9416490136666653,
+          "std_dev": 0.0007253939459311346,
+          "min_time": 0.9406283550001717,
+          "max_time": 0.9430342759997075
+        },
+        "throughput_forward_backproj_per_sec": 18716.85084524336,
+        "throughput_total_backproj_per_sec": 17402.102174149786,
+        "gpu_peak_memory_mb": 14643.037184
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.8752413600000182,
+          "mean_time": 0.8754498629332981,
+          "std_dev": 0.0006778241616890604,
+          "min_time": 0.8745589989998734,
+          "max_time": 0.8768727120000221
+        },
+        "throughput_backproj_per_sec": 18719.40786710498,
+        "gpu_peak_memory_mb": 7338.655744
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0001241340000888158,
+          "mean_time": 0.00012448746668572614,
+          "std_dev": 3.7794522995309265e-06,
+          "min_time": 0.00011764400005631614,
+          "max_time": 0.00013117599974066252
+        },
+        "backward": {
+          "median_time": 0.0002756430003501009,
+          "mean_time": 0.0002823986666347385,
+          "std_dev": 0.0,
+          "min_time": 0.0002626049999889801,
+          "max_time": 0.0003200920000381302
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004001970000899746,
+          "mean_time": 0.00040688613332046466,
+          "std_dev": 2.2209510196725386e-05,
+          "min_time": 0.0003834959998130216,
+          "max_time": 0.0004512069999691448
+        },
+        "throughput_forward_backproj_per_sec": 64446.4852037003,
+        "throughput_total_backproj_per_sec": 19990.154844242694,
+        "gpu_peak_memory_mb": 34.235392
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.00012428300033207051,
+          "mean_time": 0.00012697986673326038,
+          "std_dev": 6.710285562741343e-06,
+          "min_time": 0.00012216899995109998,
+          "max_time": 0.00014287499971032958
+        },
+        "throughput_backproj_per_sec": 64369.2216845818,
+        "gpu_peak_memory_mb": 33.816576
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.12217177100001209,
+          "mean_time": 0.12215946120004446,
+          "std_dev": 7.761869284734807e-05,
+          "min_time": 0.12201168900037374,
+          "max_time": 0.12227912999969703
+        },
+        "backward": {
+          "median_time": 0.02179154200030098,
+          "mean_time": 0.02185797819996272,
+          "std_dev": 0.0,
+          "min_time": 0.0216362350001873,
+          "max_time": 0.022153811999942263
+        },
+        "forward_and_backward": {
+          "median_time": 0.1440073570001914,
+          "mean_time": 0.1440174394000072,
+          "std_dev": 8.405006335492211e-05,
+          "min_time": 0.14391536499988433,
+          "max_time": 0.144165501000316
+        },
+        "throughput_forward_backproj_per_sec": 134106.26584105406,
+        "throughput_total_backproj_per_sec": 113771.96513632442,
+        "gpu_peak_memory_mb": 14643.037184
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.12207957099963096,
+          "mean_time": 0.12208005340001667,
+          "std_dev": 4.541452324255553e-05,
+          "min_time": 0.12197710899999947,
+          "max_time": 0.12216178400012723
+        },
+        "throughput_backproj_per_sec": 134207.5489440369,
+        "gpu_peak_memory_mb": 7338.655744
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 5.4073000228527235e-05,
+          "mean_time": 5.6882533378181203e-05,
+          "std_dev": 6.5966115199252866e-06,
+          "min_time": 5.154000018592342e-05,
+          "max_time": 7.682000023123692e-05
+        },
+        "backward": {
+          "median_time": 0.0003608409997468698,
+          "mean_time": 0.00034952953322620793,
+          "std_dev": 0.0,
+          "min_time": 0.0003273059996899974,
+          "max_time": 0.0003999439995823195
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004040799999529554,
+          "mean_time": 0.0004064120666043891,
+          "std_dev": 2.0114595287164984e-05,
+          "min_time": 0.0003834980002466182,
+          "max_time": 0.0004601219998221495
+        },
+        "throughput_forward_backproj_per_sec": 1183585.1484015787,
+        "throughput_total_backproj_per_sec": 158384.4783395643,
+        "gpu_peak_memory_mb": 38.989824
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 5.800600001748535e-05,
+          "mean_time": 5.890359995343412e-05,
+          "std_dev": 4.006042999554503e-06,
+          "min_time": 5.434600006992696e-05,
+          "max_time": 6.921099975443212e-05
+        },
+        "throughput_backproj_per_sec": 1103334.1375152194,
+        "gpu_peak_memory_mb": 35.646464
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.22207815499996286,
+          "mean_time": 0.22210221293325957,
+          "std_dev": 0.00015703229046488677,
+          "min_time": 0.22191083999996408,
+          "max_time": 0.22241416399992886
+        },
+        "backward": {
+          "median_time": 0.014481830000022455,
+          "mean_time": 0.014427273000061783,
+          "std_dev": 0.0,
+          "min_time": 0.014068702999793459,
+          "max_time": 0.014876364999963698
+        },
+        "forward_and_backward": {
+          "median_time": 0.23656356800029243,
+          "mean_time": 0.23652948593332138,
+          "std_dev": 0.0001992226674896363,
+          "min_time": 0.23623358200029543,
+          "max_time": 0.23689556199997241
+        },
+        "throughput_forward_backproj_per_sec": 73775.82905442789,
+        "throughput_total_backproj_per_sec": 69258.33989779756,
+        "gpu_peak_memory_mb": 3512.402944
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.22206917499988776,
+          "mean_time": 0.2220641747333199,
+          "std_dev": 0.00014196847750820563,
+          "min_time": 0.22177005599996846,
+          "max_time": 0.22229199100002006
+        },
+        "throughput_backproj_per_sec": 73778.81239036567,
+        "gpu_peak_memory_mb": 1773.338624
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 6.721699992340291e-05,
+          "mean_time": 6.826926658807982e-05,
+          "std_dev": 2.926185109098446e-06,
+          "min_time": 6.429699988075299e-05,
+          "max_time": 7.373799962806515e-05
+        },
+        "backward": {
+          "median_time": 0.0003267870001764095,
+          "mean_time": 0.0003353405333958411,
+          "std_dev": 0.0,
+          "min_time": 0.0003160119999847666,
+          "max_time": 0.0003845880005428626
+        },
+        "forward_and_backward": {
+          "median_time": 0.0003934239998670819,
+          "mean_time": 0.00040360979998392094,
+          "std_dev": 2.2706501649064227e-05,
+          "min_time": 0.000383061999855272,
+          "max_time": 0.00045542600037151715
+        },
+        "throughput_forward_backproj_per_sec": 1904280.1693896235,
+        "throughput_total_backproj_per_sec": 325348.7332832891,
+        "gpu_peak_memory_mb": 35.650048
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 7.151299996621674e-05,
+          "mean_time": 7.23150000036791e-05,
+          "std_dev": 3.816241603804087e-06,
+          "min_time": 6.930000017746352e-05,
+          "max_time": 8.487400009471457e-05
+        },
+        "throughput_backproj_per_sec": 1789884.3575359464,
+        "gpu_peak_memory_mb": 34.604544
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.11129468700028156,
+          "mean_time": 0.1111597640000582,
+          "std_dev": 0.0004563378340241118,
+          "min_time": 0.11019540899997082,
+          "max_time": 0.11195170900009543
+        },
+        "backward": {
+          "median_time": 0.008442488000127923,
+          "mean_time": 0.008882480533217555,
+          "std_dev": 0.0,
+          "min_time": 0.007698722999975871,
+          "max_time": 0.01057040900013817
+        },
+        "forward_and_backward": {
+          "median_time": 0.11976110900013737,
+          "mean_time": 0.12004224453327576,
+          "std_dev": 0.0006203705370005484,
+          "min_time": 0.11919472799991127,
+          "max_time": 0.12109011199981978
+        },
+        "throughput_forward_backproj_per_sec": 18401.597193896767,
+        "throughput_total_backproj_per_sec": 17100.710047680426,
+        "gpu_peak_memory_mb": 1859.740672
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.11121417499998643,
+          "mean_time": 0.11113362899999023,
+          "std_dev": 0.0006669981665477966,
+          "min_time": 0.1102483980002944,
+          "max_time": 0.11236861899988071
+        },
+        "throughput_backproj_per_sec": 18414.918781713302,
+        "gpu_peak_memory_mb": 946.692096
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00016061799988165149,
+          "mean_time": 0.00016071273345611795,
+          "std_dev": 5.325670752614911e-06,
+          "min_time": 0.00015189000032478361,
+          "max_time": 0.00017167100031656446
+        },
+        "backward": {
+          "median_time": 0.00023329899977397872,
+          "mean_time": 0.0002620146665321954,
+          "std_dev": 0.0,
+          "min_time": 0.00023329899977397872,
+          "max_time": 0.0003047099999093916
+        },
+        "forward_and_backward": {
+          "median_time": 0.00041944499980672845,
+          "mean_time": 0.0004227273999883134,
+          "std_dev": 2.1326228130175085e-05,
+          "min_time": 0.00039912700003696955,
+          "max_time": 0.00046441099993899115
+        },
+        "throughput_forward_backproj_per_sec": 49807.618111884454,
+        "throughput_total_backproj_per_sec": 19072.822428891115,
+        "gpu_peak_memory_mb": 72.69376
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0001606099999662547,
+          "mean_time": 0.00016070800002125906,
+          "std_dev": 3.3440894571249857e-06,
+          "min_time": 0.00015530600012425566,
+          "max_time": 0.00016498300010425737
+        },
+        "throughput_backproj_per_sec": 49810.099008037214,
+        "gpu_peak_memory_mb": 47.133696
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.06339921800008597,
+          "mean_time": 0.0634669030000623,
+          "std_dev": 0.0002072082682807192,
+          "min_time": 0.0630748250000579,
+          "max_time": 0.06387448399982532
+        },
+        "backward": {
+          "median_time": 0.007946173999698658,
+          "mean_time": 0.00815126006658223,
+          "std_dev": 0.0,
+          "min_time": 0.007475818000330037,
+          "max_time": 0.0085760100000698
+        },
+        "forward_and_backward": {
+          "median_time": 0.0716508350001277,
+          "mean_time": 0.07161816306664454,
+          "std_dev": 0.00021777337429620258,
+          "min_time": 0.07130193300008614,
+          "max_time": 0.07192534299974795
+        },
+        "throughput_forward_backproj_per_sec": 16151.618778619817,
+        "throughput_total_backproj_per_sec": 14291.529191504536,
+        "gpu_peak_memory_mb": 2875.241472
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.06338741399986247,
+          "mean_time": 0.06346321693332962,
+          "std_dev": 0.00029698650331662547,
+          "min_time": 0.06296977900001366,
+          "max_time": 0.06399340600000869
+        },
+        "throughput_backproj_per_sec": 16154.626532046594,
+        "gpu_peak_memory_mb": 1252.0448
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00015674399992349208,
+          "mean_time": 0.00015619013332373772,
+          "std_dev": 6.035987525356188e-06,
+          "min_time": 0.00014628400003857678,
+          "max_time": 0.00016474999983984162
+        },
+        "backward": {
+          "median_time": 0.00023865299999670242,
+          "mean_time": 0.00026478326675108594,
+          "std_dev": 0.0,
+          "min_time": 0.00023304599972107098,
+          "max_time": 0.0002992100003211817
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004197559997010103,
+          "mean_time": 0.0004209734000748237,
+          "std_dev": 1.9803031975017618e-05,
+          "min_time": 0.0003942499997720006,
+          "max_time": 0.00046063200034041074
+        },
+        "throughput_forward_backproj_per_sec": 408309.09018041444,
+        "throughput_total_backproj_per_sec": 152469.53002598372,
+        "gpu_peak_memory_mb": 38.989824
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0001547870001559204,
+          "mean_time": 0.0001573853333563117,
+          "std_dev": 5.629190444273138e-06,
+          "min_time": 0.00015111099992282107,
+          "max_time": 0.0001664839996919909
+        },
+        "throughput_backproj_per_sec": 413471.41514165513,
+        "gpu_peak_memory_mb": 35.646464
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.027863480000178242,
+          "mean_time": 0.0278664531333258,
+          "std_dev": 3.267419241605048e-05,
+          "min_time": 0.02782644099988829,
+          "max_time": 0.027946690999669954
+        },
+        "backward": {
+          "median_time": 0.004478866999761522,
+          "mean_time": 0.004457505266661125,
+          "std_dev": 0.0,
+          "min_time": 0.004389076000734349,
+          "max_time": 0.004517334999945888
+        },
+        "forward_and_backward": {
+          "median_time": 0.03232218199991621,
+          "mean_time": 0.032323958399986925,
+          "std_dev": 2.4147775568634428e-05,
+          "min_time": 0.03227202699963527,
+          "max_time": 0.03235112199990908
+        },
+        "throughput_forward_backproj_per_sec": 588009.8250432175,
+        "throughput_total_backproj_per_sec": 506896.4712853381,
+        "gpu_peak_memory_mb": 3512.402944
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.02785338400008186,
+          "mean_time": 0.027863668200006943,
+          "std_dev": 2.6011550236546443e-05,
+          "min_time": 0.02783049099980417,
+          "max_time": 0.02792997100004868
+        },
+        "throughput_backproj_per_sec": 588222.9606266818,
+        "gpu_peak_memory_mb": 1773.338624
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00023491499996453058,
+          "mean_time": 0.00023567920000762874,
+          "std_dev": 3.580383058414623e-06,
+          "min_time": 0.00023113499992177822,
+          "max_time": 0.00024137000036716927
+        },
+        "backward": {
+          "median_time": 0.00016309900047417614,
+          "mean_time": 0.00016855866664021354,
+          "std_dev": 0.0,
+          "min_time": 0.0001414319995092228,
+          "max_time": 0.00020419699967533234
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004030919999422622,
+          "mean_time": 0.00040423786664784225,
+          "std_dev": 1.9915490357141517e-05,
+          "min_time": 0.00038064099999246537,
+          "max_time": 0.00044007699989379034
+        },
+        "throughput_forward_backproj_per_sec": 544877.9346543495,
+        "throughput_total_backproj_per_sec": 317545.3743024778,
+        "gpu_peak_memory_mb": 35.650048
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0002505870002096344,
+          "mean_time": 0.0002508556000975659,
+          "std_dev": 3.824004331374131e-06,
+          "min_time": 0.00024615700021968223,
+          "max_time": 0.0002594330003375944
+        },
+        "throughput_backproj_per_sec": 510800.63966972986,
+        "gpu_peak_memory_mb": 34.604544
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.015112720000161062,
+          "mean_time": 0.01510907980009506,
+          "std_dev": 4.203914192103419e-05,
+          "min_time": 0.015042679000089265,
+          "max_time": 0.015178130000094825
+        },
+        "backward": {
+          "median_time": 0.0029264839999996184,
+          "mean_time": 0.002915554733256916,
+          "std_dev": 0.0,
+          "min_time": 0.002808123999784584,
+          "max_time": 0.0030337180000969965
+        },
+        "forward_and_backward": {
+          "median_time": 0.018038337999769283,
+          "mean_time": 0.018024634533351975,
+          "std_dev": 7.453296014052513e-05,
+          "min_time": 0.017883210000036343,
+          "max_time": 0.018170925000049465
+        },
+        "throughput_forward_backproj_per_sec": 135514.98340326385,
+        "throughput_total_backproj_per_sec": 113535.95880209112,
+        "gpu_peak_memory_mb": 1859.740672
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.015086834000157978,
+          "mean_time": 0.015079174799999843,
+          "std_dev": 7.06570566288109e-05,
+          "min_time": 0.0149599709998256,
+          "max_time": 0.0152072800001406
+        },
+        "throughput_backproj_per_sec": 135747.50010363705,
+        "gpu_peak_memory_mb": 946.692096
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0009398530000908067,
+          "mean_time": 0.0009571581333451225,
+          "std_dev": 2.5552342171488465e-05,
+          "min_time": 0.000931318000311876,
+          "max_time": 0.0009891459999380459
+        },
+        "backward": {
+          "median_time": 0.00028580800017152796,
+          "mean_time": 0.0003364503333614266,
+          "std_dev": 0.0,
+          "min_time": 0.00028580800017152796,
+          "max_time": 0.0004048460000376508
+        },
+        "forward_and_backward": {
+          "median_time": 0.001282253000226774,
+          "mean_time": 0.0012936084667065492,
+          "std_dev": 2.5512536785274723e-05,
+          "min_time": 0.0012661150003623334,
+          "max_time": 0.0013424049998320697
+        },
+        "throughput_forward_backproj_per_sec": 8511.969424183415,
+        "throughput_total_backproj_per_sec": 6239.018351748955,
+        "gpu_peak_memory_mb": 72.69376
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.000938041000154044,
+          "mean_time": 0.0009566464666628841,
+          "std_dev": 2.428673419302895e-05,
+          "min_time": 0.0009320649996880093,
+          "max_time": 0.0009867709995887708
+        },
+        "throughput_backproj_per_sec": 8528.411869722378,
+        "gpu_peak_memory_mb": 47.133696
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.028317489000073692,
+          "mean_time": 0.02830510880006235,
+          "std_dev": 0.0001295247843680766,
+          "min_time": 0.028063550999831932,
+          "max_time": 0.02844351400017331
+        },
+        "backward": {
+          "median_time": 0.0019440449996181997,
+          "mean_time": 0.0020078389333320957,
+          "std_dev": 0.0,
+          "min_time": 0.0017791190002753865,
+          "max_time": 0.002358242999889626
+        },
+        "forward_and_backward": {
+          "median_time": 0.030306405999908748,
+          "mean_time": 0.030312947733394442,
+          "std_dev": 0.00013475391503921857,
+          "min_time": 0.030065852000007,
+          "max_time": 0.03055811000012909
+        },
+        "throughput_forward_backproj_per_sec": 72322.7966997593,
+        "throughput_total_backproj_per_sec": 67576.47211636268,
+        "gpu_peak_memory_mb": 470.2464
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.028337540999928024,
+          "mean_time": 0.028314531199945727,
+          "std_dev": 0.0001329520091786294,
+          "min_time": 0.028068458999769064,
+          "max_time": 0.028565196000272408
+        },
+        "throughput_backproj_per_sec": 72271.62018063606,
+        "gpu_peak_memory_mb": 251.94496
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0005234430000200518,
+          "mean_time": 0.0005209950666843118,
+          "std_dev": 7.720629283470453e-06,
+          "min_time": 0.0005071800001132942,
+          "max_time": 0.0005342180002116947
+        },
+        "backward": {
+          "median_time": 0.0007259789999807253,
+          "mean_time": 0.0007272116000118938,
+          "std_dev": 0.0,
+          "min_time": 0.000710798000000068,
+          "max_time": 0.0007471330000043963
+        },
+        "forward_and_backward": {
+          "median_time": 0.001250213000275835,
+          "mean_time": 0.0012482066666962056,
+          "std_dev": 9.266630848683429e-06,
+          "min_time": 0.0012323920000198996,
+          "max_time": 0.001259755999853951
+        },
+        "throughput_forward_backproj_per_sec": 15283.421498985637,
+        "throughput_total_backproj_per_sec": 6398.90962438797,
+        "gpu_peak_memory_mb": 341.075968
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0005258289997982502,
+          "mean_time": 0.0005231460666739925,
+          "std_dev": 8.677791753709294e-06,
+          "min_time": 0.0005028819996368838,
+          "max_time": 0.0005307139999786159
+        },
+        "throughput_backproj_per_sec": 15214.0715005628,
+        "gpu_peak_memory_mb": 138.175488
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.010007525999753852,
+          "mean_time": 0.010018461933365566,
+          "std_dev": 2.759530638836426e-05,
+          "min_time": 0.009988681999857363,
+          "max_time": 0.010076021000259061
+        },
+        "backward": {
+          "median_time": 0.00471610199974748,
+          "mean_time": 0.004736457333304619,
+          "std_dev": 0.0,
+          "min_time": 0.0046518299996023416,
+          "max_time": 0.004904412000087177
+        },
+        "forward_and_backward": {
+          "median_time": 0.014749170999948547,
+          "mean_time": 0.014754919266670186,
+          "std_dev": 5.128787199668096e-05,
+          "min_time": 0.014671202999579691,
+          "max_time": 0.014901907999956165
+        },
+        "throughput_forward_backproj_per_sec": 102322.99171895097,
+        "throughput_total_backproj_per_sec": 69427.63088200497,
+        "gpu_peak_memory_mb": 2875.241472
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.010037049000402476,
+          "mean_time": 0.010031570666736418,
+          "std_dev": 3.706051800934856e-05,
+          "min_time": 0.009957334999853629,
+          "max_time": 0.010077487999751611
+        },
+        "throughput_backproj_per_sec": 102022.01861911191,
+        "gpu_peak_memory_mb": 1252.0448
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00018132700006390223,
+          "mean_time": 0.00018243466668839878,
+          "std_dev": 3.8917642314541275e-06,
+          "min_time": 0.0001758700000209501,
+          "max_time": 0.000189209999916784
+        },
+        "backward": {
+          "median_time": 0.0002321750002920453,
+          "mean_time": 0.00023382746667266474,
+          "std_dev": 0.0,
+          "min_time": 0.00020491899977059802,
+          "max_time": 0.00026939500003209105
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004150580002715287,
+          "mean_time": 0.0004162621333610635,
+          "std_dev": 1.612220288334329e-05,
+          "min_time": 0.00039374000016323407,
+          "max_time": 0.0004505560000325204
+        },
+        "throughput_forward_backproj_per_sec": 5647256.060262,
+        "throughput_total_backproj_per_sec": 2467125.074881353,
+        "gpu_peak_memory_mb": 50.312192
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.00018243600015921402,
+          "mean_time": 0.0001831906000309876,
+          "std_dev": 3.504383821444486e-06,
+          "min_time": 0.0001786830002856732,
+          "max_time": 0.00019011800031876191
+        },
+        "throughput_backproj_per_sec": 5612927.2682274515,
+        "gpu_peak_memory_mb": 41.955328
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.014339075999941997,
+          "mean_time": 0.014348622533301143,
+          "std_dev": 4.3816178875363444e-05,
+          "min_time": 0.014288584000041737,
+          "max_time": 0.014439435999975103
+        },
+        "backward": {
+          "median_time": 0.0014683560002595186,
+          "mean_time": 0.0014984889333997367,
+          "std_dev": 0.0,
+          "min_time": 0.0013626760000988725,
+          "max_time": 0.0017208020003636193
+        },
+        "forward_and_backward": {
+          "median_time": 0.015849729999899864,
+          "mean_time": 0.01584711146670088,
+          "std_dev": 7.238212777547851e-05,
+          "min_time": 0.0157546860000366,
+          "max_time": 0.016009386000405357
+        },
+        "throughput_forward_backproj_per_sec": 71413.24866428926,
+        "throughput_total_backproj_per_sec": 64606.7787909617,
+        "gpu_peak_memory_mb": 447.788032
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.014299823999863293,
+          "mean_time": 0.014317885266639982,
+          "std_dev": 5.0251381789437335e-05,
+          "min_time": 0.014255155000228115,
+          "max_time": 0.014428562999910355
+        },
+        "throughput_backproj_per_sec": 71609.27295397408,
+        "gpu_peak_memory_mb": 240.16896
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00023387000010188785,
+          "mean_time": 0.0002331969999431749,
+          "std_dev": 4.3831980154027946e-06,
+          "min_time": 0.00022608400013268692,
+          "max_time": 0.00024004700026125647
+        },
+        "backward": {
+          "median_time": 0.0005551949998334749,
+          "mean_time": 0.0005550479333881716,
+          "std_dev": 0.0,
+          "min_time": 0.0005389890006881615,
+          "max_time": 0.0005705680005121394
+        },
+        "forward_and_backward": {
+          "median_time": 0.0007890649999353627,
+          "mean_time": 0.0007882449333313465,
+          "std_dev": 5.619720949576219e-06,
+          "min_time": 0.0007768150003357732,
+          "max_time": 0.0007988970000951667
+        },
+        "throughput_forward_backproj_per_sec": 273656.3046654883,
+        "throughput_total_backproj_per_sec": 81108.65391981984,
+        "gpu_peak_memory_mb": 349.802496
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.00023173299996415153,
+          "mean_time": 0.0002329029999600607,
+          "std_dev": 5.249335045445389e-06,
+          "min_time": 0.00022647699961453327,
+          "max_time": 0.00024456599976474536
+        },
+        "throughput_backproj_per_sec": 276179.91399541986,
+        "gpu_peak_memory_mb": 143.232
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.02292079799963176,
+          "mean_time": 0.022923387066657596,
+          "std_dev": 2.0643975024967617e-05,
+          "min_time": 0.022884434999923542,
+          "max_time": 0.022978072999649157
+        },
+        "backward": {
+          "median_time": 0.0010281610007041309,
+          "mean_time": 0.0009789427333392572,
+          "std_dev": 0.0,
+          "min_time": 0.0008898610003598151,
+          "max_time": 0.0010281610007041309
+        },
+        "forward_and_backward": {
+          "median_time": 0.023902926000118896,
+          "mean_time": 0.023902329799996853,
+          "std_dev": 3.173586460046599e-05,
+          "min_time": 0.02385051300007035,
+          "max_time": 0.023948990999997477
+        },
+        "throughput_forward_backproj_per_sec": 714809.3186050163,
+        "throughput_total_backproj_per_sec": 685439.0964486316,
+        "gpu_peak_memory_mb": 251.528192
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.021872103000077914,
+          "mean_time": 0.021865734066705046,
+          "std_dev": 2.0684243141832044e-05,
+          "min_time": 0.021820930000103544,
+          "max_time": 0.021892735000164976
+        },
+        "throughput_backproj_per_sec": 749082.0612879171,
+        "gpu_peak_memory_mb": 142.901248
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.00040290399965670076,
+          "mean_time": 0.0004037356665927897,
+          "std_dev": 4.606218665179681e-06,
+          "min_time": 0.0003954429998884734,
+          "max_time": 0.0004109240003344894
+        },
+        "backward": {
+          "median_time": 0.00012412400019456982,
+          "mean_time": 0.00012315966672152474,
+          "std_dev": 0.0,
+          "min_time": 0.00011100199981228798,
+          "max_time": 0.0001318070003435423
+        },
+        "forward_and_backward": {
+          "median_time": 0.0005258930000309192,
+          "mean_time": 0.0005268953333143145,
+          "std_dev": 4.461351077306609e-06,
+          "min_time": 0.0005217509997237357,
+          "max_time": 0.0005368610000004992
+        },
+        "throughput_forward_backproj_per_sec": 5083096.722159679,
+        "throughput_total_backproj_per_sec": 3894328.3137056218,
+        "gpu_peak_memory_mb": 60.802048
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.00040517199977330165,
+          "mean_time": 0.00040538526667054006,
+          "std_dev": 4.173218291959394e-06,
+          "min_time": 0.00039869100010037073,
+          "max_time": 0.0004132750000280794
+        },
+        "throughput_backproj_per_sec": 5054643.462889536,
+        "gpu_peak_memory_mb": 47.222784
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.007267511000009108,
+          "mean_time": 0.00727009906662109,
+          "std_dev": 5.408522917471734e-05,
+          "min_time": 0.007165266999891173,
+          "max_time": 0.007343975999901886
+        },
+        "backward": {
+          "median_time": 0.0016434290005236107,
+          "mean_time": 0.0015485954001026889,
+          "std_dev": 0.0,
+          "min_time": 0.0014117569999143598,
+          "max_time": 0.0016926569996940088
+        },
+        "forward_and_backward": {
+          "median_time": 0.008802865000234306,
+          "mean_time": 0.00881869446672378,
+          "std_dev": 5.586912914578981e-05,
+          "min_time": 0.008733278999898175,
+          "max_time": 0.008932592000292061
+        },
+        "throughput_forward_backproj_per_sec": 17612.63244043794,
+        "throughput_total_backproj_per_sec": 14540.720549115887,
+        "gpu_peak_memory_mb": 388.635136
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.007295751000128803,
+          "mean_time": 0.007296148533320472,
+          "std_dev": 4.255680902621883e-05,
+          "min_time": 0.007210729999769683,
+          "max_time": 0.007370797000021412
+        },
+        "throughput_backproj_per_sec": 17544.458411168394,
+        "gpu_peak_memory_mb": 185.734656
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0002793690000544302,
+          "mean_time": 0.00027999079999669143,
+          "std_dev": 4.9947522029683485e-06,
+          "min_time": 0.00027328499982104404,
+          "max_time": 0.0002910380003413593
+        },
+        "backward": {
+          "median_time": 0.0001978889999918465,
+          "mean_time": 0.0001989577333309474,
+          "std_dev": 0.0,
+          "min_time": 0.00018399599957774626,
+          "max_time": 0.00022228399984669522
+        },
+        "forward_and_backward": {
+          "median_time": 0.0004733900000246649,
+          "mean_time": 0.00047894853332763887,
+          "std_dev": 1.1243053346043483e-05,
+          "min_time": 0.0004669370000556228,
+          "max_time": 0.0005004029999327031
+        },
+        "throughput_forward_backproj_per_sec": 458175.3880175016,
+        "throughput_total_backproj_per_sec": 270390.16454367613,
+        "gpu_peak_memory_mb": 84.679168
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.000281289999747969,
+          "mean_time": 0.00028164353334432236,
+          "std_dev": 3.476658188547765e-06,
+          "min_time": 0.0002764819996627921,
+          "max_time": 0.00028826800007664133
+        },
+        "throughput_backproj_per_sec": 455046.39380954107,
+        "gpu_peak_memory_mb": 59.119104
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.003596448000280361,
+          "mean_time": 0.0035979828000260263,
+          "std_dev": 1.4899637699509459e-05,
+          "min_time": 0.003571158999875479,
+          "max_time": 0.0036272180000196386
+        },
+        "backward": {
+          "median_time": 0.0006418079997274617,
+          "mean_time": 0.0006498915332485922,
+          "std_dev": 0.0,
+          "min_time": 0.0006267839999054559,
+          "max_time": 0.0007009219998508343
+        },
+        "forward_and_backward": {
+          "median_time": 0.00424770300014643,
+          "mean_time": 0.004247874333274618,
+          "std_dev": 1.2186010944703338e-05,
+          "min_time": 0.0042297069999222,
+          "max_time": 0.004272080999726313
+        },
+        "throughput_forward_backproj_per_sec": 569450.7469148304,
+        "throughput_total_backproj_per_sec": 482142.9370013393,
+        "gpu_peak_memory_mb": 470.2464
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0035851679999723274,
+          "mean_time": 0.0035931923333616094,
+          "std_dev": 1.6484846549372062e-05,
+          "min_time": 0.0035732270002881705,
+          "max_time": 0.003624214999945252
+        },
+        "throughput_backproj_per_sec": 571242.407612644,
+        "gpu_peak_memory_mb": 251.94496
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0036252969998713525,
+          "mean_time": 0.0035833320666824875,
+          "std_dev": 7.691973653893649e-05,
+          "min_time": 0.0034589339998092328,
+          "max_time": 0.0036378370000420546
+        },
+        "backward": {
+          "median_time": 0.0012471410000216565,
+          "mean_time": 0.0014012928667398229,
+          "std_dev": 0.0,
+          "min_time": 0.001244116000179929,
+          "max_time": 0.0015959489996930643
+        },
+        "forward_and_backward": {
+          "median_time": 0.005048634000104357,
+          "mean_time": 0.00498462493342231,
+          "std_dev": 8.782437115993351e-05,
+          "min_time": 0.004873226000199793,
+          "max_time": 0.0050638709999475395
+        },
+        "throughput_forward_backproj_per_sec": 2206.715753297975,
+        "throughput_total_backproj_per_sec": 1584.5870387583327,
+        "gpu_peak_memory_mb": 341.075968
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch1_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.003636556999936147,
+          "mean_time": 0.0035917544667123974,
+          "std_dev": 8.111453198702698e-05,
+          "min_time": 0.0034607270004016755,
+          "max_time": 0.0036542140001074586
+        },
+        "throughput_backproj_per_sec": 2199.8830212589737,
+        "gpu_peak_memory_mb": 138.175488
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.005170258000362082,
+          "mean_time": 0.005180481333294059,
+          "std_dev": 4.9617588932113244e-05,
+          "min_time": 0.005121587999838084,
+          "max_time": 0.00527115299973957
+        },
+        "backward": {
+          "median_time": 0.004211545000089245,
+          "mean_time": 0.004243226466708923,
+          "std_dev": 0.0,
+          "min_time": 0.00409646599973712,
+          "max_time": 0.004341424000358529
+        },
+        "forward_and_backward": {
+          "median_time": 0.00944140100000368,
+          "mean_time": 0.009423707800002982,
+          "std_dev": 4.251585621477227e-05,
+          "min_time": 0.009363717999804066,
+          "max_time": 0.009475077999923087
+        },
+        "throughput_forward_backproj_per_sec": 12378.492523103869,
+        "throughput_total_backproj_per_sec": 6778.654989865917,
+        "gpu_peak_memory_mb": 2493.714432
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.005223359999945387,
+          "mean_time": 0.005223904666703068,
+          "std_dev": 3.2705309431648266e-05,
+          "min_time": 0.005157375000180764,
+          "max_time": 0.00526974300009897
+        },
+        "throughput_backproj_per_sec": 12252.64963561178,
+        "gpu_peak_memory_mb": 870.51776
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0011525559998517565,
+          "mean_time": 0.0011563081333103278,
+          "std_dev": 1.3827992872047748e-05,
+          "min_time": 0.00113739100015664,
+          "max_time": 0.0011862350002047606
+        },
+        "backward": {
+          "median_time": 0.00016206999998757965,
+          "mean_time": 0.00015243633336770775,
+          "std_dev": 0.0,
+          "min_time": 0.00011264600016147597,
+          "max_time": 0.0001792799994291272
+        },
+        "forward_and_backward": {
+          "median_time": 0.0013086030003250926,
+          "mean_time": 0.0013087444666780358,
+          "std_dev": 1.521670711095147e-05,
+          "min_time": 0.001276317000247218,
+          "max_time": 0.0013276739996399556
+        },
+        "throughput_forward_backproj_per_sec": 888460.0836156408,
+        "throughput_total_backproj_per_sec": 782513.8714687423,
+        "gpu_peak_memory_mb": 50.312192
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0011465950001365854,
+          "mean_time": 0.0011480304666899126,
+          "std_dev": 1.0270124398542465e-05,
+          "min_time": 0.001131078000071284,
+          "max_time": 0.001168974999927741
+        },
+        "throughput_backproj_per_sec": 893079.073149646,
+        "gpu_peak_memory_mb": 41.955328
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0019006349998562655,
+          "mean_time": 0.001903863800058995,
+          "std_dev": 9.333397166761163e-06,
+          "min_time": 0.001892484000109107,
+          "max_time": 0.001923964000070555
+        },
+        "backward": {
+          "median_time": 0.0007795050000822812,
+          "mean_time": 0.0007851327333204002,
+          "std_dev": 0.0,
+          "min_time": 0.0007600980002280266,
+          "max_time": 0.0008517319997736195
+        },
+        "forward_and_backward": {
+          "median_time": 0.002683412999886059,
+          "mean_time": 0.0026889965333793953,
+          "std_dev": 2.099376181948171e-05,
+          "min_time": 0.00266563800005315,
+          "max_time": 0.002749061000031361
+        },
+        "throughput_forward_backproj_per_sec": 538767.3067566573,
+        "throughput_total_backproj_per_sec": 381603.57725161215,
+        "gpu_peak_memory_mb": 447.788032
+      }
+    },
+    "backward_2d_to_3d_linear_128x128x128_batch8_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.001907526000195503,
+          "mean_time": 0.0019065783333644503,
+          "std_dev": 7.2524532991107865e-06,
+          "min_time": 0.0018914929996753926,
+          "max_time": 0.001918643999943015
+        },
+        "throughput_backproj_per_sec": 536820.9921621251,
+        "gpu_peak_memory_mb": 240.16896
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0013006549997953698,
+          "mean_time": 0.0012980621999607441,
+          "std_dev": 1.4199998871270176e-05,
+          "min_time": 0.0012747679998028616,
+          "max_time": 0.001313935999860405
+        },
+        "backward": {
+          "median_time": 0.0007373970001935959,
+          "mean_time": 0.0007260020000406561,
+          "std_dev": 0.0,
+          "min_time": 0.0006793460001972562,
+          "max_time": 0.0007727130000603211
+        },
+        "forward_and_backward": {
+          "median_time": 0.002037375999861979,
+          "mean_time": 0.0020240642000014003,
+          "std_dev": 3.019451705747008e-05,
+          "min_time": 0.0019550120000531024,
+          "max_time": 0.00205828800017116
+        },
+        "throughput_forward_backproj_per_sec": 49205.97699625883,
+        "throughput_total_backproj_per_sec": 31412.954704647374,
+        "gpu_peak_memory_mb": 349.802496
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0012525170000117214,
+          "mean_time": 0.0012756559332956386,
+          "std_dev": 3.989607481557807e-05,
+          "min_time": 0.0012346829998932662,
+          "max_time": 0.0013579699998444994
+        },
+        "throughput_backproj_per_sec": 51097.110857099,
+        "gpu_peak_memory_mb": 143.232
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.002970704000290425,
+          "mean_time": 0.0029716980000254506,
+          "std_dev": 2.7559877572306635e-06,
+          "min_time": 0.002968473999771959,
+          "max_time": 0.002978123000048072
+        },
+        "backward": {
+          "median_time": 0.0003958810002586688,
+          "mean_time": 0.0004015106666277764,
+          "std_dev": 0.0,
+          "min_time": 0.0003858750001199951,
+          "max_time": 0.00041511700010232744
+        },
+        "forward_and_backward": {
+          "median_time": 0.003370434000316891,
+          "mean_time": 0.003373208666653227,
+          "std_dev": 6.897997281352777e-06,
+          "min_time": 0.0033636779999142163,
+          "max_time": 0.0033857579996947607
+        },
+        "throughput_forward_backproj_per_sec": 5515191.011422966,
+        "throughput_total_backproj_per_sec": 4861095.0395289045,
+        "gpu_peak_memory_mb": 251.528192
+      }
+    },
+    "backward_2d_to_3d_linear_32x32x32_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.002866178000203945,
+          "mean_time": 0.0028665034666725355,
+          "std_dev": 2.099824901772886e-06,
+          "min_time": 0.002864406999833591,
+          "max_time": 0.002871065999897837
+        },
+        "throughput_backproj_per_sec": 5716323.270513619,
+        "gpu_peak_memory_mb": 142.901248
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj8_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.000970041999607929,
+          "mean_time": 0.0009705295333636362,
+          "std_dev": 8.086256244536483e-06,
+          "min_time": 0.0009553669997330871,
+          "max_time": 0.000989811000181362
+        },
+        "backward": {
+          "median_time": 0.0034946639998452156,
+          "mean_time": 0.0034868292666033083,
+          "std_dev": 0.0,
+          "min_time": 0.003460051999809366,
+          "max_time": 0.0035050619999310584
+        },
+        "forward_and_backward": {
+          "median_time": 0.0044567840000127035,
+          "mean_time": 0.004457358799966945,
+          "std_dev": 9.948013169699064e-06,
+          "min_time": 0.004441262000000279,
+          "max_time": 0.004476689000057377
+        },
+        "throughput_forward_backproj_per_sec": 65976.52475446164,
+        "throughput_total_backproj_per_sec": 14360.130533545618,
+        "gpu_peak_memory_mb": 2493.714432
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch8_proj8_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0009749009996085078,
+          "mean_time": 0.0009737853332808299,
+          "std_dev": 1.1463692105230069e-05,
+          "min_time": 0.0009486219996688305,
+          "max_time": 0.0009917349998431746
+        },
+        "throughput_backproj_per_sec": 65647.69143297685,
+        "gpu_peak_memory_mb": 870.51776
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0010194100000262551,
+          "mean_time": 0.0010221753999758222,
+          "std_dev": 8.22318556207563e-06,
+          "min_time": 0.0010104490002049715,
+          "max_time": 0.0010340299995732494
+        },
+        "backward": {
+          "median_time": 0.0007788680004523485,
+          "mean_time": 0.0007663172667889739,
+          "std_dev": 0.0,
+          "min_time": 0.0007376960002147825,
+          "max_time": 0.000781146000008448
+        },
+        "forward_and_backward": {
+          "median_time": 0.001788957000371738,
+          "mean_time": 0.001788492666764796,
+          "std_dev": 1.1253040379177373e-05,
+          "min_time": 0.0017642960001467145,
+          "max_time": 0.00181078300010995
+        },
+        "throughput_forward_backproj_per_sec": 125562.82555272494,
+        "throughput_total_backproj_per_sec": 71550.07078057333,
+        "gpu_peak_memory_mb": 388.635136
+      }
+    },
+    "backward_2d_to_3d_linear_256x256x256_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0010242940002171963,
+          "mean_time": 0.0010251200666364943,
+          "std_dev": 6.450826195781522e-06,
+          "min_time": 0.0010131340000043565,
+          "max_time": 0.0010373659997640061
+        },
+        "throughput_backproj_per_sec": 124964.12160264363,
+        "gpu_peak_memory_mb": 185.734656
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.002877396000258159,
+          "mean_time": 0.0028775955332700203,
+          "std_dev": 1.424591233053903e-05,
+          "min_time": 0.0028523639998638828,
+          "max_time": 0.002906815999722312
+        },
+        "backward": {
+          "median_time": 0.00014588600015486008,
+          "mean_time": 0.00019687320009325048,
+          "std_dev": 0.0,
+          "min_time": 0.00014588600015486008,
+          "max_time": 0.00024077700027191895
+        },
+        "forward_and_backward": {
+          "median_time": 0.0030669390002913133,
+          "mean_time": 0.0030744687333632706,
+          "std_dev": 2.270923493000762e-05,
+          "min_time": 0.003047629999855417,
+          "max_time": 0.003124742000181868
+        },
+        "throughput_forward_backproj_per_sec": 711754.6558820038,
+        "throughput_total_backproj_per_sec": 667766.786299131,
+        "gpu_peak_memory_mb": 60.802048
+      }
+    },
+    "backward_2d_to_3d_cubic_32x32x32_batch1_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0028765280003426597,
+          "mean_time": 0.0028777855333525317,
+          "std_dev": 1.5740368253336226e-05,
+          "min_time": 0.002853058999789937,
+          "max_time": 0.002900777999911952
+        },
+        "throughput_backproj_per_sec": 711969.4297277958,
+        "gpu_peak_memory_mb": 47.222784
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj128_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.001945901999988564,
+          "mean_time": 0.001949526933276502,
+          "std_dev": 1.0223557557151436e-05,
+          "min_time": 0.0019371939997654408,
+          "max_time": 0.001967989000149828
+        },
+        "backward": {
+          "median_time": 0.0003490399999463989,
+          "mean_time": 0.00039431366673549443,
+          "std_dev": 0.0,
+          "min_time": 0.0003490399999463989,
+          "max_time": 0.00044813600015913835
+        },
+        "forward_and_backward": {
+          "median_time": 0.002350425000258838,
+          "mean_time": 0.0023438406000119965,
+          "std_dev": 2.3917200839179087e-05,
+          "min_time": 0.002309298000000126,
+          "max_time": 0.0023969750000105705
+        },
+        "throughput_forward_backproj_per_sec": 65779.26329319373,
+        "throughput_total_backproj_per_sec": 54458.236270420944,
+        "gpu_peak_memory_mb": 84.679168
+      }
+    },
+    "backward_2d_to_3d_cubic_128x128x128_batch1_proj128_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 0.0019549959997675614,
+          "mean_time": 0.001954689933275707,
+          "std_dev": 1.168525169165329e-05,
+          "min_time": 0.0019389369999771588,
+          "max_time": 0.001981177999823558
+        },
+        "throughput_backproj_per_sec": 65473.279748510235,
+        "gpu_peak_memory_mb": 59.119104
+      }
+    }
+  }
+}
