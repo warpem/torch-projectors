@@ -61,6 +61,199 @@ The build system automatically detects and enables:
 - **MPS support** on macOS with Apple Silicon
 - **CPU fallback** on all platforms
 
+## Usage Examples
+
+This section demonstrates minimal usage patterns for the main projection operations with oversampling:
+
+### 2D-to-2D Forward Projection
+
+```python
+import torch
+import torch_projectors
+
+# Helper function to pad and prepare real-space data
+def pad_and_fftshift(tensor, oversampling_factor):
+    H, W = tensor.shape[-2:]
+    new_size = int(H * oversampling_factor)
+    if new_size % 2 != 0:
+        new_size += 1
+    pad_total = new_size - H
+    pad_before = pad_total // 2
+    pad_after = pad_total - pad_before
+    padded = torch.nn.functional.pad(tensor, (pad_before, pad_after, pad_before, pad_after))
+    return torch.fft.fftshift(padded, dim=(-2, -1))
+
+# Start with real-space image
+real_image = torch.randn(32, 32)
+
+# 1. Zero pad 2x and fftshift
+padded_image = pad_and_fftshift(real_image, 2.0)
+
+# 2. Convert to Fourier space
+fourier_image = torch.fft.rfft2(padded_image, norm='forward')
+
+# 3. Set up projection parameters (90-degree rotation)
+rotations = torch.tensor([[0., -1.], [1., 0.]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+shifts = torch.zeros(1, 1, 2, dtype=torch.float32)
+
+# 4. Forward project with oversampling=2.0
+projection = torch_projectors.project_2d_forw(
+    fourier_image.unsqueeze(0),  # Add batch dimension
+    rotations,
+    shifts=shifts,
+    output_shape=(32, 32),
+    interpolation='linear',
+    oversampling=2.0
+)
+
+# 5. Convert back to real space
+result = torch.fft.irfft2(projection[0, 0], s=(32, 32))
+result = torch.fft.ifftshift(result)
+```
+
+### 2D-to-2D Backward Projection
+
+```python
+import torch
+import torch_projectors
+
+# Helper function to crop and ifftshift real-space data
+def ifftshift_and_crop(real_tensor, oversampling_factor):
+    shifted = torch.fft.ifftshift(real_tensor, dim=(-2, -1))
+    current_size = real_tensor.shape[-1]
+    original_size = int(current_size / oversampling_factor)
+    crop_total = current_size - original_size
+    crop_start = crop_total // 2
+    crop_end = crop_start + original_size
+    return shifted[..., crop_start:crop_end, crop_start:crop_end]
+
+# Start with real-space image (e.g., a projection to backproject)
+real_projection = torch.randn(32, 32)
+
+# 1. fftshift and convert to Fourier space
+shifted_projection = torch.fft.fftshift(real_projection)
+fourier_projection = torch.fft.rfft2(shifted_projection, norm='forward')
+
+# 2. Set up backprojection parameters
+rotations = torch.tensor([[0., -1.], [1., 0.]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+shifts = torch.zeros(1, 1, 2, dtype=torch.float32)
+
+# 3. Backward project with oversampling=2.0
+data_rec, weight_rec = torch_projectors.backproject_2d_forw(
+    fourier_projection.unsqueeze(0).unsqueeze(0),  # Add batch and pose dimensions
+    rotations,
+    shifts=shifts,
+    interpolation='linear',
+    oversampling=2.0
+)
+
+# 4. Convert reconstruction to real space
+real_reconstruction = torch.fft.irfft2(data_rec[0], norm='forward')
+
+# 5. ifftshift and crop to 0.5x size (original size from 2x oversampling)
+result = ifftshift_and_crop(real_reconstruction, 2.0)
+```
+
+### 3D-to-2D Forward Projection
+
+```python
+import torch
+import torch_projectors
+
+# Helper function to pad 3D volumes
+def pad_and_fftshift_3d(tensor, oversampling_factor):
+    D, H, W = tensor.shape[-3:]
+    new_size = int(D * oversampling_factor)
+    if new_size % 2 != 0:
+        new_size += 1
+    pad_total = new_size - D
+    pad_before = pad_total // 2
+    pad_after = pad_total - pad_before
+    padded = torch.nn.functional.pad(tensor, 
+                                    (pad_before, pad_after,    # W
+                                     pad_before, pad_after,    # H  
+                                     pad_before, pad_after))   # D
+    return torch.fft.fftshift(padded, dim=(-3, -2, -1))
+
+# Start with 3D real-space volume
+real_volume = torch.randn(32, 32, 32)
+
+# 1. Zero pad 2x and fftshift
+padded_volume = pad_and_fftshift_3d(real_volume, 2.0)
+
+# 2. Convert to Fourier space
+fourier_volume = torch.fft.rfftn(padded_volume, dim=(-3, -2, -1), norm='forward')
+
+# 3. Set up projection parameters (90-degree rotation around Y axis)
+rotations = torch.tensor([
+    [0., 0., 1.],    # x' = z
+    [0., 1., 0.],    # y' = y  
+    [-1., 0., 0.]    # z' = -x
+], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+shifts = torch.zeros(1, 1, 2, dtype=torch.float32)
+
+# 4. Forward project 3D->2D with oversampling=2.0
+projection = torch_projectors.project_3d_to_2d_forw(
+    fourier_volume.unsqueeze(0),  # Add batch dimension
+    rotations,
+    shifts=shifts,
+    output_shape=(32, 32),
+    interpolation='linear',
+    oversampling=2.0
+)
+
+# 5. Convert back to real space
+result = torch.fft.irfft2(projection[0, 0], s=(32, 32))
+result = torch.fft.ifftshift(result)
+```
+
+### 2D-to-3D Backward Projection
+
+```python
+import torch
+import torch_projectors
+
+# Helper function to crop 3D volumes
+def ifftshift_and_crop_3d(real_tensor, oversampling_factor):
+    shifted = torch.fft.ifftshift(real_tensor, dim=(-3, -2, -1))
+    current_size = real_tensor.shape[-3]
+    original_size = int(current_size / oversampling_factor)
+    crop_total = current_size - original_size
+    crop_start = crop_total // 2
+    crop_end = crop_start + original_size
+    return shifted[..., crop_start:crop_end, crop_start:crop_end, crop_start:crop_end]
+
+# Start with 2D real-space projection
+real_projection = torch.randn(32, 32)
+
+# 1. fftshift and convert to Fourier space
+shifted_projection = torch.fft.fftshift(real_projection)
+fourier_projection = torch.fft.rfft2(shifted_projection, norm='forward')
+
+# 2. Set up backprojection parameters (rotation matrix for 3D)
+rotations = torch.tensor([
+    [1., 0., 0.],
+    [0., 1., 0.], 
+    [0., 0., 1.]
+], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+shifts = torch.zeros(1, 1, 2, dtype=torch.float32)
+
+# 3. Backward project 2D->3D with oversampling=2.0
+data_rec, weight_rec = torch_projectors.backproject_2d_to_3d_forw(
+    fourier_projection.unsqueeze(0).unsqueeze(0),  # Add batch and pose dimensions
+    rotations,
+    shifts=shifts,
+    interpolation='linear',
+    oversampling=2.0
+)
+
+# 4. Convert reconstruction to real space
+real_reconstruction = torch.fft.irfftn(data_rec[0], dim=(-3, -2, -1), norm='forward')
+
+# 5. ifftshift and crop to 0.5x size (original size from 2x oversampling)
+result = ifftshift_and_crop_3d(real_reconstruction, 2.0)
+```
+
 ## Architecture
 
 ### Core Components
