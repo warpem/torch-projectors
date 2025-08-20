@@ -8,13 +8,13 @@ A high-performance, differentiable 2D and 3D projection library for PyTorch, des
 
 ## Features
 
-- **Multi-Platform Support**: CPU, CUDA (when available), and Metal Performance Shaders (MPS) on Apple Silicon
+- **Multi-Platform Support**: CPU on Linux, Windows and MacOS; CUDA on Linux; Metal Performance Shaders (MPS) on Apple Silicon
 - **Multiple Backends**: Optimized kernels for different hardware platforms
-- **Interpolation Methods**: Nearest neighbor, linear, and cubic interpolation
+- **Interpolation Methods**: Linear and cubic interpolation in 2D and 3D
 - **Fourier Space Operations**: Efficient projections using PyTorch's RFFT format
 - **Full Differentiability**: Gradient support for reconstructions, rotations, and shifts
 - **Batch Processing**: Efficient handling of multiple reconstructions and poses
-- **Oversampling Support**: Computational efficiency through coordinate scaling
+- **Oversampling Support**: Computationally efficient and accurate interpolation
 - **Fourier Filtering**: Optional radius cutoff for low-pass filtering
 
 ## Core API
@@ -31,30 +31,59 @@ The library provides four main high-level functions:
 ### 2D-to-3D Operations
 - `backproject_2d_to_3d_forw()`: Back-project 2D projections into 3D reconstructions (adjoint operation)
 
-## Installation & Development Setup
+## Installation
 
-### Prerequisites
+### User Installation
 
-This project requires a conda environment with PyTorch and pytest:
+Install pre-built wheels from our wheelhouses for your platform:
 
 ```bash
-# Create and activate environment
-conda create -n torch-projectors python=3.11 -y
-conda activate torch-projectors
-conda install pytorch pytest -c pytorch -c conda-forge -y
+# CPU-only on Linux, Windows, MacOS (+ MPS support on MacOS) (requires torch==2.6.0)
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cpu/simple/
+
+# CUDA 12.6 on Linux (requires torch==2.6.0) 
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu126/simple/
+
+# CUDA 12.7 on Linux (requires torch==2.7.0)
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu127/simple/
+
+# CUDA 12.8 on Linux (requires torch==2.8.0)
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu128/simple/
 ```
 
-### Install in Editable Mode
+**Note**: Ensure you have the correct PyTorch version installed for your chosen CUDA version.
 
-The project uses PyTorch's modern hybrid C++/Python extension pattern with automatic platform detection:
+### Development Setup
+
+For development, you'll need to build from source. Requires Python 3.9-3.13:
 
 ```bash
-# Install the package (compiles C++ extensions automatically)
-python -m pip install -e .
+# Create environment 
+conda create -n torch-projectors python=3.11 -y
+conda activate torch-projectors
+
+# Install PyTorch (version depends on your CUDA requirements)
+# For CPU-only or MPS:
+pip install torch==2.6.0
+
+# For CUDA 12.6:
+pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
+
+# For CUDA 12.7:  
+pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu127
+
+# For CUDA 12.8:
+pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+
+# Install development dependencies
+pip install pytest matplotlib
+
+# Install in editable mode (compiles C++ extensions)
+python -m pip install -e . --no-build-isolation
 ```
 
 The build system automatically detects and enables:
-- **CUDA support** when CUDA is available and `TORCH_CUDA_ARCH_LIST` is set
+- **CUDA support** on Linux and Windows when the CUDA Toolkit is available
 - **MPS support** on macOS with Apple Silicon
 - **CPU fallback** on all platforms
 
