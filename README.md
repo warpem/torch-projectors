@@ -55,7 +55,7 @@ pip install torch-projectors --index-url https://warpem.github.io/torch-projecto
 
 ### Development Setup
 
-For development, you'll need to build from source. Requires Python 3.9-3.13:
+For development, you'll need to build from source. Requires Python 3.9–3.13:
 
 ```bash
 # Create environment 
