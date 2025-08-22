@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "m4-cpu",
-    "timestamp": "2025-08-21T17:04:26.497801",
+    "timestamp": "2025-08-21T19:04:35.173853",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.1",
     "device_info": {
@@ -2060,6 +2060,64 @@
           "max_time": 0.014816540999163408
         },
         "throughput_proj_per_sec": 14637.492770591567
+      }
+    },
+    "forward_3d_to_2d_cubic_256x256x256_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "forward_3d_to_2d",
+        "batch_size": 8,
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 6.023516083005234,
+          "mean_time": 6.023516083005234,
+          "std_dev": 0.0,
+          "min_time": 6.023516083005234,
+          "max_time": 6.023516083005234
+        },
+        "forward_and_backward": {
+          "median_time": 32.20060666599602,
+          "mean_time": 32.20060666599602,
+          "std_dev": 0.0,
+          "min_time": 32.20060666599602,
+          "max_time": 32.20060666599602
+        },
+        "throughput_forward_proj_per_sec": 2720.0060187812674,
+        "throughput_total_proj_per_sec": 508.810289506178
+      }
+    },
+    "forward_3d_to_2d_cubic_256x256x256_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "forward_3d_to_2d",
+        "batch_size": 8,
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 6.078598084000987,
+          "mean_time": 6.078598084000987,
+          "std_dev": 0.0,
+          "min_time": 6.078598084000987,
+          "max_time": 6.078598084000987
+        },
+        "throughput_proj_per_sec": 2695.3583332188177
       }
     }
   }

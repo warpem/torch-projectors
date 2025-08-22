@@ -6,6 +6,8 @@
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
 \usepackage{url}
 \usepackage{hyperref}
 \usepackage{natbib}
@@ -16,7 +18,7 @@
 \usepackage{xcolor}
 
 % Page geometry
-\geometry{margin=2.5cm}
+\geometry{left=1.5cm, right=1.5cm, top=2.5cm, bottom=2.5cm}
 
 % Paragraph formatting - no indentation, vertical spacing between paragraphs
 \setlength{\parindent}{0pt}
@@ -57,20 +59,29 @@
 \maketitle
 
 \begin{abstract}
-% TODO: Add abstract content
+Fourier-space projection operations are central to many algorithms in electron microscopy single-particle analysis and electron tomography. Methods employing machine learning require these operations to be differentiable, enabling end-to-end model training. While an implementation using solely PyTorch's built-in operations is possible, it is often too slow for practical use. This paper introduces \texttt{torch-projectors}: a high-performance, cross-platform library for differentiable Fourier-space projection operations in PyTorch. The library implements 2D and 3D forward and backward projection operators with support for linear and cubic interpolation, and gradient calculation for all inputs. Designed to be efficient on CPU, Apple Silicon (MPS), and CUDA devices, \texttt{torch-projectors} outperforms the existing Python-only \texttt{torch-fourier-slice} library by 1–2 orders of magnitude in many common scenarios.
 \end{abstract}
 
 \section{Introduction}
-% TODO: Add introduction
+Transmission electron microscopes (TEMs) capture 2D projections of the sample's Coulomb potential at very high optical resolution. Given multiple projections from different angles, the original 3D potential can be reconstructed computationally, enabling atomic model building in favorable cases. Over the past decade, cryogenic electron microscopy (cryo-EM) has emerged as the dominant method for solving protein structures and investigating their dynamics. If the sample is thin enough for the thin-object approximation to hold, the Fourier slice theorem states that each 2D projection corresponds to a central slice through the 3D Fourier transform of the potential. This relationship is fundamental to many algorithms in electron microscopy (EM) single-particle analysis (SPA) and electron tomography (ET).
+
+Modern machine learning methods can quickly optimize vast amounts of parameters leveraging gradient back-propagation in differentiable models. PyTorch [PyTorch ref] is a popular framework for implementing such models, providing automatic differentiation capabilities. However, many EM algorithms require differentiable Fourier-space projection operations that are not natively supported by PyTorch. While it is possible to implement these operations using PyTorch's built-in functions [torch-fourier-slice ref], the performance is often insufficient, and the memory overhead is too high for practical use. \texttt{torch-projectors} implements each projection operation in a single call without the need to store intermediate values. Thus, the memory footprint is limited to the input and output tensors, making the operators suitable for large-scale models.
+
+RELION [methods in enzymology ref] has popularized an accurate, yet computationally efficient interpolation method for Fourier-space projection operations in single-particle analysis (SPA). Forward projections sample from a reference that has been oversampled by zero-padding it in real space, while backward projections insert data into a similarly oversampled reconstruction, and the reconstruction is cropped to its regular size in real space afterwards. This approach improves the accuracy of computationally cheap linear interpolation at the cost of increased memory usage. While it works well for conventional SPA algorithms, novel methods utilizing machine learning may be memory-constrained, or have very short-lived intermediate data that need costly Fourier transforms in every forward and backward pass to enable oversampling. \texttt{torch-projectors} implements Catmull-Rom cubic interpolation [Catmull-Rom spline ref] in addition to linear, which can significantly improve accuracy without oversampling.
+
+Another elegant approach implemented in RELION is the use of two volumes for reconstructions: one volume with complex-valued data, and another volume to keep track of real-valued weights for each Fourier component. This allows for efficient normalization of per-component sampling counts as well as Wiener-like deconvolution approaches when the weights incorporate the contrast transfer function (CTF) of the back-projected images. \texttt{torch-projectors} implements this approach, and enables gradient back-propagation through the weight components if desired.
+
+While 3D->2D forward projection and 2D->3D backward projection are the dominant operations in SPA, procedures like 2D particle classification require projections in both directions without a change in dimensionality. All four operations are implemented in \texttt{torch-projectors}.
 
 \section{Methods}
-% TODO: Add mathematical formulations and implementation details
 
 \subsection{Data Conventions}
 
-\texttt{torch-projectors} operates exclusively in Fourier space using PyTorch's RFFT format, following FFTW conventions. For rotations to work correctly, reconstruction and projection data must be shifted (fftshift) in real space to place their center at the 0th tensor element before FFT. Results must be inverse-shifted (ifftshift) in real space to restore conventional centering.
+\texttt{torch-projectors} operates exclusively in Fourier space using PyTorch's RFFT format, following FFTW conventions. Unlike RELION's implementation, tensors on both ends of the projection operations remain RFFT-formatted, without intermediate stages with different data layouts. 
 
-All spatial dimensions must be square (2D) or cubic (3D) with even sizes. 2D reconstructions use shape $[B, N, N/2+1]$ where $B$ is the batch dimension. 3D reconstructions use shape $[B, D, H, W/2+1]$ where the spatial dimensions are equal and even. Projections follow the same RFFT convention with shape $[B, P, N, N/2+1]$, where $B$ is the reconstruction batch dimension, and $P$ is the number of poses.
+For rotations to work correctly, reconstruction and projection data must be shifted (fftshift) in real space to place their center at the 0th tensor element before FFT. Results must be inverse-shifted (ifftshift) in real space to restore conventional centering.
+
+All spatial dimensions must be square (2D) or cubic (3D) with even sizes. 2D reconstructions use shape $[B, N, N/2+1]$ where $B$ is the batch dimension. 3D reconstructions use shape $[B, D, H, W/2+1]$. Projections follow the same RFFT convention with shape $[B, P, N, N/2+1]$, where $B$ is the reconstruction batch dimension, and $P$ is the pose dimension.
 
 Rotations are specified as matrices: $[B, P, 2, 2]$ for 2D and $[B, P, 3, 3]$ for 3D. Translation shifts use shape $[B, P, 2]$ and are applied via phase modulation. A positive shift value moves the image contents along the positive direction of the respective axis. In back-projection, the shift is applied in the opposite direction to ensure it is the inverse of the forward projection with the same parameters. Batch broadcasting is supported where $B$ can be 1 or match the reconstruction batch size $B$; or the $P$ dimension in either rotations or shifts (but not both) can be 1 to use the same value over all poses. This enables efficient processing of multiple reconstructions with shared or individual poses.
 
@@ -295,7 +306,20 @@ During backpropagation, projection gradients are computed using 3D→2D forward 
 % TODO: Benchmarks and performance comparisons
 
 \subsection{Performance Benchmarks}
-% TODO: Timing comparisons across platforms
+
+\input{results/tables/project-2d-performance}
+
+\input{results/tables/backproject-2d-performance}
+
+\input{results/tables/project-3d-to-2d-performance}
+
+\input{results/tables/backproject-2d-to-3d-performance}
+
+\input{results/tables/project-3d-to-2d-comparison}
+
+\input{results/tables/backproject-2d-to-3d-comparison}
+
+\input{results/tables/oversampling-table}
 
 \subsection{Accuracy Validation}
 % TODO: Numerical accuracy tests

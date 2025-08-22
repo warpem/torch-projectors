@@ -1,1 +1,11 @@
 python paper/results/json_to_latex.py paper/results/data/forward_2d paper/results/tables/project-2d-performance.tex --caption "2D \$\\rightarrow\$ 2D forward projection throughput in \$10^3\$ projections/second" --label "tab:project-2d-performance"
+
+python paper/results/json_to_latex.py paper/results/data/forward_3d_to_2d paper/results/tables/project-3d-to-2d-performance.tex --caption "3D \$\\rightarrow\$ 2D forward projection throughput in \$10^3\$ projections/second" --label "tab:project-3d-to-2d-performance"
+
+python paper/results/json_to_latex.py paper/results/data/backward_2d paper/results/tables/backproject-2d-performance.tex --caption "2D \$\\rightarrow\$ 2D backward projection throughput in \$10^3\$ projections/second" --label "tab:backproject-2d-performance"
+
+python paper/results/json_to_latex.py paper/results/data/backward_2d_to_3d paper/results/tables/backproject-2d-to-3d-performance.tex --caption "2D \$\\rightarrow\$ 3D backward projection throughput in \$10^3\$ projections/second" --label "tab:backproject-2d-to-3d-performance"
+
+python paper/results/comparison_to_latex.py paper/results/data/forward_3d_to_2d_comparison paper/results/tables/project-3d-to-2d-comparison.tex --caption "3D \$\\rightarrow\$ 2D forward projection throughput in \$10^3\$ projections/second,\\\\comparison between torch-projectors and torch-fourier-slice" --label "tab:project-3d-to-2d-comparison"
+
+python paper/results/comparison_to_latex.py paper/results/data/backward_2d_to_3d_comparison paper/results/tables/backproject-2d-to-3d-comparison.tex --caption "2D \$\\rightarrow\$ 3D backward projection throughput in \$10^3\$ projections/second,\\\\comparison between torch-projectors and torch-fourier-slice" --label "tab:backproject-2d-to-3d-comparison"

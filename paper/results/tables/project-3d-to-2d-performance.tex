@@ -1,0 +1,68 @@
+\begin{table}[htbp]
+\centering
+\caption{3D $\rightarrow$ 2D forward projection throughput in $10^3$ projections/second}
+\label{tab:project-3d-to-2d-performance}
+\begin{tabular}{r@{\hspace{3mm}} c@{\hspace{2mm}} r@{\hspace{3mm}} c@{\hspace{2mm}} | *{6}{>{\raggedleft\arraybackslash}p{1.5cm}}}
+\toprule
+\multirow{2}{*}[-0.6em]{Box} & \multirow{2}{*}[-0.6em]{Batch} & \multirow{2}{*}[-0.6em]{Poses} & \multirow{2}{*}[-0.6em]{Interp.} & \multicolumn{2}{c}{H100: CUDA} & \multicolumn{2}{c}{M4: CPU} & \multicolumn{2}{c}{M4: MPS} \\
+& & & & Fwd & Fwd+Bwd & Fwd & Fwd+Bwd & Fwd & Fwd+Bwd \\
+\midrule
+\multirow{12}{*}[-1.2em]{32} & \multirow{6}{*}[-0.6em]{1} & \multirow{2}{*}[-0.1em]{8} & Linear & 37.2 & 16.2 & 117.6 & 30.4 & 40.9 & 10.2 \\
+ &  &  & Cubic & 31.8 & 15.6 & 69.1 & 15.4 & 31.9 & 5.0 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 576.8 & 261.4 & 524.3 & 77.4 & 569.2 & 160.6 \\
+ &  &  & Cubic & 516.8 & 205.0 & 199.7 & 20.4 & 487.1 & 76.9 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 8579.5 & 2536.7 & 987.2 & 98.1 & 5788.0 & 748.6 \\
+ &  &  & Cubic & 4821.2 & 637.3 & 229.5 & 22.4 & 1906.2 & 146.1 \\
+\cmidrule{3-10}
+\cmidrule{2-10}
+ & \multirow{6}{*}[-0.6em]{8} & \multirow{2}{*}[-0.1em]{8} & Linear & 1596.3 & 307.7 & 352.1 & 81.5 & 286.9 & 82.3 \\
+ &  &  & Cubic & 1071.7 & 250.0 & 172.3 & 32.0 & 276.5 & 55.5 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 22239.1 & 3546.4 & 843.9 & 159.5 & 3735.5 & 680.9 \\
+ &  &  & Cubic & 9301.1 & 1009.3 & 222.6 & 40.3 & 1578.9 & 153.3 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 86681.4 & 6816.6 & 937.3 & 188.1 & 7367.9 & 877.6 \\
+ &  &  & Cubic & 17133.8 & 993.2 & 226.9 & 41.6 & 2045.2 & 166.1 \\
+\midrule
+\multirow{12}{*}[-1.2em]{128} & \multirow{6}{*}[-0.6em]{1} & \multirow{2}{*}[-0.1em]{8} & Linear & 24.1 & 12.2 & 38.4 & 5.9 & 31.1 & 7.5 \\
+ &  &  & Cubic & 11.6 & 5.5 & 12.2 & 1.9 & 21.8 & 2.5 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 393.8 & 176.9 & 70.8 & 8.9 & 336.7 & 47.4 \\
+ &  &  & Cubic & 178.3 & 56.6 & 14.7 & 2.3 & 109.9 & 8.6 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 3038.7 & 556.9 & 67.7 & 9.1 & 392.9 & 52.9 \\
+ &  &  & Cubic & 632.1 & 88.5 & 14.6 & 2.2 & 126.3 & 9.7 \\
+\cmidrule{3-10}
+\cmidrule{2-10}
+ & \multirow{6}{*}[-0.6em]{8} & \multirow{2}{*}[-0.1em]{8} & Linear & 916.8 & 190.1 & 49.5 & 6.7 & 196.0 & 20.0 \\
+ &  &  & Cubic & 167.4 & 46.2 & 13.8 & 2.2 & 92.8 & 6.5 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 5256.8 & 579.1 & 55.7 & 9.2 & 313.9 & 47.3 \\
+ &  &  & Cubic & 917.1 & 87.6 & 14.0 & 2.3 & 126.6 & 9.5 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 7729.0 & 645.8 & 57.3 & 9.1 & 304.1 & 51.6 \\
+ &  &  & Cubic & 1110.4 & 95.2 & 12.8 & 2.1 & 126.6 & 9.7 \\
+\midrule
+\multirow{12}{*}[-1.2em]{256} & \multirow{6}{*}[-0.6em]{1} & \multirow{2}{*}[-0.1em]{8} & Linear & 14.7 & 7.5 & 11.3 & 1.0 & 24.3 & 2.3 \\
+ &  &  & Cubic & 3.7 & 1.8 & 2.9 & 0.4 & 8.0 & 0.7 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 231.2 & 89.0 & 11.1 & 1.8 & 70.1 & 10.6 \\
+ &  &  & Cubic & 57.7 & 17.6 & 2.9 & 0.5 & 30.4 & 2.2 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 929.5 & 149.1 & 11.0 & 1.9 & 62.2 & 12.4 \\
+ &  &  & Cubic & 164.6 & 23.0 & 3.2 & 0.5 & 30.2 & 2.4 \\
+\cmidrule{3-10}
+\cmidrule{2-10}
+ & \multirow{6}{*}[-0.6em]{8} & \multirow{2}{*}[-0.1em]{8} & Linear & 333.1 & 72.8 & 7.4 & 1.2 & 54.4 & 3.3 \\
+ &  &  & Cubic & 39.5 & 13.2 & 2.6 & 0.5 & 23.1 & 1.4 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{128} & Linear & 1252.8 & 138.4 & 7.9 & 1.6 & 48.4 & 10.0 \\
+ &  &  & Cubic & 203.6 & 21.4 & 2.7 & 0.5 & 14.2 & 2.1 \\
+\cmidrule{3-10}
+ &  & \multirow{2}{*}[-0.1em]{2048} & Linear & 1838.2 & 164.6 & 7.9 & 1.6 & 47.8 & 11.8 \\
+ &  &  & Cubic & 253.8 & 24.7 & 2.7 & 0.5 & 16.2 & 2.2 \\
+\bottomrule
+\end{tabular}
+\end{table}

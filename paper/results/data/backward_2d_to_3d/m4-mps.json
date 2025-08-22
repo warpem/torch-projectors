@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "m4-mps",
-    "timestamp": "2025-08-21T17:30:04.293803",
+    "timestamp": "2025-08-21T19:26:16.990439",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.1",
     "device_info": {
@@ -2338,6 +2338,72 @@
           "max_time": 0.02213783299885108
         },
         "throughput_backproj_per_sec": 6020.294885033178
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj2048_grad": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": true
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 8.889616165994084,
+          "mean_time": 8.915564555330397,
+          "std_dev": 0.048193186109197775,
+          "min_time": 8.885905499999353,
+          "max_time": 8.97117199999775
+        },
+        "forward_and_backward": {
+          "median_time": 10.71452629200212,
+          "mean_time": 10.733912152999741,
+          "std_dev": 0.041229716078387414,
+          "min_time": 10.705948333998094,
+          "max_time": 10.781261832999007
+        },
+        "throughput_forward_backproj_per_sec": 1843.0492041573825,
+        "throughput_total_backproj_per_sec": 1529.1389981682971
+      }
+    },
+    "backward_2d_to_3d_cubic_256x256x256_batch8_proj2048_nograd": {
+      "parameters": {
+        "operation": "backward_2d_to_3d",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "cubic",
+        "with_gradients": false
+      },
+      "results": {
+        "raw_times": [],
+        "forward_no_grad": {
+          "median_time": 8.889663249996374,
+          "mean_time": 8.905576458329355,
+          "std_dev": 0.02865135947976563,
+          "min_time": 8.888413791995845,
+          "max_time": 8.938652332995844
+        },
+        "throughput_backproj_per_sec": 1843.0394424678216
       }
     }
   }

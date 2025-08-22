@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "m4-cpu",
-    "timestamp": "2025-08-19T15:06:13.206099",
+    "timestamp": "2025-08-21T19:55:20.142848",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.1",
     "device_info": {
@@ -1049,6 +1049,132 @@
       },
       "results": {
         "error": "Subprocess execution failed"
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch8_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 95.56778316699638,
+            "mean_time": 95.56778316699638,
+            "std_dev": 0,
+            "min_time": 95.56778316699638,
+            "max_time": 95.56778316699638
+          },
+          "backward": {
+            "median_time": null,
+            "mean_time": null,
+            "std_dev": null,
+            "min_time": null,
+            "max_time": null
+          },
+          "throughput_backproj_per_sec": 171.4385272636322,
+          "backward_available": false
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 11.844842457998311,
+            "mean_time": 11.844842457998311,
+            "std_dev": 0,
+            "min_time": 11.844842457998311,
+            "max_time": 11.844842457998311
+          },
+          "backward": {
+            "median_time": 4.132222167005239,
+            "mean_time": 4.132222167005239,
+            "std_dev": 0,
+            "min_time": 4.132222167005239,
+            "max_time": 4.132222167005239
+          },
+          "throughput_backproj_per_sec": 1383.2180595138766,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 8.068303441424295,
+          "backward_speedup": null,
+          "total_speedup": null,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=2048)"
+        }
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch8_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 11.864154250004503,
+            "mean_time": 11.864154250004503,
+            "std_dev": 0,
+            "min_time": 11.864154250004503,
+            "max_time": 11.864154250004503
+          },
+          "backward": {
+            "median_time": 3.1213126669972553,
+            "mean_time": 3.1213126669972553,
+            "std_dev": 0,
+            "min_time": 3.1213126669972553,
+            "max_time": 3.1213126669972553
+          },
+          "throughput_backproj_per_sec": 1380.9665362361402,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 2.232753917000082,
+            "mean_time": 2.232753917000082,
+            "std_dev": 0,
+            "min_time": 2.232753917000082,
+            "max_time": 2.232753917000082
+          },
+          "backward": {
+            "median_time": 0.6524235409960966,
+            "mean_time": 0.6524235409960966,
+            "std_dev": 0,
+            "min_time": 0.6524235409960966,
+            "max_time": 0.6524235409960966
+          },
+          "throughput_backproj_per_sec": 7338.023180814063,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 5.313686456743575,
+          "backward_speedup": 4.784181549046726,
+          "total_speedup": 5.193949812504603,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=2048)"
+        }
       }
     }
   }

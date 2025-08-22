@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "m4-cpu",
-    "timestamp": "2025-08-19T15:40:22.261013",
+    "timestamp": "2025-08-21T19:39:57.135002",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.1",
     "device_info": {
@@ -1033,6 +1033,65 @@
       },
       "results": {
         "error": "Subprocess execution failed"
+      }
+    },
+    "forward_3d_to_2d_comparison_linear_256x256x256_batch8_proj2048": {
+      "parameters": {
+        "operation": "forward_3d_to_2d_comparison",
+        "batch_size": 8,
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "comparison": {
+          "forward_speedup": 5.257615271801956,
+          "backward_speedup": null,
+          "total_speedup": null,
+          "memory_constraint_note": "Libraries run in separate subprocesses (batch=8, projections=2048)"
+        },
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 10.824177875001624,
+            "mean_time": 10.824177875001624,
+            "std_dev": 0,
+            "min_time": 10.824177875001624,
+            "max_time": 10.824177875001624
+          },
+          "backward": {
+            "median_time": null,
+            "mean_time": null,
+            "std_dev": null,
+            "min_time": null,
+            "max_time": null
+          },
+          "throughput_proj_per_sec": 1513.6484441778025,
+          "backward_available": false
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 2.058761874999618,
+            "mean_time": 2.058761874999618,
+            "std_dev": 0,
+            "min_time": 2.058761874999618,
+            "max_time": 2.058761874999618
+          },
+          "backward": {
+            "median_time": 8.069636541004002,
+            "mean_time": 8.069636541004002,
+            "std_dev": 0,
+            "min_time": 8.069636541004002,
+            "max_time": 8.069636541004002
+          },
+          "throughput_proj_per_sec": 7958.181176248486,
+          "backward_available": true
+        }
       }
     }
   }
