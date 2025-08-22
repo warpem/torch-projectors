@@ -34,7 +34,7 @@ class OversamplingBenchmark(BenchmarkBase):
         super().__init__(platform_name, "oversampling_benchmark", device, title)
         
         # Fixed parameters for all scenarios
-        self.num_reconstructions = 4096
+        self.num_reconstructions = 16384
         self.num_projections_per_reconstruction = 1
         
     def generate_projection_poses(self):

@@ -1,0 +1,240 @@
+{
+  "metadata": {
+    "platform_name": "h100-cuda",
+    "timestamp": "2025-08-22T17:57:15.322784",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.0",
+    "device_info": {
+      "type": "cuda",
+      "name": "NVIDIA H100 80GB HBM3",
+      "memory_gb": 85.028896768,
+      "compute_capability": "9.0"
+    },
+    "system_info": {
+      "platform": "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
+      "cpu": "x86_64",
+      "memory_gb": 237.48978688,
+      "python_version": "3.12.3",
+      "architecture": "x86_64"
+    },
+    "title": "H100: CUDA"
+  },
+  "benchmarks": {
+    "scenario_1_linear": {
+      "parameters": {
+        "scenario": "scenario_1",
+        "scenario_description": "128x128 basic",
+        "interpolation": "linear",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0015776219998997476,
+          "mean_time": 0.001578835066652573,
+          "std_dev": 3.613983986657737e-06,
+          "min_time": 0.0015758470000264424,
+          "max_time": 0.001590163999935612
+        },
+        "backward": {
+          "median_time": 0.013605869000002713,
+          "mean_time": 0.013607616800012086,
+          "std_dev": 0.0,
+          "min_time": 0.013579776000028687,
+          "max_time": 0.013648211000031552
+        },
+        "forward_and_backward": {
+          "median_time": 0.015183070000034604,
+          "mean_time": 0.015186451866664659,
+          "std_dev": 1.4138357953786464e-05,
+          "min_time": 0.0151699399999643,
+          "max_time": 0.015229963000024327
+        },
+        "gpu_peak_memory_mb": 4907.72992,
+        "throughput_forward_proj_per_sec": 10385250.713441588,
+        "throughput_total_proj_per_sec": 1079096.6517287123
+      }
+    },
+    "scenario_1_cubic": {
+      "parameters": {
+        "scenario": "scenario_1",
+        "scenario_description": "128x128 basic",
+        "interpolation": "cubic",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.003416892000018379,
+          "mean_time": 0.003417574133330466,
+          "std_dev": 3.1944656035280055e-06,
+          "min_time": 0.0034117910000759366,
+          "max_time": 0.003423771000029774
+        },
+        "backward": {
+          "median_time": 0.0417724349999844,
+          "mean_time": 0.041866454133340385,
+          "std_dev": 0.0,
+          "min_time": 0.0417724349999844,
+          "max_time": 0.04191986499995437
+        },
+        "forward_and_backward": {
+          "median_time": 0.04527711299999737,
+          "mean_time": 0.045284028266670856,
+          "std_dev": 4.0409404576946284e-05,
+          "min_time": 0.04519479299995055,
+          "max_time": 0.045343635999984144
+        },
+        "gpu_peak_memory_mb": 4907.72992,
+        "throughput_forward_proj_per_sec": 4795000.836992177,
+        "throughput_total_proj_per_sec": 361860.52763569425
+      }
+    },
+    "scenario_2_linear": {
+      "parameters": {
+        "scenario": "scenario_2",
+        "scenario_description": "256x256 oversampling=2",
+        "interpolation": "linear",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0024062420000063867,
+          "mean_time": 0.0024082935333429607,
+          "std_dev": 6.772221925554495e-06,
+          "min_time": 0.002403109999931985,
+          "max_time": 0.0024306690000912567
+        },
+        "backward": {
+          "median_time": 0.017422210999939125,
+          "mean_time": 0.017406932600003224,
+          "std_dev": 0.0,
+          "min_time": 0.017369589999930213,
+          "max_time": 0.017429448999905617
+        },
+        "forward_and_backward": {
+          "median_time": 0.0198134710000204,
+          "mean_time": 0.019815226133346187,
+          "std_dev": 9.4599122356819e-06,
+          "min_time": 0.01980025900002147,
+          "max_time": 0.019834093999975266
+        },
+        "gpu_peak_memory_mb": 10838.475776,
+        "throughput_forward_proj_per_sec": 6808957.702490653,
+        "throughput_total_proj_per_sec": 826912.1548659056
+      }
+    },
+    "scenario_2_cubic": {
+      "parameters": {
+        "scenario": "scenario_2",
+        "scenario_description": "256x256 oversampling=2",
+        "interpolation": "cubic",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.0036105159999806347,
+          "mean_time": 0.0036109583333351716,
+          "std_dev": 3.170615552716987e-06,
+          "min_time": 0.00360640400003831,
+          "max_time": 0.003617586000018491
+        },
+        "backward": {
+          "median_time": 0.04410339700007171,
+          "mean_time": 0.044084617666658235,
+          "std_dev": 0.0,
+          "min_time": 0.044019323999918925,
+          "max_time": 0.04412540199996329
+        },
+        "forward_and_backward": {
+          "median_time": 0.04769677700005559,
+          "mean_time": 0.047695575999993405,
+          "std_dev": 2.3714229812414555e-05,
+          "min_time": 0.04763459799994507,
+          "max_time": 0.04773817099999178
+        },
+        "gpu_peak_memory_mb": 10838.475776,
+        "throughput_forward_proj_per_sec": 4537855.530923524,
+        "throughput_total_proj_per_sec": 343503.2937336815
+      }
+    },
+    "scenario_3_linear": {
+      "parameters": {
+        "scenario": "scenario_3",
+        "scenario_description": "real-space padding + oversampling=2",
+        "interpolation": "linear",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.01381990400000177,
+          "mean_time": 0.013821795066663374,
+          "std_dev": 5.271645370488796e-06,
+          "min_time": 0.013814152000009017,
+          "max_time": 0.013832360000037625
+        },
+        "backward": {
+          "median_time": 0.0407268839999233,
+          "mean_time": 0.04073457473333898,
+          "std_dev": 0.0,
+          "min_time": 0.04070126600004187,
+          "max_time": 0.040755096000111735
+        },
+        "forward_and_backward": {
+          "median_time": 0.054557163999902514,
+          "mean_time": 0.054556369800002356,
+          "std_dev": 1.412581844527358e-05,
+          "min_time": 0.054525515000023006,
+          "max_time": 0.05457654100007403
+        },
+        "gpu_peak_memory_mb": 44174.93504,
+        "throughput_forward_proj_per_sec": 1185536.4552458469,
+        "throughput_total_proj_per_sec": 300308.8650287848
+      }
+    },
+    "scenario_3_cubic": {
+      "parameters": {
+        "scenario": "scenario_3",
+        "scenario_description": "real-space padding + oversampling=2",
+        "interpolation": "cubic",
+        "num_reconstructions": 16384,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.015025983999976233,
+          "mean_time": 0.015027773333319299,
+          "std_dev": 7.374607501505459e-06,
+          "min_time": 0.015016500999990967,
+          "max_time": 0.015042493999999351
+        },
+        "backward": {
+          "median_time": 0.06741526600012548,
+          "mean_time": 0.06743512813332776,
+          "std_dev": 0.0,
+          "min_time": 0.06740747799995006,
+          "max_time": 0.06748818500000198
+        },
+        "forward_and_backward": {
+          "median_time": 0.08245344699992074,
+          "mean_time": 0.08246290146664706,
+          "std_dev": 2.6008150851836376e-05,
+          "min_time": 0.08243301699997119,
+          "max_time": 0.08252109199997903
+        },
+        "gpu_peak_memory_mb": 44174.93504,
+        "throughput_forward_proj_per_sec": 1090377.8414795273,
+        "throughput_total_proj_per_sec": 198706.0650116392
+      }
+    }
+  }
+}
