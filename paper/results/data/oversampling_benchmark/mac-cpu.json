@@ -18,7 +18,7 @@
       "python_version": "3.13.5",
       "architecture": "arm64"
     },
-    "title": "Mac, M4: CPU"
+    "title": "M4: CPU"
   },
   "benchmarks": {
     "scenario_1_linear": {

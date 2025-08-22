@@ -16,7 +16,7 @@
       "python_version": "3.13.5",
       "architecture": "arm64"
     },
-    "title": "Mac, M4: MPS"
+    "title": "M4: MPS"
   },
   "benchmarks": {
     "scenario_1_linear": {

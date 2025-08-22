@@ -1,0 +1,3 @@
+now that we're finished developing the package, we want to write a very short paper for our target audience: experts working on cryo-em software methods development. we'll be writing in latex, with paper/main.tex as the main document and paper/references.bib for reference tracking.
+for an example of the general writing style and wording we're looking for, there is an excerpt from one of my previous papers in paper/style-example.txt.
+the c++ implementation in csrc/cpu serves as the reference. commonly used code is factored out into csrc/cpu/common
