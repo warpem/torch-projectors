@@ -11,6 +11,7 @@ Usage:
     python backward_2d_to_3d.py --platform-name "m2-mps" --device mps --batch-sizes 1 4 --image-sizes 32 64
 """
 
+import statistics
 import sys
 import time
 import torch
@@ -68,29 +69,58 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
         
         def forward_pass():
             """Forward 2D->3D back-projection operation."""
+            # Reset tensor state
+            projections.grad = None
+            weights.grad = None
             projections.requires_grad_(True)
             weights.requires_grad_(True)
+            
             reconstruction, weight_reconstruction = torch_projectors.backproject_2d_to_3d_forw(
                 projections, rotations, weights=weights, shifts=shifts,
                 interpolation=interpolation
             )
+            # Ensure operation completes before timing ends
+            self._synchronize()
+            # Force tensor materialization by accessing shape (essentially free)
+            _ = reconstruction.shape, weight_reconstruction.shape
             # Don't return tensors to avoid memory profiler issues
             del reconstruction, weight_reconstruction
             
-        def backward_pass():
-            """Combined forward + backward pass."""
+        def combined_forward_backward():
+            """Combined forward + backward pass with internal timing."""
+            # Reset tensor state
+            projections.grad = None
+            weights.grad = None
             projections.requires_grad_(True)
             weights.requires_grad_(True)
+            
+            # Time forward pass
+            self._synchronize()
+            forward_start = time.perf_counter()
             reconstruction, weight_reconstruction = torch_projectors.backproject_2d_to_3d_forw(
                 projections, rotations, weights=weights, shifts=shifts,
                 interpolation=interpolation
             )
-            # Loss includes both outputs
+            self._synchronize()
+            forward_end = time.perf_counter()
+            
+            # Time backward pass
             loss = torch.sum(torch.abs(reconstruction)**2) + 0.1 * torch.sum(weight_reconstruction**2)
+            backward_start = time.perf_counter()
             loss.backward()
-            projections.grad = None
-            weights.grad = None
+            self._synchronize()
+            backward_end = time.perf_counter()
+            
+            # Calculate times
+            forward_time = forward_end - forward_start
+            backward_time = backward_end - backward_start
+            total_time = forward_time + backward_time
+            
+            # Access gradients to ensure they're computed (very fast)
+            _ = projections.grad.numel(), weights.grad.numel()
+            
             del reconstruction, weight_reconstruction, loss
+            return forward_time, backward_time, total_time
             
         # Reset memory stats
         self.reset_memory_stats()
@@ -98,21 +128,32 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
         # Time forward pass
         forward_times, forward_stats = self.time_function(forward_pass)
         
-        # Time backward pass (forward + backward)
-        backward_times, backward_stats = self.time_function(backward_pass)
-        
-        # Calculate pure backward time by subtracting forward time
-        pure_backward_times = []
-        for b_time, f_time in zip(backward_times, forward_times):
-            pure_backward_times.append(max(0.0, b_time - f_time))
+        # Time combined forward+backward pass
+        combined_results = []
+        for _ in range(self.timing_runs):
+            forward_time, backward_time, total_time = combined_forward_backward()
+            combined_results.append((forward_time, backward_time, total_time))
             
-        pure_backward_stats = {
-            "median_time": pure_backward_times[len(pure_backward_times)//2] if pure_backward_times else 0.0,
-            "mean_time": sum(pure_backward_times) / len(pure_backward_times) if pure_backward_times else 0.0,
-            "std_dev": 0.0,  # Simplified for now
-            "min_time": min(pure_backward_times) if pure_backward_times else 0.0,
-            "max_time": max(pure_backward_times) if pure_backward_times else 0.0
-        }
+        # Extract times for statistics
+        combined_forward_times = [r[0] for r in combined_results]
+        combined_backward_times = [r[1] for r in combined_results]
+        combined_total_times = [r[2] for r in combined_results]
+        
+        # Calculate statistics for each timing type
+        def calc_stats(times):
+            if not times:
+                return {"median_time": 0.0, "mean_time": 0.0, "std_dev": 0.0, "min_time": 0.0, "max_time": 0.0}
+            sorted_times = sorted(times)
+            return {
+                "median_time": sorted_times[len(sorted_times)//2],
+                "mean_time": sum(times) / len(times),
+                "std_dev": statistics.stdev(times) if len(times) > 1 else 0.0,
+                "min_time": min(times),
+                "max_time": max(times)
+            }
+        
+        combined_backward_stats = calc_stats(combined_backward_times)
+        combined_total_stats = calc_stats(combined_total_times)
         
         # Get peak memory usage
         peak_memory = self.get_peak_memory()
@@ -120,12 +161,11 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
         # Calculate throughput (total back-projections processed)
         total_backprojections = batch_size * num_projections
         forward_throughput = total_backprojections / forward_stats["median_time"] if forward_stats["median_time"] > 0 else 0.0
-        total_throughput = total_backprojections / backward_stats["median_time"] if backward_stats["median_time"] > 0 else 0.0
+        total_throughput = total_backprojections / combined_total_stats["median_time"] if combined_total_stats["median_time"] > 0 else 0.0
         
         results = {
             "forward": forward_stats,
-            "backward": pure_backward_stats,
-            "forward_and_backward": backward_stats,
+            "forward_and_backward": combined_total_stats,
             "throughput_forward_backproj_per_sec": forward_throughput,
             "throughput_total_backproj_per_sec": total_throughput,
             **peak_memory
@@ -139,7 +179,7 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
             forward_memory = self.profile_memory_usage_detailed(forward_pass)
             
             # Profile backward pass with detailed memory tracking  
-            backward_memory = self.profile_memory_usage_detailed(backward_pass)
+            backward_memory = self.profile_memory_usage_detailed(lambda: combined_forward_backward())
             
             # Calculate actual tensor sizes with gradient information
             input_sizes = self.calculate_tensor_sizes(projections, weights, rotations, shifts, include_gradients=True)
@@ -201,6 +241,10 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
                     projections, rotations, weights=weights, shifts=shifts,
                     interpolation=interpolation
                 )
+                # Ensure operation completes before timing ends
+                self._synchronize()
+                # Force tensor materialization by accessing shape (essentially free)
+                _ = reconstruction.shape, weight_reconstruction.shape
                 del reconstruction, weight_reconstruction
         
         # Reset memory stats
@@ -306,7 +350,7 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
                 )
                 
                 print(f"    Forward: {with_grad_results['forward']['median_time']:.4f}s")
-                print(f"    Backward: {with_grad_results['backward']['median_time']:.4f}s")
+                # Remove backward-only timing output since we don't calculate it anymore
                 print(f"    Forward+Backward: {with_grad_results['forward_and_backward']['median_time']:.4f}s")
                 print(f"    Throughput: {with_grad_results['throughput_total_backproj_per_sec']:.1f} backproj/s")
                 
@@ -315,7 +359,7 @@ class Backward2DTo3DBenchmark(BenchmarkBase):
                 # Create failed result structure with None values
                 with_grad_results = {
                     "forward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
-                    "backward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
+                    # Remove backward-only results since we don't calculate them anymore
                     "forward_and_backward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
                     "throughput_forward_backproj_per_sec": None,
                     "throughput_total_backproj_per_sec": None,

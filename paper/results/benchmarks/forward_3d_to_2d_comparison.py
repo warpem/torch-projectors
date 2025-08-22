@@ -128,13 +128,87 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
             print(f"Error running subprocess for {element_params}: {e}")
             return None
         
+    def run_library_benchmark_subprocess(self, library: str, batch_size: int, volume_size: int,
+                                       num_projections: int, interpolation: str,
+                                       disable_tfs_backward_safety: bool = False) -> Optional[dict]:
+        """Run a single library benchmark in a subprocess."""
+        import subprocess
+        import uuid
+        from pathlib import Path
+        import json
+        
+        # Create temporary file for results
+        temp_dir = Path("/tmp") / "torch_projectors_benchmarks"
+        temp_dir.mkdir(exist_ok=True)
+        result_file = temp_dir / f"library_{library.replace('-', '_')}_{uuid.uuid4().hex}.json"
+        
+        # Build subprocess command
+        script_path = str(Path(__file__).resolve())
+        cmd = [
+            sys.executable, script_path,
+            "--platform-name", self.platform_name,
+            "--device", str(self.device),
+            "--warmup-runs", str(self.warmup_runs),
+            "--timing-runs", str(self.timing_runs),
+            "--cooldown", str(self.cooldown_seconds),
+            "--batch-sizes", str(batch_size),
+            "--image-sizes", str(volume_size),
+            "--num-projections", str(num_projections),
+            "--interpolations", interpolation,
+            "--single-library", library,
+            "--single-library-result", str(result_file)
+        ]
+        
+        if self.profile_memory:
+            cmd.append("--profile-memory")
+            
+        if self.title:
+            cmd.extend(["--title", self.title])
+            
+        if disable_tfs_backward_safety:
+            cmd.append("--disable-tfs-backward-safety")
+            
+        try:
+            print(f"        Running {library} in subprocess...")
+            
+            # Run subprocess with timeout
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout
+                cwd=Path(script_path).parent
+            )
+            
+            if result.returncode != 0:
+                print(f"        {library} subprocess failed")
+                print(f"        STDERR: {result.stderr}")
+                print(f"        STDOUT: {result.stdout}")
+                return None
+            
+            # Read results from temporary file
+            if result_file.exists():
+                with open(result_file, 'r') as f:
+                    library_result = json.load(f)
+                result_file.unlink()  # Clean up temp file
+                return library_result
+            else:
+                print(f"        Result file not found for {library}")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            print(f"        {library} subprocess timed out")
+            return None
+        except Exception as e:
+            print(f"        Error running {library} subprocess: {e}")
+            return None
+
     def benchmark_library_comparison(self, batch_size: int, volume_size: int, 
                                    num_projections: int, interpolation: str, 
                                    disable_tfs_backward_safety: bool = False) -> dict:
         """Benchmark torch-projectors vs torch-fourier-slice for 3D->2D projection.
         
-        Important: Due to memory constraints, backward passes through torch-fourier-slice
-        are only attempted when batch_size == 1 and num_projections == 1.
+        Runs each library in a separate subprocess to isolate failures.
         """
         # Skip MPS - torch-fourier-slice operators not implemented for MPS
         if self.device.type == "mps":
@@ -143,275 +217,89 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
         print(f"      Comparing torch-projectors vs torch-fourier-slice...")
         print(f"      Volume: {volume_size}³, Batch: {batch_size}, Projections: {num_projections}, Interpolation: {interpolation}")
         
-        # Generate test data (3D volumes) - same seed for fair comparison
-        torch.manual_seed(42)
-        reconstructions, rotations, shifts = self.generate_test_data(
-            batch_size, volume_size, volume_size, num_projections, is_3d=True, depth=volume_size
+        # Run torch-fourier-slice benchmark in subprocess
+        print(f"        Running torch-fourier-slice benchmark...")
+        tfs_result = self.run_library_benchmark_subprocess(
+            "torch-fourier-slice", batch_size, volume_size, num_projections, 
+            interpolation, disable_tfs_backward_safety
         )
         
-        # Create torch-fourier-slice compatible data
-        volume_tfs = reconstructions.clone()
-        volume_tfs.requires_grad_(True)
+        # Run torch-projectors benchmark in subprocess
+        print(f"        Running torch-projectors benchmark...")
+        tp_result = self.run_library_benchmark_subprocess(
+            "torch-projectors", batch_size, volume_size, num_projections, interpolation
+        )
         
-        # Convert rotations to torch-fourier-slice format
-        rotations_tfs = rotations.clone()
+        # Combine results
+        results = {"comparison": {}}
         
-        def benchmark_torch_fourier_slice():
-            """Benchmark torch-fourier-slice using Fourier space API"""
-            forward_times = []
-            backward_times = []
+        if tfs_result:
+            print(f"        torch-fourier-slice: SUCCESS")
+            results["torch_fourier_slice"] = tfs_result
+        else:
+            print(f"        torch-fourier-slice: FAILED")
+            results["torch_fourier_slice"] = {
+                "error": "Subprocess failed",
+                "forward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
+                "backward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
+                "throughput_proj_per_sec": None,
+                "backward_available": False
+            }
             
-            # Can we safely do backward pass? Only if batch=1 and projections=1, unless safety is disabled
-            safe_for_backward = disable_tfs_backward_safety or (batch_size <= 8 and num_projections == 1 and volume_size <= 96) or (volume_size <= 32 and num_projections <= 128)
-            
-            print(f"        torch-fourier-slice backward pass: {'ENABLED' if safe_for_backward else 'DISABLED (memory constraint)'}")
-            
-            # Warmup runs
-            for _ in range(self.warmup_runs):
-                volume_tfs.grad = None
-                all_projections = []
-                for i in range(batch_size):
-                    volume = volume_tfs[i]  # Single volume
-                    rotations_batch = rotations_tfs[i]  # Rotations for this volume
-                    if safe_for_backward:
-                        projections = extract_central_slices_rfft_3d(
-                            volume, (volume_size, volume_size, volume_size), rotations_batch
-                        )
-                    else:
-                        with torch.no_grad():
-                            projections = extract_central_slices_rfft_3d(
-                                volume, (volume_size, volume_size, volume_size), rotations_batch
-                            )
-                    all_projections.append(projections)
-                
-                if safe_for_backward:
-                    all_projections = torch.stack(all_projections)
-                    loss = torch.sum(torch.abs(all_projections)**2)
-                    loss.backward()
-            
-            # Timing runs
-            for _ in range(self.timing_runs):
-                volume_tfs.grad = None
-                
-                # Time forward pass
-                self._synchronize()
-                start_time = time.perf_counter()
-                
-                all_projections = []
-                for i in range(batch_size):
-                    volume = volume_tfs[i]  # Single volume
-                    rotations_batch = rotations_tfs[i]  # Rotations for this volume
-                    if safe_for_backward:
-                        projections = extract_central_slices_rfft_3d(
-                            volume, (volume_size, volume_size, volume_size), rotations_batch
-                        )
-                    else:
-                        with torch.no_grad():
-                            projections = extract_central_slices_rfft_3d(
-                                volume, (volume_size, volume_size, volume_size), rotations_batch
-                            )
-                    all_projections.append(projections)
-                
-                all_projections = torch.stack(all_projections)
-                
-                self._synchronize()
-                forward_time = time.perf_counter() - start_time
-                forward_times.append(forward_time)
-                
-                # Time backward pass only if safe
-                if safe_for_backward:
-                    loss = torch.sum(torch.abs(all_projections)**2)
-                    
-                    self._synchronize()
-                    start_time = time.perf_counter()
-                    
-                    loss.backward()
-                    
-                    self._synchronize()
-                    backward_time = time.perf_counter() - start_time
-                    backward_times.append(backward_time)
-            
-            return forward_times, backward_times
-        
-        def benchmark_torch_projectors():
-            """Benchmark torch-projectors"""
-            forward_times = []
-            backward_times = []
-            
-            print(f"        torch-projectors backward pass: ENABLED")
-            
-            # Warmup runs
-            for _ in range(self.warmup_runs):
-                reconstructions.requires_grad_(True)
-                projections = torch_projectors.project_3d_to_2d_forw(
-                    reconstructions, rotations, shifts,
-                    output_shape=(volume_size, volume_size), interpolation=interpolation
-                )
-                loss = torch.sum(torch.abs(projections)**2)
-                loss.backward()
-                reconstructions.grad = None
-            
-            # Timing runs
-            for _ in range(self.timing_runs):
-                reconstructions.requires_grad_(True)
-                
-                # Time forward pass
-                self._synchronize()
-                start_time = time.perf_counter()
-                
-                projections = torch_projectors.project_3d_to_2d_forw(
-                    reconstructions, rotations, shifts,
-                    output_shape=(volume_size, volume_size), interpolation=interpolation
-                )
-                
-                self._synchronize()
-                forward_time = time.perf_counter() - start_time
-                forward_times.append(forward_time)
-                
-                # Time backward pass
-                loss = torch.sum(torch.abs(projections)**2)
-                
-                self._synchronize()
-                start_time = time.perf_counter()
-                
-                loss.backward()
-                
-                self._synchronize()
-                backward_time = time.perf_counter() - start_time
-                backward_times.append(backward_time)
-                
-                reconstructions.grad = None
-            
-            return forward_times, backward_times
-        
-        # Reset memory stats
-        self.reset_memory_stats()
-        
-        # Run benchmarks
-        print(f"        Benchmarking torch-fourier-slice...")
-        tfs_forward, tfs_backward = benchmark_torch_fourier_slice()
-        
-        print(f"        Benchmarking torch-projectors...")
-        tp_forward, tp_backward = benchmark_torch_projectors()
-        
-        # Get peak memory usage
-        peak_memory = self.get_peak_memory()
-        
-        # Calculate statistics
-        def calc_stats(times):
-            if not times:
-                return {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None}
-            return {
-                'median_time': statistics.median(times),
-                'mean_time': statistics.mean(times),
-                'std_dev': statistics.stdev(times) if len(times) > 1 else 0,
-                'min_time': min(times),
-                'max_time': max(times)
+        if tp_result:
+            print(f"        torch-projectors: SUCCESS")
+            results["torch_projectors"] = tp_result
+        else:
+            print(f"        torch-projectors: FAILED")
+            results["torch_projectors"] = {
+                "error": "Subprocess failed", 
+                "forward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
+                "backward": {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None},
+                "throughput_proj_per_sec": None,
+                "backward_available": False
             }
         
-        tfs_forward_stats = calc_stats(tfs_forward)
-        tfs_backward_stats = calc_stats(tfs_backward)
-        tp_forward_stats = calc_stats(tp_forward)
-        tp_backward_stats = calc_stats(tp_backward)
-        
-        # Calculate speedups
-        forward_speedup = None
-        backward_speedup = None
-        total_speedup = None
-        
-        if tfs_forward_stats["mean_time"] and tp_forward_stats["mean_time"]:
-            forward_speedup = tfs_forward_stats["mean_time"] / tp_forward_stats["mean_time"]
-        
-        if tfs_backward_stats["mean_time"] and tp_backward_stats["mean_time"]:
-            backward_speedup = tfs_backward_stats["mean_time"] / tp_backward_stats["mean_time"]
-        
-        if (tfs_forward_stats["mean_time"] and tp_forward_stats["mean_time"] and
-            tfs_backward_stats["mean_time"] and tp_backward_stats["mean_time"]):
-            tfs_total = tfs_forward_stats["mean_time"] + tfs_backward_stats["mean_time"]
-            tp_total = tp_forward_stats["mean_time"] + tp_backward_stats["mean_time"]
-            total_speedup = tfs_total / tp_total
-        
-        # Calculate throughput
-        total_projections = batch_size * num_projections
-        tfs_throughput = total_projections / tfs_forward_stats["mean_time"] if tfs_forward_stats["mean_time"] else None
-        tp_throughput = total_projections / tp_forward_stats["mean_time"] if tp_forward_stats["mean_time"] else None
-        
-        results = {
-            "torch_fourier_slice": {
-                "forward": tfs_forward_stats,
-                "backward": tfs_backward_stats,
-                "throughput_proj_per_sec": tfs_throughput,
-                "backward_available": len(tfs_backward) > 0
-            },
-            "torch_projectors": {
-                "forward": tp_forward_stats,
-                "backward": tp_backward_stats,
-                "throughput_proj_per_sec": tp_throughput,
-                "backward_available": True
-            },
-            "comparison": {
+        # Calculate comparison metrics if both succeeded
+        if tfs_result and tp_result:
+            tfs_forward_time = tfs_result["forward"].get("mean_time")
+            tp_forward_time = tp_result["forward"].get("mean_time")
+            tfs_backward_time = tfs_result["backward"].get("mean_time")
+            tp_backward_time = tp_result["backward"].get("mean_time")
+            
+            forward_speedup = None
+            backward_speedup = None
+            total_speedup = None
+            
+            if tfs_forward_time and tp_forward_time:
+                forward_speedup = tfs_forward_time / tp_forward_time
+            
+            if tfs_backward_time and tp_backward_time:
+                backward_speedup = tfs_backward_time / tp_backward_time
+            
+            if (tfs_forward_time and tp_forward_time and tfs_backward_time and tp_backward_time):
+                tfs_total = tfs_forward_time + tfs_backward_time
+                tp_total = tp_forward_time + tp_backward_time
+                total_speedup = tfs_total / tp_total
+            
+            results["comparison"] = {
                 "forward_speedup": forward_speedup,
                 "backward_speedup": backward_speedup,
                 "total_speedup": total_speedup,
-                "memory_constraint_note": f"Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch={batch_size}, projections={num_projections})"
-            },
-            **peak_memory
-        }
-        
-        # Add memory profiling if enabled
-        if self.profile_memory:
-            print(f"        Profiling memory usage...")
-            
-            # Profile torch-fourier-slice forward pass
-            def tfs_forward_only():
-                volume_tfs.grad = None
-                all_projections = []
-                for i in range(batch_size):
-                    volume = volume_tfs[i]
-                    rotations_batch = rotations_tfs[i]
-                    projections = extract_central_slices_rfft_3d(
-                        volume, (volume_size, volume_size, volume_size), rotations_batch
-                    )
-                    all_projections.append(projections)
-                all_projections = torch.stack(all_projections)
-                del all_projections
-            
-            tfs_forward_memory = self.profile_memory_usage_detailed(tfs_forward_only)
-            
-            # Profile torch-projectors forward pass
-            def tp_forward_only():
-                reconstructions.requires_grad_(True)
-                projections = torch_projectors.project_3d_to_2d_forw(
-                    reconstructions, rotations, shifts,
-                    output_shape=(volume_size, volume_size), interpolation=interpolation
-                )
-                del projections
-            
-            tp_forward_memory = self.profile_memory_usage_detailed(tp_forward_only)
-            
-            # Calculate tensor sizes
-            input_sizes = self.calculate_tensor_sizes(reconstructions, rotations, shifts, include_gradients=True)
-            
-            with torch.no_grad():
-                sample_projections = torch_projectors.project_3d_to_2d_forw(
-                    reconstructions[:1], rotations[:1, :1], shifts[:1, :1],
-                    output_shape=(volume_size, volume_size), interpolation=interpolation
-                )
-            output_sizes = self.calculate_tensor_sizes(sample_projections, include_gradients=False)
-            output_sizes["total_mb"] = output_sizes["total_mb"] * batch_size * num_projections
-            
-            results["memory_profile"] = {
-                "torch_fourier_slice_forward_memory": tfs_forward_memory,
-                "torch_projectors_forward_memory": tp_forward_memory,
-                "input_data_sizes": input_sizes,
-                "output_data_sizes": output_sizes
+                "memory_constraint_note": f"Libraries run in separate subprocesses (batch={batch_size}, projections={num_projections})"
             }
-            
-            # Memory efficiency metrics
-            for lib_name, mem_data in [("torch_fourier_slice", tfs_forward_memory), ("torch_projectors", tp_forward_memory)]:
-                if "peak_gpu_memory_mb" in mem_data:
-                    results["memory_profile"][f"{lib_name}_memory_per_proj_mb"] = mem_data["peak_gpu_memory_mb"] / total_projections
-                    results["memory_profile"][f"{lib_name}_memory_efficiency"] = mem_data["peak_gpu_memory_mb"] / input_sizes["total_mb"]
+        else:
+            failure_info = []
+            if not tfs_result:
+                failure_info.append("torch-fourier-slice failed")
+            if not tp_result:
+                failure_info.append("torch-projectors failed")
+                
+            results["comparison"] = {
+                "forward_speedup": None,
+                "backward_speedup": None,
+                "total_speedup": None,
+                "memory_constraint_note": f"Subprocess failures: {', '.join(failure_info)} (batch={batch_size}, projections={num_projections})"
+            }
         
         return results
     
@@ -475,31 +363,44 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
                     tp = comparison_results["torch_projectors"]
                     comp = comparison_results["comparison"]
                     
-                    print(f"    torch-fourier-slice forward: {self.format_value_safe(tfs['forward']['median_time'], 4, 's')}")
-                    print(f"    torch-projectors forward: {self.format_value_safe(tp['forward']['median_time'], 4, 's')}")
+                    tfs_forward_str = self.format_value_safe(tfs['forward']['median_time'], 4, 's') if 'error' not in tfs else 'Failed'
+                    tp_forward_str = self.format_value_safe(tp['forward']['median_time'], 4, 's') if 'error' not in tp else 'Failed'
+                    
+                    print(f"    torch-fourier-slice forward: {tfs_forward_str}")
+                    print(f"    torch-projectors forward: {tp_forward_str}")
                     
                     if comp["forward_speedup"]:
                         if comp["forward_speedup"] > 1:
                             print(f"    torch-projectors is {comp['forward_speedup']:.2f}x faster for forward")
                         else:
                             print(f"    torch-fourier-slice is {1/comp['forward_speedup']:.2f}x faster for forward")
+                    else:
+                        print(f"    Forward comparison: Unable to calculate (one or both libraries failed)")
                     
-                    print(f"    torch-fourier-slice backward: {self.format_value_safe(tfs['backward']['median_time'], 4, 's') if tfs['backward_available'] else 'Not tested (memory constraint)'}")
-                    print(f"    torch-projectors backward: {self.format_value_safe(tp['backward']['median_time'], 4, 's')}")
+                    tfs_backward_str = self.format_value_safe(tfs['backward']['median_time'], 4, 's') if tfs.get('backward_available', False) else 'Not tested or failed'
+                    tp_backward_str = self.format_value_safe(tp['backward']['median_time'], 4, 's') if tp.get('backward_available', False) else 'Failed'
+                    
+                    print(f"    torch-fourier-slice backward: {tfs_backward_str}")
+                    print(f"    torch-projectors backward: {tp_backward_str}")
                     
                     if comp["backward_speedup"]:
                         if comp["backward_speedup"] > 1:
                             print(f"    torch-projectors is {comp['backward_speedup']:.2f}x faster for backward")
                         else:
                             print(f"    torch-fourier-slice is {1/comp['backward_speedup']:.2f}x faster for backward")
+                    else:
+                        print(f"    Backward comparison: Unable to calculate (one or both libraries failed)")
                     
-                    print(f"    torch-fourier-slice throughput: {self.format_value_safe(tfs['throughput_proj_per_sec'], 1, ' proj/s')}")
-                    print(f"    torch-projectors throughput: {self.format_value_safe(tp['throughput_proj_per_sec'], 1, ' proj/s')}")
+                    tfs_throughput_str = self.format_value_safe(tfs['throughput_proj_per_sec'], 1, ' proj/s') if 'error' not in tfs else 'Failed'
+                    tp_throughput_str = self.format_value_safe(tp['throughput_proj_per_sec'], 1, ' proj/s') if 'error' not in tp else 'Failed'
+                    
+                    print(f"    torch-fourier-slice throughput: {tfs_throughput_str}")
+                    print(f"    torch-projectors throughput: {tp_throughput_str}")
                 else:
-                    print(f"    ERROR: {comparison_results['error']}")
+                    print(f"    COMPARISON ERROR: {comparison_results['error']}")
                     
             except Exception as e:
-                print(f"    ERROR in library comparison: {e}")
+                print(f"    EXCEPTION in library comparison: {e}")
                 comparison_results = {"error": str(e)}
             
             # Save comparison results
@@ -523,6 +424,233 @@ class Forward3DTo2DComparisonBenchmark(BenchmarkBase):
             if self.test_cooldown_seconds > 0:
                 print(f"    Cooling down for {self.test_cooldown_seconds}s...")
                 time.sleep(self.test_cooldown_seconds)
+
+
+def run_single_library_benchmark(benchmark: Forward3DTo2DComparisonBenchmark, library: str, args) -> dict:
+    """Run a single library benchmark (torch-fourier-slice or torch-projectors)."""
+    # Extract single values from lists
+    batch_size = args.batch_sizes[0] if args.batch_sizes else 1
+    volume_size = args.image_sizes[0] if args.image_sizes else 64
+    num_projections = getattr(args, 'num_projections', [64])[0]
+    interpolation = getattr(args, 'interpolations', ['linear'])[0]
+    disable_tfs_backward_safety = getattr(args, 'disable_tfs_backward_safety', False)
+    
+    print(f"Running single library benchmark: {library}")
+    print(f"Parameters: batch={batch_size}, volume={volume_size}³, projs={num_projections}, interp={interpolation}")
+    
+    # Skip MPS for torch-fourier-slice
+    if library == "torch-fourier-slice" and benchmark.device.type == "mps":
+        return {"error": "torch-fourier-slice operators not implemented for MPS"}
+    
+    # Check if torch-fourier-slice is available
+    if library == "torch-fourier-slice" and not HAS_TORCH_FOURIER_SLICE:
+        return {"error": "torch-fourier-slice library not available"}
+    
+    # Generate test data
+    torch.manual_seed(42)
+    reconstructions, rotations, shifts = benchmark.generate_test_data(
+        batch_size, volume_size, volume_size, num_projections, is_3d=True, depth=volume_size
+    )
+    
+    if library == "torch-fourier-slice":
+        return benchmark_torch_fourier_slice_only(
+            benchmark, reconstructions, rotations, shifts, volume_size, 
+            batch_size, num_projections, disable_tfs_backward_safety
+        )
+    elif library == "torch-projectors":
+        return benchmark_torch_projectors_only(
+            benchmark, reconstructions, rotations, shifts, volume_size, interpolation
+        )
+    else:
+        return {"error": f"Unknown library: {library}"}
+
+
+def benchmark_torch_fourier_slice_only(benchmark, reconstructions, rotations, shifts, 
+                                      volume_size, batch_size, num_projections, 
+                                      disable_tfs_backward_safety) -> dict:
+    """Benchmark only torch-fourier-slice."""
+    # Create torch-fourier-slice compatible data
+    volume_tfs = reconstructions.clone()
+    volume_tfs.requires_grad_(True)
+    rotations_tfs = rotations.clone()
+    
+    forward_times = []
+    backward_times = []
+    
+    # Can we safely do backward pass?
+    safe_for_backward = disable_tfs_backward_safety or (batch_size <= 8 and num_projections == 1 and volume_size <= 96) or (volume_size <= 32 and num_projections <= 128)
+    
+    print(f"  torch-fourier-slice backward pass: {'ENABLED' if safe_for_backward else 'DISABLED (memory constraint)'}")
+    
+    # Warmup runs
+    for _ in range(benchmark.warmup_runs):
+        volume_tfs.grad = None
+        all_projections = []
+        for i in range(batch_size):
+            volume = volume_tfs[i]
+            rotations_batch = rotations_tfs[i]
+            if safe_for_backward:
+                projections = extract_central_slices_rfft_3d(
+                    volume, (volume_size, volume_size, volume_size), rotations_batch
+                )
+            else:
+                with torch.no_grad():
+                    projections = extract_central_slices_rfft_3d(
+                        volume, (volume_size, volume_size, volume_size), rotations_batch
+                    )
+            all_projections.append(projections)
+        
+        if safe_for_backward:
+            all_projections = torch.stack(all_projections)
+            loss = torch.sum(torch.abs(all_projections)**2)
+            loss.backward()
+    
+    # Timing runs
+    for _ in range(benchmark.timing_runs):
+        volume_tfs.grad = None
+        
+        # Time forward pass
+        benchmark._synchronize()
+        start_time = time.perf_counter()
+        
+        all_projections = []
+        for i in range(batch_size):
+            volume = volume_tfs[i]
+            rotations_batch = rotations_tfs[i]
+            if safe_for_backward:
+                projections = extract_central_slices_rfft_3d(
+                    volume, (volume_size, volume_size, volume_size), rotations_batch
+                )
+            else:
+                with torch.no_grad():
+                    projections = extract_central_slices_rfft_3d(
+                        volume, (volume_size, volume_size, volume_size), rotations_batch
+                    )
+            all_projections.append(projections)
+        
+        all_projections = torch.stack(all_projections)
+        
+        benchmark._synchronize()
+        forward_time = time.perf_counter() - start_time
+        forward_times.append(forward_time)
+        
+        # Time backward pass only if safe
+        if safe_for_backward:
+            loss = torch.sum(torch.abs(all_projections)**2)
+            
+            benchmark._synchronize()
+            start_time = time.perf_counter()
+            
+            loss.backward()
+            
+            benchmark._synchronize()
+            backward_time = time.perf_counter() - start_time
+            backward_times.append(backward_time)
+    
+    # Calculate statistics
+    def calc_stats(times):
+        if not times:
+            return {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None}
+        return {
+            'median_time': statistics.median(times),
+            'mean_time': statistics.mean(times),
+            'std_dev': statistics.stdev(times) if len(times) > 1 else 0,
+            'min_time': min(times),
+            'max_time': max(times)
+        }
+    
+    forward_stats = calc_stats(forward_times)
+    backward_stats = calc_stats(backward_times)
+    
+    # Calculate throughput
+    total_projections = batch_size * num_projections
+    throughput = total_projections / forward_stats["mean_time"] if forward_stats["mean_time"] else None
+    
+    return {
+        "forward": forward_stats,
+        "backward": backward_stats,
+        "throughput_proj_per_sec": throughput,
+        "backward_available": len(backward_times) > 0
+    }
+
+
+def benchmark_torch_projectors_only(benchmark, reconstructions, rotations, shifts, 
+                                   volume_size, interpolation) -> dict:
+    """Benchmark only torch-projectors."""
+    forward_times = []
+    backward_times = []
+    
+    print(f"  torch-projectors backward pass: ENABLED")
+    
+    # Warmup runs
+    for _ in range(benchmark.warmup_runs):
+        reconstructions.requires_grad_(True)
+        projections = torch_projectors.project_3d_to_2d_forw(
+            reconstructions, rotations, shifts,
+            output_shape=(volume_size, volume_size), interpolation=interpolation
+        )
+        loss = torch.sum(torch.abs(projections)**2)
+        loss.backward()
+        reconstructions.grad = None
+    
+    # Timing runs
+    for _ in range(benchmark.timing_runs):
+        reconstructions.requires_grad_(True)
+        
+        # Time forward pass
+        benchmark._synchronize()
+        start_time = time.perf_counter()
+        
+        projections = torch_projectors.project_3d_to_2d_forw(
+            reconstructions, rotations, shifts,
+            output_shape=(volume_size, volume_size), interpolation=interpolation
+        )
+        
+        benchmark._synchronize()
+        forward_time = time.perf_counter() - start_time
+        forward_times.append(forward_time)
+        
+        # Time backward pass
+        loss = torch.sum(torch.abs(projections)**2)
+        
+        benchmark._synchronize()
+        start_time = time.perf_counter()
+        
+        loss.backward()
+        
+        benchmark._synchronize()
+        backward_time = time.perf_counter() - start_time
+        backward_times.append(backward_time)
+        
+        reconstructions.grad = None
+    
+    # Calculate statistics
+    def calc_stats(times):
+        if not times:
+            return {"median_time": None, "mean_time": None, "std_dev": None, "min_time": None, "max_time": None}
+        return {
+            'median_time': statistics.median(times),
+            'mean_time': statistics.mean(times),
+            'std_dev': statistics.stdev(times) if len(times) > 1 else 0,
+            'min_time': min(times),
+            'max_time': max(times)
+        }
+    
+    forward_stats = calc_stats(forward_times)
+    backward_stats = calc_stats(backward_times)
+    
+    # Calculate throughput
+    batch_size = reconstructions.shape[0]
+    num_projections = rotations.shape[1]
+    total_projections = batch_size * num_projections
+    throughput = total_projections / forward_stats["mean_time"] if forward_stats["mean_time"] else None
+    
+    return {
+        "forward": forward_stats,
+        "backward": backward_stats,
+        "throughput_proj_per_sec": throughput,
+        "backward_available": True
+    }
 
 
 def run_single_element_benchmark(benchmark: Forward3DTo2DComparisonBenchmark, args):
@@ -572,7 +700,22 @@ def main():
         action='store_true',
         help='Disable memory safety check for torch-fourier-slice backward pass (WARNING: may cause OOM errors)'
     )
+    parser.add_argument(
+        '--single-library',
+        choices=['torch-fourier-slice', 'torch-projectors'],
+        help='Run only a single library benchmark (for subprocess isolation)'
+    )
+    parser.add_argument(
+        '--single-library-result',
+        type=str,
+        help='File to save single library results to (for subprocess mode)'
+    )
     args = parser.parse_args()
+    
+    # Check if running in single-library mode (for subprocess isolation)
+    if args.single_library:
+        run_single_library_mode(args)
+        return
     
     # Check if torch-fourier-slice is available
     if not HAS_TORCH_FOURIER_SLICE:
@@ -591,7 +734,8 @@ def main():
     # Create benchmark instance
     benchmark = Forward3DTo2DComparisonBenchmark(args.platform_name, device, args.title)
     
-    print(f"Starting 3D->2D library comparison benchmarks")
+    print(f"\nStarting 3D->2D library comparison benchmarks")
+    print(f"Note: Libraries will run in SEPARATE subprocesses to isolate failures")
     print(f"Platform: {args.platform_name}")
     print(f"Device: {device}")
     print(f"Libraries: torch-projectors vs torch-fourier-slice")
@@ -606,6 +750,7 @@ def main():
     print(f"Test cooldown: {args.test_cooldown}s")
     print(f"Memory profiling: {args.profile_memory}")
     print(f"TFS backward safety disabled: {args.disable_tfs_backward_safety}")
+    print(f"Subprocess isolation: ENABLED (each library runs in separate subprocess)")
     
     # Memory constraint warning
     if args.disable_tfs_backward_safety:
@@ -613,7 +758,7 @@ def main():
         print(f"This may cause out-of-memory errors for large batch sizes or projection counts.")
     else:
         print(f"\nINFO: Backward passes through torch-fourier-slice are only tested")
-        print(f"when batch_size=1 and num_projections=1 to avoid out-of-memory errors.")
+        print(f"when batch_size<=8 and projections=1 and volume<=96, or volume<=32 and projections<=128.")
         print(f"Use --disable-tfs-backward-safety to override this safety check.")
     
     # Override benchmark parameters if provided
@@ -650,7 +795,8 @@ def main():
     try:
         script_path = str(Path(__file__).resolve())
         if benchmark.use_subprocess_isolation:
-            print("Using subprocess isolation for memory management")
+            print("Using subprocess isolation for memory management (legacy mode)")
+            print("Note: Individual libraries also run in separate subprocesses for crash isolation")
             
             # Convert parameter matrix to use image_size instead of volume_size for subprocess compatibility
             subprocess_params = []
@@ -663,22 +809,70 @@ def main():
                 script_path, subprocess_params
             )
         else:
-            print("Using traditional in-process execution")
+            print("Using traditional in-process execution (legacy mode)")
+            print("Note: Individual libraries still run in separate subprocesses for crash isolation")
             benchmark.run_benchmarks(
                 batch_sizes, volume_sizes, num_projections_list, interpolations, args.disable_tfs_backward_safety
             )
     except KeyboardInterrupt:
         print("\nBenchmark interrupted by user")
     except Exception as e:
-        print(f"\nBenchmark failed: {e}")
+        print(f"\nBenchmark failed with exception: {e}")
+        print("Note: Individual library failures are handled gracefully within subprocesses")
         raise
     finally:
         # Always save results
         benchmark.save_results()
         benchmark.print_summary()
 
-    print(f"\nBenchmark completed successfully!")
+    print(f"\nBenchmark completed!")
+    print(f"Note: Individual libraries that crashed were isolated to their own subprocesses")
     print(f"Results saved to: {benchmark.results_file}")
+
+
+def run_single_library_mode(args):
+    """Run a single library benchmark and save results to file."""
+    import json
+    from pathlib import Path
+    
+    # Skip torch-fourier-slice check if we're only running torch-projectors
+    if args.single_library == "torch-fourier-slice" and not HAS_TORCH_FOURIER_SLICE:
+        result = {"error": "torch-fourier-slice library not available"}
+        with open(args.single_library_result, 'w') as f:
+            json.dump(result, f)
+        return
+    
+    # Parse device
+    device = BenchmarkBase.parse_device(args.device)
+    
+    # Create benchmark instance
+    benchmark = Forward3DTo2DComparisonBenchmark(args.platform_name, device, args.title)
+    benchmark.warmup_runs = args.warmup_runs
+    benchmark.timing_runs = args.timing_runs
+    benchmark.cooldown_seconds = args.cooldown
+    benchmark.test_cooldown_seconds = args.test_cooldown
+    benchmark.profile_memory = args.profile_memory
+    
+    print(f"Running single library benchmark: {args.single_library}")
+    print(f"Platform: {args.platform_name}")
+    print(f"Device: {device}")
+    
+    try:
+        # Run single library benchmark
+        result = run_single_library_benchmark(benchmark, args.single_library, args)
+        
+        # Save results
+        with open(args.single_library_result, 'w') as f:
+            json.dump(result, f)
+            
+        print(f"Single library benchmark completed: {args.single_library}")
+        
+    except Exception as e:
+        print(f"Single library benchmark failed: {e}")
+        result = {"error": str(e)}
+        with open(args.single_library_result, 'w') as f:
+            json.dump(result, f)
+        raise
 
 
 if __name__ == "__main__":

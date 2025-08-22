@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "m4-cpu",
-    "timestamp": "2025-08-18T19:17:52.868461",
+    "timestamp": "2025-08-21T15:47:12.967459",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.1",
     "device_info": {
@@ -36,28 +36,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 7.504198583774269e-05,
-          "mean_time": 8.356672672865292e-05,
-          "std_dev": 2.3456671455351163e-05,
-          "min_time": 5.750000127591193e-05,
-          "max_time": 0.00014224997721612453
-        },
-        "backward": {
-          "median_time": 0.00012658300693146884,
-          "mean_time": 0.00013222794126098355,
-          "std_dev": 0.0,
-          "min_time": 2.8792041121050715e-05,
-          "max_time": 0.00024770802701823413
+          "median_time": 6.670799848507158e-05,
+          "mean_time": 7.180540002688455e-05,
+          "std_dev": 1.4979491964316854e-05,
+          "min_time": 5.5915999837452546e-05,
+          "max_time": 0.00010537500202190131
         },
         "forward_and_backward": {
-          "median_time": 0.000208500016015023,
-          "mean_time": 0.00021579466798963645,
-          "std_dev": 3.837858365863131e-05,
-          "min_time": 0.00017104201833717525,
-          "max_time": 0.0003192500153090805
+          "median_time": 0.00020375099848024547,
+          "mean_time": 0.0009242525998464164,
+          "std_dev": 0.002720539162027157,
+          "min_time": 0.00017754100190359168,
+          "max_time": 0.01075700000001234
         },
-        "throughput_forward_proj_per_sec": 106606.98688461901,
-        "throughput_total_proj_per_sec": 38369.301609183465
+        "throughput_forward_proj_per_sec": 119925.64882291139,
+        "throughput_total_proj_per_sec": 39263.611269005065
       }
     },
     "forward_2d_linear_32x32_batch1_proj8_nograd": {
@@ -75,13 +68,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 4.137499490752816e-05,
-          "mean_time": 4.5477732783183455e-05,
-          "std_dev": 1.1432338400493388e-05,
-          "min_time": 3.4500000765547156e-05,
-          "max_time": 7.787501090206206e-05
+          "median_time": 4.0625000110594556e-05,
+          "mean_time": 4.372206700888152e-05,
+          "std_dev": 1.121838545460194e-05,
+          "min_time": 3.5417000617599115e-05,
+          "max_time": 8.149999848683365e-05
         },
-        "throughput_proj_per_sec": 193353.4981183624
+        "throughput_proj_per_sec": 196923.0763869878
       }
     },
     "forward_2d_cubic_256x256_batch8_proj2048_grad": {
@@ -99,28 +92,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 1.8771876659884583,
-          "mean_time": 1.8779510721292658,
-          "std_dev": 0.006898835583802341,
-          "min_time": 1.8695391249784734,
-          "max_time": 1.8961542919860221
-        },
-        "backward": {
-          "median_time": 7.548457333963597,
-          "mean_time": 7.669761858469186,
-          "std_dev": 0.0,
-          "min_time": 7.4819729999871925,
-          "max_time": 8.456498790998012
+          "median_time": 1.873241291999875,
+          "mean_time": 1.8747256276665818,
+          "std_dev": 0.00469412127931247,
+          "min_time": 1.8698796249991574,
+          "max_time": 1.88528445799966
         },
         "forward_and_backward": {
-          "median_time": 9.438570500002243,
-          "mean_time": 9.547712930598452,
-          "std_dev": 0.31568090351901557,
-          "min_time": 9.370361999986926,
-          "max_time": 10.330447540996829
+          "median_time": 9.173734625001089,
+          "mean_time": 9.171293705466088,
+          "std_dev": 0.10840309982112281,
+          "min_time": 8.906412832999195,
+          "max_time": 9.414965124997252
         },
-        "throughput_forward_proj_per_sec": 8727.949952394762,
-        "throughput_total_proj_per_sec": 1735.856081172049
+        "throughput_forward_proj_per_sec": 8746.337201711167,
+        "throughput_total_proj_per_sec": 1785.96838362305
       }
     },
     "forward_2d_cubic_256x256_batch8_proj2048_nograd": {
@@ -138,13 +124,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 1.9196700410102494,
-          "mean_time": 1.91528578880243,
-          "std_dev": 0.01900981582691393,
-          "min_time": 1.8745698340062518,
-          "max_time": 1.944772082992131
+          "median_time": 1.9100653749992489,
+          "mean_time": 1.931674172133838,
+          "std_dev": 0.03406216909172443,
+          "min_time": 1.895728166000481,
+          "max_time": 1.9821061250004277
         },
-        "throughput_proj_per_sec": 8534.800069796225
+        "throughput_proj_per_sec": 8577.71687527001
       }
     },
     "forward_2d_cubic_32x32_batch1_proj8_grad": {
@@ -162,28 +148,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 9.858398698270321e-05,
-          "mean_time": 9.652226969289282e-05,
-          "std_dev": 1.7191829152922003e-05,
-          "min_time": 7.325000478886068e-05,
-          "max_time": 0.00012333400081843138
-        },
-        "backward": {
-          "median_time": 0.00031137396581470966,
-          "mean_time": 0.000323916597214217,
-          "std_dev": 0.0,
-          "min_time": 0.00027554199914447963,
-          "max_time": 0.0004000830231234431
+          "median_time": 9.71670015132986e-05,
+          "mean_time": 0.00010321386653231457,
+          "std_dev": 2.1108144836297366e-05,
+          "min_time": 7.650000043213367e-05,
+          "max_time": 0.00014149999697110616
         },
         "forward_and_backward": {
-          "median_time": 0.0004247920005582273,
-          "mean_time": 0.0004204388669071098,
-          "std_dev": 3.760530379471082e-05,
-          "min_time": 0.00036358399665914476,
-          "max_time": 0.0005030830216128379
+          "median_time": 0.0003587080027500633,
+          "mean_time": 0.0010881305330258328,
+          "std_dev": 0.002761378783169684,
+          "min_time": 0.00030870800401316956,
+          "max_time": 0.011068333998991875
         },
-        "throughput_forward_proj_per_sec": 81149.08155828207,
-        "throughput_total_proj_per_sec": 18832.746354656036
+        "throughput_forward_proj_per_sec": 82332.47785159959,
+        "throughput_total_proj_per_sec": 22302.26239355511
       }
     },
     "forward_2d_cubic_32x32_batch1_proj8_nograd": {
@@ -201,13 +180,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 7.495901081711054e-05,
-          "mean_time": 7.588340085931122e-05,
-          "std_dev": 6.7773813771900795e-06,
-          "min_time": 6.583399954251945e-05,
-          "max_time": 8.712499402463436e-05
+          "median_time": 6.833400038885884e-05,
+          "mean_time": 6.940280048487088e-05,
+          "std_dev": 4.8930788909084505e-06,
+          "min_time": 6.229199789231643e-05,
+          "max_time": 8.029200034798123e-05
         },
-        "throughput_proj_per_sec": 106724.99427078723
+        "throughput_proj_per_sec": 117072.02789936938
       }
     },
     "forward_2d_linear_256x256_batch8_proj2048_grad": {
@@ -225,28 +204,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.7062291670008563,
-          "mean_time": 0.7024935166060459,
-          "std_dev": 0.010712381225343107,
-          "min_time": 0.6827785829955246,
-          "max_time": 0.7182368749927264
-        },
-        "backward": {
-          "median_time": 3.6143755419761874,
-          "mean_time": 3.7628609861965137,
-          "std_dev": 0.0,
-          "min_time": 3.5603466250177007,
-          "max_time": 4.566483375005191
+          "median_time": 0.7090312500004075,
+          "mean_time": 0.7064916443334368,
+          "std_dev": 0.008308749576490432,
+          "min_time": 0.6899273330018332,
+          "max_time": 0.7178344159983681
         },
         "forward_and_backward": {
-          "median_time": 4.308756916987477,
-          "mean_time": 4.465354502802559,
-          "std_dev": 0.3495519203770728,
-          "min_time": 4.243125208013225,
-          "max_time": 5.279035208019195
+          "median_time": 4.015509042001213,
+          "mean_time": 3.997197963867317,
+          "std_dev": 0.057694000407127605,
+          "min_time": 3.8636845420005557,
+          "max_time": 4.070869832998142
         },
-        "throughput_forward_proj_per_sec": 23199.268404019535,
-        "throughput_total_proj_per_sec": 3802.488818852906
+        "throughput_forward_proj_per_sec": 23107.58517341878,
+        "throughput_total_proj_per_sec": 4080.1800789457793
       }
     },
     "forward_2d_linear_256x256_batch8_proj2048_nograd": {
@@ -264,13 +236,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.7450741250067949,
-          "mean_time": 0.7460018749950298,
-          "std_dev": 0.004067577564537922,
-          "min_time": 0.7405534579884261,
-          "max_time": 0.7530849169997964
+          "median_time": 0.7568752079969272,
+          "mean_time": 0.7574222750001354,
+          "std_dev": 0.0026579409210243303,
+          "min_time": 0.7535687080016942,
+          "max_time": 0.7626464169989049
         },
-        "throughput_proj_per_sec": 21989.75840135447
+        "throughput_proj_per_sec": 21646.897436844723
       }
     },
     "forward_2d_linear_32x32_batch8_proj8_grad": {
@@ -288,28 +260,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00015154099673964083,
-          "mean_time": 0.0001609194034244865,
-          "std_dev": 3.635943626647012e-05,
-          "min_time": 0.00012162499479018152,
-          "max_time": 0.00025437501608394086
-        },
-        "backward": {
-          "median_time": 0.0005959160043857992,
-          "mean_time": 0.0006297914641133199,
-          "std_dev": 0.0,
-          "min_time": 0.0004825419746339321,
-          "max_time": 0.0008786249672994018
+          "median_time": 0.00015429100312758237,
+          "mean_time": 0.00016217220036196522,
+          "std_dev": 3.961499724200179e-05,
+          "min_time": 0.00011699999959091656,
+          "max_time": 0.00025695900330902077
         },
         "forward_and_backward": {
-          "median_time": 0.0007655829831492156,
-          "mean_time": 0.0007907108675378065,
-          "std_dev": 9.479726970186603e-05,
-          "min_time": 0.0007012909918557853,
-          "max_time": 0.001045624987455085
+          "median_time": 0.0005944160002400167,
+          "mean_time": 0.0013406527340218113,
+          "std_dev": 0.0028062123990964015,
+          "min_time": 0.0005648330006806646,
+          "max_time": 0.01148141600060626
         },
-        "throughput_forward_proj_per_sec": 422327.95993784413,
-        "throughput_total_proj_per_sec": 83596.42443558089
+        "throughput_forward_proj_per_sec": 414800.59564509254,
+        "throughput_total_proj_per_sec": 107668.70335616422
       }
     },
     "forward_2d_linear_32x32_batch8_proj8_nograd": {
@@ -327,13 +292,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00012070900993421674,
-          "mean_time": 0.0001306777373732378,
-          "std_dev": 1.876862492268797e-05,
-          "min_time": 0.00011225001071579754,
-          "max_time": 0.000164333003340289
+          "median_time": 0.00012445800166460685,
+          "mean_time": 0.0001251360661020347,
+          "std_dev": 1.4709387385843726e-05,
+          "min_time": 0.00011079199975938536,
+          "max_time": 0.0001661669994064141
         },
-        "throughput_proj_per_sec": 530200.6870479538
+        "throughput_proj_per_sec": 514229.69310136535
       }
     },
     "forward_2d_cubic_128x128_batch8_proj2048_grad": {
@@ -351,28 +316,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.4816259579965845,
-          "mean_time": 0.4797767528022329,
-          "std_dev": 0.004237324186823989,
-          "min_time": 0.4735835839819629,
-          "max_time": 0.48454962502000853
-        },
-        "backward": {
-          "median_time": 1.8881167079671286,
-          "mean_time": 1.8924603362645334,
-          "std_dev": 0.0,
-          "min_time": 1.8495909589983057,
-          "max_time": 1.91682649901486
+          "median_time": 0.4755732910016377,
+          "mean_time": 0.4767231416670256,
+          "std_dev": 0.0035062000056301046,
+          "min_time": 0.4733554999984335,
+          "max_time": 0.48807250000027125
         },
         "forward_and_backward": {
-          "median_time": 2.376033209002344,
-          "mean_time": 2.372237089066766,
-          "std_dev": 0.019128336214132558,
-          "min_time": 2.3305563339963555,
-          "max_time": 2.3966431669832673
+          "median_time": 2.3072303330009163,
+          "mean_time": 2.3036959111336426,
+          "std_dev": 0.03237581701824971,
+          "min_time": 2.24140774999978,
+          "max_time": 2.355267624003318
         },
-        "throughput_forward_proj_per_sec": 34018.09999642127,
-        "throughput_total_proj_per_sec": 6895.526517863513
+        "throughput_forward_proj_per_sec": 34451.05162548664,
+        "throughput_total_proj_per_sec": 7101.154906666829
       }
     },
     "forward_2d_cubic_128x128_batch8_proj2048_nograd": {
@@ -390,13 +348,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.48057583399349824,
-          "mean_time": 0.4803470308659598,
-          "std_dev": 0.00377119648242151,
-          "min_time": 0.4751462920103222,
-          "max_time": 0.48618554198765196
+          "median_time": 0.48559737499817857,
+          "mean_time": 0.48631373339982625,
+          "std_dev": 0.0024867864635859946,
+          "min_time": 0.4840353750005306,
+          "max_time": 0.49265612499948475
         },
-        "throughput_proj_per_sec": 34092.43420305163
+        "throughput_proj_per_sec": 33739.88584691475
       }
     },
     "forward_2d_linear_32x32_batch1_proj128_grad": {
@@ -414,28 +372,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0001797500008251518,
-          "mean_time": 0.0002051137329544872,
-          "std_dev": 5.3977108029540895e-05,
-          "min_time": 0.0001466659887228161,
-          "max_time": 0.0003321249969303608
-        },
-        "backward": {
-          "median_time": 0.0017226670170202851,
-          "mean_time": 0.00174857519644623,
-          "std_dev": 0.0,
-          "min_time": 0.001608541002497077,
-          "max_time": 0.0019198750087525696
+          "median_time": 0.000203417002921924,
+          "mean_time": 0.00021281959998304957,
+          "std_dev": 5.826158867004533e-05,
+          "min_time": 0.00014087499948800541,
+          "max_time": 0.00036570899828802794
         },
         "forward_and_backward": {
-          "median_time": 0.0019406659994274378,
-          "mean_time": 0.0019536889294007173,
-          "std_dev": 6.988010189124956e-05,
-          "min_time": 0.0018586249789223075,
-          "max_time": 0.0020996250095777214
+          "median_time": 0.0017979590011236724,
+          "mean_time": 0.0025210055326169824,
+          "std_dev": 0.00275830234236924,
+          "min_time": 0.001696248997177463,
+          "max_time": 0.012487874999351334
         },
-        "throughput_forward_proj_per_sec": 712100.1358131254,
-        "throughput_total_proj_per_sec": 65956.73858240643
+        "throughput_forward_proj_per_sec": 629249.267078865,
+        "throughput_total_proj_per_sec": 71191.83469701128
       }
     },
     "forward_2d_linear_32x32_batch1_proj128_nograd": {
@@ -453,13 +404,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00015220799832604825,
-          "mean_time": 0.0001628250019469609,
-          "std_dev": 3.0084643936009626e-05,
-          "min_time": 0.00013937498442828655,
-          "max_time": 0.0002642920007929206
+          "median_time": 0.00015587500092806295,
+          "mean_time": 0.0001725307328645916,
+          "std_dev": 3.9323184121170495e-05,
+          "min_time": 0.00013674999718205072,
+          "max_time": 0.00024408399985986762
         },
-        "throughput_proj_per_sec": 840954.4925872309
+        "throughput_proj_per_sec": 821170.8050547028
       }
     },
     "forward_2d_cubic_256x256_batch1_proj2048_grad": {
@@ -477,28 +428,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.23535212498973124,
-          "mean_time": 0.2355894471964954,
-          "std_dev": 0.0043842091654966095,
-          "min_time": 0.23140525000053458,
-          "max_time": 0.24608329200418666
-        },
-        "backward": {
-          "median_time": 1.1789975839783438,
-          "mean_time": 1.155336733335086,
-          "std_dev": 0.0,
-          "min_time": 1.125539332977496,
-          "max_time": 1.2790900000254624
+          "median_time": 0.23297491599805653,
+          "mean_time": 0.23320385546661176,
+          "std_dev": 0.0006002577533049194,
+          "min_time": 0.23243833299784455,
+          "max_time": 0.23432241699993028
         },
         "forward_and_backward": {
-          "median_time": 1.3787505000072997,
-          "mean_time": 1.3909261805315813,
-          "std_dev": 0.03676768119075728,
-          "min_time": 1.3612454579852056,
-          "max_time": 1.510495250025997
+          "median_time": 1.3322441249983967,
+          "mean_time": 1.3535293752662256,
+          "std_dev": 0.05698590789967569,
+          "min_time": 1.313105875000474,
+          "max_time": 1.4925304999997024
         },
-        "throughput_forward_proj_per_sec": 8701.854721258018,
-        "throughput_total_proj_per_sec": 1485.4029064643364
+        "throughput_forward_proj_per_sec": 8790.64594240302,
+        "throughput_total_proj_per_sec": 1537.2557938677078
       }
     },
     "forward_2d_cubic_256x256_batch1_proj2048_nograd": {
@@ -516,13 +460,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.23235391598427668,
-          "mean_time": 0.23471260826918297,
-          "std_dev": 0.004159851958170481,
-          "min_time": 0.23148624997702427,
-          "max_time": 0.24288904102286324
+          "median_time": 0.234115125000244,
+          "mean_time": 0.23408724446611207,
+          "std_dev": 0.0008240674145342493,
+          "min_time": 0.23274483400018653,
+          "max_time": 0.23560908400031622
         },
-        "throughput_proj_per_sec": 8814.140236563035
+        "throughput_proj_per_sec": 8747.83293047754
       }
     },
     "forward_2d_linear_128x128_batch1_proj8_grad": {
@@ -540,28 +484,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00016458300524391234,
-          "mean_time": 0.0001883666031062603,
-          "std_dev": 4.127119818177207e-05,
-          "min_time": 0.0001539579825475812,
-          "max_time": 0.0002976250252686441
-        },
-        "backward": {
-          "median_time": 0.0009217079787049443,
-          "mean_time": 0.0010514389296683172,
-          "std_dev": 0.0,
-          "min_time": 0.0009217079787049443,
-          "max_time": 0.0011735409789253026
+          "median_time": 0.00019529199926182628,
+          "mean_time": 0.00020000566679906722,
+          "std_dev": 4.02762828720597e-05,
+          "min_time": 0.00015500000154133886,
+          "max_time": 0.00029975000143167563
         },
         "forward_and_backward": {
-          "median_time": 0.001234958996064961,
-          "mean_time": 0.0012398055327745776,
-          "std_dev": 7.733636898873505e-05,
-          "min_time": 0.0010862909839488566,
-          "max_time": 0.0013927499821875244
+          "median_time": 0.0011183319984411355,
+          "mean_time": 0.001850008333955581,
+          "std_dev": 0.002718225395645968,
+          "min_time": 0.0010352090030210093,
+          "max_time": 0.011670498999592382
         },
-        "throughput_forward_proj_per_sec": 48607.691833941084,
-        "throughput_total_proj_per_sec": 6477.947871541466
+        "throughput_forward_proj_per_sec": 40964.29976772612,
+        "throughput_total_proj_per_sec": 7153.510774216738
       }
     },
     "forward_2d_linear_128x128_batch1_proj8_nograd": {
@@ -579,13 +516,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00015437498223036528,
-          "mean_time": 0.00016578600237456462,
-          "std_dev": 2.6712878577406364e-05,
-          "min_time": 0.0001378330052830279,
-          "max_time": 0.00021624998771585524
+          "median_time": 0.00015045799955260009,
+          "mean_time": 0.00015011113282525912,
+          "std_dev": 4.780443379743453e-06,
+          "min_time": 0.00013979199866298586,
+          "max_time": 0.00015662499936297536
         },
-        "throughput_proj_per_sec": 51821.868313235114
+        "throughput_proj_per_sec": 53170.98475181575
       }
     },
     "forward_2d_cubic_256x256_batch8_proj128_grad": {
@@ -603,28 +540,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.11643520899815485,
-          "mean_time": 0.11808173059835099,
-          "std_dev": 0.003997613927596434,
-          "min_time": 0.11495583300711587,
-          "max_time": 0.1267763749929145
-        },
-        "backward": {
-          "median_time": 0.43753287504659966,
-          "mean_time": 0.44618448887291984,
-          "std_dev": 0.0,
-          "min_time": 0.42839212401304394,
-          "max_time": 0.542047958006151
+          "median_time": 0.11518974999853526,
+          "mean_time": 0.11608982499989604,
+          "std_dev": 0.0024533168433275372,
+          "min_time": 0.11485699999684584,
+          "max_time": 0.12461333299870603
         },
         "forward_and_backward": {
-          "median_time": 0.5579572079877835,
-          "mean_time": 0.5642662194712709,
-          "std_dev": 0.026940788071416973,
-          "min_time": 0.5444332080078311,
-          "max_time": 0.6576227500045206
+          "median_time": 0.5414114159975725,
+          "mean_time": 0.5602433608655701,
+          "std_dev": 0.0433684665081394,
+          "min_time": 0.5297314159979578,
+          "max_time": 0.6556175000005169
         },
-        "throughput_forward_proj_per_sec": 8794.590646685123,
-        "throughput_total_proj_per_sec": 1835.2661912782755
+        "throughput_forward_proj_per_sec": 8889.679854440357,
+        "throughput_total_proj_per_sec": 1891.352804434754
       }
     },
     "forward_2d_cubic_256x256_batch8_proj128_nograd": {
@@ -642,13 +572,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.11490604199934751,
-          "mean_time": 0.11604938873206265,
-          "std_dev": 0.0026616152189039535,
-          "min_time": 0.11472412498551421,
-          "max_time": 0.1225263329979498
+          "median_time": 0.11501904200122226,
+          "mean_time": 0.11587276379965866,
+          "std_dev": 0.0019548243193476594,
+          "min_time": 0.1147982089969446,
+          "max_time": 0.12202612499822862
         },
-        "throughput_proj_per_sec": 8911.628859392918
+        "throughput_proj_per_sec": 8902.873664946004
       }
     },
     "forward_2d_cubic_32x32_batch8_proj8_grad": {
@@ -666,28 +596,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0002166250196751207,
-          "mean_time": 0.00023690013331361114,
-          "std_dev": 5.343482754400768e-05,
-          "min_time": 0.00019950000569224358,
-          "max_time": 0.00037929200334474444
-        },
-        "backward": {
-          "median_time": 0.0008302090282086283,
-          "mean_time": 0.000826080331656461,
-          "std_dev": 0.0,
-          "min_time": 0.0006665409891866148,
-          "max_time": 0.001016791007714346
+          "median_time": 0.0002022500011662487,
+          "mean_time": 0.0002295806004743402,
+          "std_dev": 6.228658103738127e-05,
+          "min_time": 0.000185042001248803,
+          "max_time": 0.0003978749991802033
         },
         "forward_and_backward": {
-          "median_time": 0.0010458329925313592,
-          "mean_time": 0.001062980464970072,
-          "std_dev": 6.400773262412121e-05,
-          "min_time": 0.0009967499936465174,
-          "max_time": 0.0012388330069370568
+          "median_time": 0.0009080830022867303,
+          "mean_time": 0.0016019111329417985,
+          "std_dev": 0.0026744236480475687,
+          "min_time": 0.0008591669975430705,
+          "max_time": 0.011267917001532624
         },
-        "throughput_forward_proj_per_sec": 295441.40421075455,
-        "throughput_total_proj_per_sec": 61195.23906498003
+        "throughput_forward_proj_per_sec": 316440.04761904676,
+        "throughput_total_proj_per_sec": 70478.13893535668
       }
     },
     "forward_2d_cubic_32x32_batch8_proj8_nograd": {
@@ -705,13 +628,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00019337498815730214,
-          "mean_time": 0.00021564159736347694,
-          "std_dev": 5.127461309582289e-05,
-          "min_time": 0.00017162499716505408,
-          "max_time": 0.00033066701143980026
+          "median_time": 0.0001892079999379348,
+          "mean_time": 0.00018814719951478764,
+          "std_dev": 1.0283568047595246e-05,
+          "min_time": 0.00017337499957648106,
+          "max_time": 0.0002094999981636647
         },
-        "throughput_proj_per_sec": 330963.1747614577
+        "throughput_proj_per_sec": 338252.0824753376
       }
     },
     "forward_2d_linear_128x128_batch8_proj2048_grad": {
@@ -729,28 +652,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.17521358298836276,
-          "mean_time": 0.17700579732772895,
-          "std_dev": 0.0038651899409435334,
-          "min_time": 0.17392383399419487,
-          "max_time": 0.18511191598372534
-        },
-        "backward": {
-          "median_time": 0.8886011250142474,
-          "mean_time": 0.9358576916022382,
-          "std_dev": 0.0,
-          "min_time": 0.8662222489947453,
-          "max_time": 1.1473342080134898
+          "median_time": 0.17808979100300348,
+          "mean_time": 0.18025091940022928,
+          "std_dev": 0.00505884336665478,
+          "min_time": 0.1762951670025359,
+          "max_time": 0.19535158299913746
         },
         "forward_and_backward": {
-          "median_time": 1.0780267500085756,
-          "mean_time": 1.1128634889299671,
-          "std_dev": 0.09293656468899195,
-          "min_time": 1.0408138330094516,
-          "max_time": 1.3220687080174685
+          "median_time": 0.9843873339996208,
+          "mean_time": 0.9872410278663059,
+          "std_dev": 0.020708847258000363,
+          "min_time": 0.954136041997117,
+          "max_time": 1.02359200000501
         },
-        "throughput_forward_proj_per_sec": 93508.73214600139,
-        "throughput_total_proj_per_sec": 15198.138636049307
+        "throughput_forward_proj_per_sec": 91998.53572585575,
+        "throughput_total_proj_per_sec": 16643.85494826604
       }
     },
     "forward_2d_linear_128x128_batch8_proj2048_nograd": {
@@ -768,13 +684,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.19290133300819434,
-          "mean_time": 0.19390319720065843,
-          "std_dev": 0.0022165324609714526,
-          "min_time": 0.19233204200281762,
-          "max_time": 0.19994399999268353
+          "median_time": 0.19605329199839616,
+          "mean_time": 0.1961278528671149,
+          "std_dev": 0.0006794352130284476,
+          "min_time": 0.19531708400245407,
+          "max_time": 0.19752245899871923
         },
-        "throughput_proj_per_sec": 84934.61265663736
+        "throughput_proj_per_sec": 83569.11446370425
       }
     },
     "forward_2d_cubic_32x32_batch1_proj128_grad": {
@@ -792,28 +708,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00032049999572336674,
-          "mean_time": 0.00037135819632870456,
-          "std_dev": 8.462772994741569e-05,
-          "min_time": 0.0003043329925276339,
-          "max_time": 0.0005464580026455224
-        },
-        "backward": {
-          "median_time": 0.003328249033074826,
-          "mean_time": 0.003255208337213844,
-          "std_dev": 0.0,
-          "min_time": 0.002989375003380701,
-          "max_time": 0.0035419999912846833
+          "median_time": 0.0003262919999542646,
+          "mean_time": 0.00035329986640135757,
+          "std_dev": 6.777114621060594e-05,
+          "min_time": 0.0002994999995280523,
+          "max_time": 0.0005407080025179312
         },
         "forward_and_backward": {
-          "median_time": 0.0035676659899763763,
-          "mean_time": 0.0036265665335425486,
-          "std_dev": 0.0001566564652561275,
-          "min_time": 0.0034204589901492,
-          "max_time": 0.0038857919862493873
+          "median_time": 0.0034374579990981147,
+          "mean_time": 0.004182347066913886,
+          "std_dev": 0.002792236905099255,
+          "min_time": 0.0032619989979139064,
+          "max_time": 0.01426079200246022
         },
-        "throughput_forward_proj_per_sec": 399375.9803681267,
-        "throughput_total_proj_per_sec": 35877.798078526845
+        "throughput_forward_proj_per_sec": 392286.6635343232,
+        "throughput_total_proj_per_sec": 37236.81861235347
       }
     },
     "forward_2d_cubic_32x32_batch1_proj128_nograd": {
@@ -831,13 +740,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00031541602220386267,
-          "mean_time": 0.00033558893871183195,
-          "std_dev": 5.943857615702104e-05,
-          "min_time": 0.0002930830232799053,
-          "max_time": 0.0005177920102141798
+          "median_time": 0.0003117499982181471,
+          "mean_time": 0.00034145840036217125,
+          "std_dev": 8.08015593041443e-05,
+          "min_time": 0.0002990419998241123,
+          "max_time": 0.0005456670005514752
         },
-        "throughput_proj_per_sec": 405813.2465993431
+        "throughput_proj_per_sec": 410585.4073186938
       }
     },
     "forward_2d_linear_256x256_batch1_proj2048_grad": {
@@ -855,28 +764,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.08453424999606796,
-          "mean_time": 0.08648843039603284,
-          "std_dev": 0.004157960408538622,
-          "min_time": 0.08332395800971426,
-          "max_time": 0.0947980000055395
-        },
-        "backward": {
-          "median_time": 0.5618937500112224,
-          "mean_time": 0.585875013936311,
-          "std_dev": 0.0,
-          "min_time": 0.5554203749925364,
-          "max_time": 0.7290213759988546
+          "median_time": 0.08667529200101853,
+          "mean_time": 0.08740803059990868,
+          "std_dev": 0.0023919360790840387,
+          "min_time": 0.08557754199864576,
+          "max_time": 0.09531804200014449
         },
         "forward_and_backward": {
-          "median_time": 0.6524969160091132,
-          "mean_time": 0.6723634443323439,
-          "std_dev": 0.055292125724428424,
-          "min_time": 0.6453419580066111,
-          "max_time": 0.8123453340085689
+          "median_time": 0.6216293340003176,
+          "mean_time": 0.6249438889339217,
+          "std_dev": 0.009148168664381092,
+          "min_time": 0.617005333002453,
+          "max_time": 0.6516630419973808
         },
-        "throughput_forward_proj_per_sec": 24226.866626193067,
-        "throughput_total_proj_per_sec": 3138.712152888392
+        "throughput_forward_proj_per_sec": 23628.417657663427,
+        "throughput_total_proj_per_sec": 3294.5678203772695
       }
     },
     "forward_2d_linear_256x256_batch1_proj2048_nograd": {
@@ -894,13 +796,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.09074804099509493,
-          "mean_time": 0.09106874719727784,
-          "std_dev": 0.0013044792494098071,
-          "min_time": 0.0896792080020532,
-          "max_time": 0.09429595898836851
+          "median_time": 0.0953305420007382,
+          "mean_time": 0.09523618059974978,
+          "std_dev": 0.0017020381214834178,
+          "min_time": 0.09306783399733831,
+          "max_time": 0.09894441600044956
         },
-        "throughput_proj_per_sec": 22567.98028412203
+        "throughput_proj_per_sec": 21483.146502871463
       }
     },
     "forward_2d_cubic_128x128_batch1_proj8_grad": {
@@ -918,28 +820,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00031116598984226584,
-          "mean_time": 0.0003286387965393563,
-          "std_dev": 4.7104871836303246e-05,
-          "min_time": 0.0002863749978132546,
-          "max_time": 0.000463999982457608
-        },
-        "backward": {
-          "median_time": 0.0019745820318348706,
-          "mean_time": 0.001980341734209408,
-          "std_dev": 0.0,
-          "min_time": 0.0018313339678570628,
-          "max_time": 0.0021790830069221556
+          "median_time": 0.0003304579986433964,
+          "mean_time": 0.0003497944000021865,
+          "std_dev": 5.914497730323835e-05,
+          "min_time": 0.0003039580005861353,
+          "max_time": 0.0005023749981774017
         },
         "forward_and_backward": {
-          "median_time": 0.002299999992828816,
-          "mean_time": 0.002308980530748765,
-          "std_dev": 9.451771535039126e-05,
-          "min_time": 0.0021425839804578573,
-          "max_time": 0.002480875002220273
+          "median_time": 0.002094167000905145,
+          "mean_time": 0.0028425056002258013,
+          "std_dev": 0.002903793858532355,
+          "min_time": 0.0019510420061124023,
+          "max_time": 0.013336042000446469
         },
-        "throughput_forward_proj_per_sec": 25709.750619131948,
-        "throughput_total_proj_per_sec": 3478.260880410108
+        "throughput_forward_proj_per_sec": 24208.82542665567,
+        "throughput_total_proj_per_sec": 3820.13468674763
       }
     },
     "forward_2d_cubic_128x128_batch1_proj8_nograd": {
@@ -957,13 +852,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0003044579934794456,
-          "mean_time": 0.00035071666934527457,
-          "std_dev": 8.496493903076694e-05,
-          "min_time": 0.0002894999925047159,
-          "max_time": 0.0004940000071655959
+          "median_time": 0.0002998749987455085,
+          "mean_time": 0.00033375273317991135,
+          "std_dev": 7.739522043726471e-05,
+          "min_time": 0.00028604200269910507,
+          "max_time": 0.0005009579981560819
         },
-        "throughput_proj_per_sec": 26276.202863237002
+        "throughput_proj_per_sec": 26677.782520940564
       }
     },
     "forward_2d_cubic_128x128_batch1_proj2048_grad": {
@@ -981,28 +876,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.05947499998728745,
-          "mean_time": 0.060296697328643255,
-          "std_dev": 0.002723540874125194,
-          "min_time": 0.05861412500962615,
-          "max_time": 0.06923087500035763
-        },
-        "backward": {
-          "median_time": 0.33229733299231157,
-          "mean_time": 0.3312801387355042,
-          "std_dev": 0.0,
-          "min_time": 0.32105466700159013,
-          "max_time": 0.33703091597999446
+          "median_time": 0.059531916998821544,
+          "mean_time": 0.059807011133185976,
+          "std_dev": 0.0014693154624866767,
+          "min_time": 0.058924417000525864,
+          "max_time": 0.06493037499967613
         },
         "forward_and_backward": {
-          "median_time": 0.39156575000379235,
-          "mean_time": 0.39157683606414745,
-          "std_dev": 0.002512915715109472,
-          "min_time": 0.38589966599829495,
-          "max_time": 0.3956450409896206
+          "median_time": 0.38222941599815385,
+          "mean_time": 0.39169553919928146,
+          "std_dev": 0.021897727445966405,
+          "min_time": 0.3784370419998595,
+          "max_time": 0.46392787500008126
         },
-        "throughput_forward_proj_per_sec": 34434.63640920979,
-        "throughput_total_proj_per_sec": 5230.283802861116
+        "throughput_forward_proj_per_sec": 34401.714294544574,
+        "throughput_total_proj_per_sec": 5358.038691637202
       }
     },
     "forward_2d_cubic_128x128_batch1_proj2048_nograd": {
@@ -1020,13 +908,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.05872795800678432,
-          "mean_time": 0.05961009166203439,
-          "std_dev": 0.002009233405233791,
-          "min_time": 0.05849866700009443,
-          "max_time": 0.066059500008123
+          "median_time": 0.05903520799984108,
+          "mean_time": 0.05904389166607871,
+          "std_dev": 0.00021023951288850427,
+          "min_time": 0.05879066699708346,
+          "max_time": 0.059659415997884935
         },
-        "throughput_proj_per_sec": 34872.65809179697
+        "throughput_proj_per_sec": 34691.16260258646
       }
     },
     "forward_2d_linear_256x256_batch1_proj8_grad": {
@@ -1044,28 +932,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0004265420138835907,
-          "mean_time": 0.0004416833360058566,
-          "std_dev": 5.75316178077839e-05,
-          "min_time": 0.0003830410132650286,
-          "max_time": 0.0005466669972520322
-        },
-        "backward": {
-          "median_time": 0.003167124988976866,
-          "mean_time": 0.0035329915951782215,
-          "std_dev": 0.0,
-          "min_time": 0.0024787499860394746,
-          "max_time": 0.0046135000011418015
+          "median_time": 0.00041737499850569293,
+          "mean_time": 0.0004688139335485175,
+          "std_dev": 9.0995442119331e-05,
+          "min_time": 0.000379542001610389,
+          "max_time": 0.0006498750008177012
         },
         "forward_and_backward": {
-          "median_time": 0.0040206249977927655,
-          "mean_time": 0.003974674931184078,
-          "std_dev": 0.0005404620722878145,
-          "min_time": 0.0028846249915659428,
-          "max_time": 0.005150707991560921
+          "median_time": 0.0038444589990831446,
+          "mean_time": 0.004584886132943211,
+          "std_dev": 0.0030559961432475987,
+          "min_time": 0.0027857089989993256,
+          "max_time": 0.015425290999701247
         },
-        "throughput_forward_proj_per_sec": 18755.479506371234,
-        "throughput_total_proj_per_sec": 1989.7404021493733
+        "throughput_forward_proj_per_sec": 19167.41546245464,
+        "throughput_total_proj_per_sec": 2080.9169773713024
       }
     },
     "forward_2d_linear_256x256_batch1_proj8_nograd": {
@@ -1083,13 +964,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0004001669876743108,
-          "mean_time": 0.00045195546893713373,
-          "std_dev": 9.742277458747385e-05,
-          "min_time": 0.0003863750025629997,
-          "max_time": 0.0006552080158144236
+          "median_time": 0.0004047499969601631,
+          "mean_time": 0.00045386386603543845,
+          "std_dev": 9.889220137595953e-05,
+          "min_time": 0.0003848749984172173,
+          "max_time": 0.0006610840027860831
         },
-        "throughput_proj_per_sec": 19991.654100440355
+        "throughput_proj_per_sec": 19765.28736277517
       }
     },
     "forward_2d_linear_256x256_batch8_proj128_grad": {
@@ -1107,28 +988,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0414224170090165,
-          "mean_time": 0.04253245280512298,
-          "std_dev": 0.002332290601297755,
-          "min_time": 0.04084724999847822,
-          "max_time": 0.04793220799183473
-        },
-        "backward": {
-          "median_time": 0.1969839170051273,
-          "mean_time": 0.19586629166733474,
-          "std_dev": 0.0,
-          "min_time": 0.187271334027173,
-          "max_time": 0.20495883299736306
+          "median_time": 0.04143262499928824,
+          "mean_time": 0.042438680666964504,
+          "std_dev": 0.002794454171063588,
+          "min_time": 0.04099116599900299,
+          "max_time": 0.051817125000525266
         },
         "forward_and_backward": {
-          "median_time": 0.23762816601083614,
-          "mean_time": 0.2383987444724577,
-          "std_dev": 0.0032072687151299627,
-          "min_time": 0.23520354201900773,
-          "max_time": 0.24598808301379904
+          "median_time": 0.21912087500095367,
+          "mean_time": 0.22498574720011674,
+          "std_dev": 0.015330646021727824,
+          "min_time": 0.2179065839991381,
+          "max_time": 0.26930908399663167
         },
-        "throughput_forward_proj_per_sec": 24720.91379354092,
-        "throughput_total_proj_per_sec": 4309.253474410539
+        "throughput_forward_proj_per_sec": 24714.823162123837,
+        "throughput_total_proj_per_sec": 4673.219746843121
       }
     },
     "forward_2d_linear_256x256_batch8_proj128_nograd": {
@@ -1146,13 +1020,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.04078783298609778,
-          "mean_time": 0.043463705538306384,
-          "std_dev": 0.00505622667261782,
-          "min_time": 0.04029916599392891,
-          "max_time": 0.05927379199420102
+          "median_time": 0.04111220899721957,
+          "mean_time": 0.041186430466526265,
+          "std_dev": 0.0003923926674492294,
+          "min_time": 0.04069724999862956,
+          "max_time": 0.042319541000324534
         },
-        "throughput_proj_per_sec": 25105.52596282873
+        "throughput_proj_per_sec": 24907.442946431154
       }
     },
     "forward_2d_linear_32x32_batch8_proj128_grad": {
@@ -1170,28 +1044,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.000970416993368417,
-          "mean_time": 0.0010613914637360722,
-          "std_dev": 0.0002532971634199997,
-          "min_time": 0.0008194579859264195,
-          "max_time": 0.001784541003871709
-        },
-        "backward": {
-          "median_time": 0.0053052090224809945,
-          "mean_time": 0.004691947464986394,
-          "std_dev": 0.0,
-          "min_time": 0.0036278750048950315,
-          "max_time": 0.0054894589993637055
+          "median_time": 0.0009307910004281439,
+          "mean_time": 0.0009616333329176996,
+          "std_dev": 0.00010938001315466854,
+          "min_time": 0.0008398749996558763,
+          "max_time": 0.0011605420004343614
         },
         "forward_and_backward": {
-          "median_time": 0.005922291980823502,
-          "mean_time": 0.005753338928722466,
-          "std_dev": 0.0006031009913742562,
-          "min_time": 0.00486849999288097,
-          "max_time": 0.006552709004608914
+          "median_time": 0.0045330410030146595,
+          "mean_time": 0.005369724999521471,
+          "std_dev": 0.0028859115541418046,
+          "min_time": 0.0043224580003879964,
+          "max_time": 0.0157558329992753
         },
-        "throughput_forward_proj_per_sec": 1055216.476007485,
-        "throughput_total_proj_per_sec": 172906.0308603041
+        "throughput_forward_proj_per_sec": 1100139.558213371,
+        "throughput_total_proj_per_sec": 225896.91982027027
       }
     },
     "forward_2d_linear_32x32_batch8_proj128_nograd": {
@@ -1209,13 +1076,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0009078750154003501,
-          "mean_time": 0.0009735334004896383,
-          "std_dev": 0.00017149175626320764,
-          "min_time": 0.0008799580100458115,
-          "max_time": 0.0014041659887880087
+          "median_time": 0.0008922499982872978,
+          "mean_time": 0.000960080533210809,
+          "std_dev": 0.00017845705930574153,
+          "min_time": 0.0008315420018334407,
+          "max_time": 0.0014289999999164138
         },
-        "throughput_proj_per_sec": 1127908.5585899088
+        "throughput_proj_per_sec": 1147660.4112811438
       }
     },
     "forward_2d_cubic_128x128_batch8_proj128_grad": {
@@ -1233,28 +1100,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.029769958986435086,
-          "mean_time": 0.030869297337873528,
-          "std_dev": 0.0020166431927203503,
-          "min_time": 0.02961991701158695,
-          "max_time": 0.03515729200444184
-        },
-        "backward": {
-          "median_time": 0.10873608200927265,
-          "mean_time": 0.10948259985695283,
-          "std_dev": 0.0,
-          "min_time": 0.10461795798619278,
-          "max_time": 0.12081691698404029
+          "median_time": 0.029735583997535286,
+          "mean_time": 0.03044175553271392,
+          "std_dev": 0.0018706673268458769,
+          "min_time": 0.02956366699800128,
+          "max_time": 0.035352499999135034
         },
         "forward_and_backward": {
-          "median_time": 0.13831766697694547,
-          "mean_time": 0.14035189719482635,
-          "std_dev": 0.003980421817701659,
-          "min_time": 0.13783820800017565,
-          "max_time": 0.15043683399562724
+          "median_time": 0.13383662499836646,
+          "mean_time": 0.13553306133423274,
+          "std_dev": 0.006009135543389041,
+          "min_time": 0.13326004200280295,
+          "max_time": 0.15714045900313067
         },
-        "throughput_forward_proj_per_sec": 34397.091392251954,
-        "throughput_total_proj_per_sec": 7403.248062090856
+        "throughput_forward_proj_per_sec": 34436.85518619298,
+        "throughput_total_proj_per_sec": 7651.119415275889
       }
     },
     "forward_2d_cubic_128x128_batch8_proj128_nograd": {
@@ -1272,13 +1132,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.029844625008990988,
-          "mean_time": 0.029779541531267266,
-          "std_dev": 0.00032892555699004267,
-          "min_time": 0.02926020897575654,
-          "max_time": 0.030331874993862584
+          "median_time": 0.029450041001837235,
+          "mean_time": 0.029532575000727472,
+          "std_dev": 0.00033740590722908514,
+          "min_time": 0.02919266600292758,
+          "max_time": 0.030276917001174297
         },
-        "throughput_proj_per_sec": 34311.0358964641
+        "throughput_proj_per_sec": 34770.749552984256
       }
     },
     "forward_2d_linear_128x128_batch8_proj8_grad": {
@@ -1296,28 +1156,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0007742920133750886,
-          "mean_time": 0.0008029804681427777,
-          "std_dev": 9.04313619373416e-05,
-          "min_time": 0.0007184169953688979,
-          "max_time": 0.001011332991765812
-        },
-        "backward": {
-          "median_time": 0.004234499006997794,
-          "mean_time": 0.004590122269776961,
-          "std_dev": 0.0,
-          "min_time": 0.0037996669998392463,
-          "max_time": 0.005906042031710967
+          "median_time": 0.0007621670010848902,
+          "mean_time": 0.0008921918000851292,
+          "std_dev": 0.0002172416581087066,
+          "min_time": 0.0007187500013969839,
+          "max_time": 0.0014173749987094197
         },
         "forward_and_backward": {
-          "median_time": 0.005094749998534098,
-          "mean_time": 0.005393102737919738,
-          "std_dev": 0.0007661202689600668,
-          "min_time": 0.004541250003967434,
-          "max_time": 0.006790250015910715
+          "median_time": 0.004318208000768209,
+          "mean_time": 0.005125649733478592,
+          "std_dev": 0.0027900426097956185,
+          "min_time": 0.004018499002995668,
+          "max_time": 0.015035833002912113
         },
-        "throughput_forward_proj_per_sec": 82656.15413108571,
-        "throughput_total_proj_per_sec": 12561.951031633464
+        "throughput_forward_proj_per_sec": 83971.09807811225,
+        "throughput_total_proj_per_sec": 14820.962767104875
       }
     },
     "forward_2d_linear_128x128_batch8_proj8_nograd": {
@@ -1335,13 +1188,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0007368749938905239,
-          "mean_time": 0.0007770389978153011,
-          "std_dev": 0.00013438427050137524,
-          "min_time": 0.0007110419974196702,
-          "max_time": 0.0012450000212993473
+          "median_time": 0.0007371249994321261,
+          "mean_time": 0.000768447200001295,
+          "std_dev": 0.0001142635571254936,
+          "min_time": 0.0007050830026855692,
+          "max_time": 0.0011667500002658926
         },
-        "throughput_proj_per_sec": 86853.26619932547
+        "throughput_proj_per_sec": 86823.80878318464
       }
     },
     "forward_2d_cubic_32x32_batch8_proj2048_grad": {
@@ -1359,28 +1212,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.033004375000018626,
-          "mean_time": 0.03333778893575072,
-          "std_dev": 0.0009147845346086001,
-          "min_time": 0.032826124981511384,
-          "max_time": 0.03619858401361853
-        },
-        "backward": {
-          "median_time": 0.11193820802145638,
-          "mean_time": 0.11311290259861077,
-          "std_dev": 0.0,
-          "min_time": 0.10862733199610375,
-          "max_time": 0.12289450000389479
+          "median_time": 0.03312887500214856,
+          "mean_time": 0.033454786133370364,
+          "std_dev": 0.0011478340853705968,
+          "min_time": 0.03291404199990211,
+          "max_time": 0.03755779099810752
         },
         "forward_and_backward": {
-          "median_time": 0.14482591600972228,
-          "mean_time": 0.1464506915343615,
-          "std_dev": 0.003409438692734872,
-          "min_time": 0.1442852500185836,
-          "max_time": 0.1558235000120476
+          "median_time": 0.14067554299981566,
+          "mean_time": 0.14429848886623706,
+          "std_dev": 0.00970276633041719,
+          "min_time": 0.13987958400321077,
+          "max_time": 0.17113025000071502
         },
-        "throughput_forward_proj_per_sec": 496419.0353548811,
-        "throughput_total_proj_per_sec": 113128.92368586938
+        "throughput_forward_proj_per_sec": 494553.46729816275,
+        "throughput_total_proj_per_sec": 116466.58438717716
       }
     },
     "forward_2d_cubic_32x32_batch8_proj2048_nograd": {
@@ -1398,13 +1244,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.033253833011258394,
-          "mean_time": 0.03364937780230927,
-          "std_dev": 0.001481726342875131,
-          "min_time": 0.03237416601041332,
-          "max_time": 0.038554124999791384
+          "median_time": 0.03344716600258835,
+          "mean_time": 0.03340088893358673,
+          "std_dev": 0.0005882243509167546,
+          "min_time": 0.032396916998550296,
+          "max_time": 0.034453083000698825
         },
-        "throughput_proj_per_sec": 492695.08253238193
+        "throughput_proj_per_sec": 489847.181633628
       }
     },
     "forward_2d_linear_32x32_batch1_proj2048_grad": {
@@ -1422,28 +1268,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.001614667009562254,
-          "mean_time": 0.001861736063923066,
-          "std_dev": 0.00044810195496945265,
-          "min_time": 0.00148654097574763,
-          "max_time": 0.002689000015379861
-        },
-        "backward": {
-          "median_time": 0.02250391701818444,
-          "mean_time": 0.02266304167569615,
-          "std_dev": 0.0,
-          "min_time": 0.020656124979723245,
-          "max_time": 0.025751415989361703
+          "median_time": 0.0015794170030858368,
+          "mean_time": 0.00170398620054281,
+          "std_dev": 0.00026679928701994537,
+          "min_time": 0.0015289580005628522,
+          "max_time": 0.002439959000184899
         },
         "forward_and_backward": {
-          "median_time": 0.02399045799393207,
-          "mean_time": 0.024524777739619214,
-          "std_dev": 0.0014059498239908487,
-          "min_time": 0.023084333020960912,
-          "max_time": 0.027357874991139397
+          "median_time": 0.024080334002064774,
+          "mean_time": 0.024855499933619286,
+          "std_dev": 0.0030149413907560063,
+          "min_time": 0.022592915996938245,
+          "max_time": 0.035138708000886254
         },
-        "throughput_forward_proj_per_sec": 1268372.9758962656,
-        "throughput_total_proj_per_sec": 85367.27396025548
+        "throughput_forward_proj_per_sec": 1296680.9879839548,
+        "throughput_total_proj_per_sec": 85048.65421818459
       }
     },
     "forward_2d_linear_32x32_batch1_proj2048_nograd": {
@@ -1461,13 +1300,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.001540792000014335,
-          "mean_time": 0.0016635999995439003,
-          "std_dev": 0.0003306723477707546,
-          "min_time": 0.0014661250170320272,
-          "max_time": 0.002684041974134743
+          "median_time": 0.002408541000477271,
+          "mean_time": 0.0022712501333444378,
+          "std_dev": 0.0003984325756559252,
+          "min_time": 0.001551124998513842,
+          "max_time": 0.00289508400237537
         },
-        "throughput_proj_per_sec": 1329186.548204395
+        "throughput_proj_per_sec": 850307.3020530574
       }
     },
     "forward_2d_cubic_256x256_batch1_proj128_grad": {
@@ -1485,28 +1324,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.013953834015410393,
-          "mean_time": 0.014139966798635821,
-          "std_dev": 0.0006964320224490749,
-          "min_time": 0.013830249983584508,
-          "max_time": 0.016628709010547027
-        },
-        "backward": {
-          "median_time": 0.06945829099277034,
-          "mean_time": 0.07325581914046779,
-          "std_dev": 0.0,
-          "min_time": 0.06934258303954266,
-          "max_time": 0.07905866601504385
+          "median_time": 0.013970833999337628,
+          "mean_time": 0.01400662213297134,
+          "std_dev": 0.00018505130949265984,
+          "min_time": 0.013854666001861915,
+          "max_time": 0.014617749999160878
         },
         "forward_and_backward": {
-          "median_time": 0.08608124998863786,
-          "mean_time": 0.08739578593910362,
-          "std_dev": 0.0033535218995108967,
-          "min_time": 0.08341212500818074,
-          "max_time": 0.09302370800287463
+          "median_time": 0.08497375000297325,
+          "mean_time": 0.08701492486701075,
+          "std_dev": 0.006923558593052651,
+          "min_time": 0.08215204100270057,
+          "max_time": 0.1105591249979625
         },
-        "throughput_forward_proj_per_sec": 9173.106105364219,
-        "throughput_total_proj_per_sec": 1486.9672549701024
+        "throughput_forward_proj_per_sec": 9161.9440905295,
+        "throughput_total_proj_per_sec": 1506.34754845492
       }
     },
     "forward_2d_cubic_256x256_batch1_proj128_nograd": {
@@ -1524,13 +1356,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.014419292012462392,
-          "mean_time": 0.014451960870064794,
-          "std_dev": 7.559061049255192e-05,
-          "min_time": 0.014393249992281199,
-          "max_time": 0.01464291600859724
+          "median_time": 0.014458957997703692,
+          "mean_time": 0.015232269399227031,
+          "std_dev": 0.0018859955605792507,
+          "min_time": 0.01442700000188779,
+          "max_time": 0.02139616699787439
         },
-        "throughput_proj_per_sec": 8876.996172167912
+        "throughput_proj_per_sec": 8852.643462988715
       }
     },
     "forward_2d_linear_128x128_batch1_proj128_grad": {
@@ -1548,28 +1380,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0012515420094132423,
-          "mean_time": 0.0013037222689793757,
-          "std_dev": 0.0001268481418778003,
-          "min_time": 0.00119779200758785,
-          "max_time": 0.0016110839787870646
-        },
-        "backward": {
-          "median_time": 0.009421999973710626,
-          "mean_time": 0.009971810997618983,
-          "std_dev": 0.0,
-          "min_time": 0.009149208985036239,
-          "max_time": 0.0117157920030877
+          "median_time": 0.0012314999985392205,
+          "mean_time": 0.00136834739993598,
+          "std_dev": 0.00030226801032930486,
+          "min_time": 0.0011968750004598405,
+          "max_time": 0.0021167920021980535
         },
         "forward_and_backward": {
-          "median_time": 0.010939207975752652,
-          "mean_time": 0.011275533266598359,
-          "std_dev": 0.000785885400990717,
-          "min_time": 0.010442500002682209,
-          "max_time": 0.01323112499085255
+          "median_time": 0.010394250999524957,
+          "mean_time": 0.011626180667614486,
+          "std_dev": 0.0036309866153013577,
+          "min_time": 0.009846959001151845,
+          "max_time": 0.02389937499901862
         },
-        "throughput_forward_proj_per_sec": 102273.83422791374,
-        "throughput_total_proj_per_sec": 11701.02993596236
+        "throughput_forward_proj_per_sec": 103938.28676559555,
+        "throughput_total_proj_per_sec": 12314.499621555216
       }
     },
     "forward_2d_linear_128x128_batch1_proj128_nograd": {
@@ -1587,13 +1412,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0012190419947728515,
-          "mean_time": 0.0015005971945356578,
-          "std_dev": 0.0004266066879173546,
-          "min_time": 0.0011843329994007945,
-          "max_time": 0.0021893329976592213
+          "median_time": 0.0012057080020895228,
+          "mean_time": 0.0012246472666447516,
+          "std_dev": 4.546034215887274e-05,
+          "min_time": 0.001188542002637405,
+          "max_time": 0.0013212919984653126
         },
-        "throughput_proj_per_sec": 105000.48443683903
+        "throughput_proj_per_sec": 106161.69070635074
       }
     },
     "forward_2d_linear_128x128_batch1_proj2048_grad": {
@@ -1611,28 +1436,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.02126791700720787,
-          "mean_time": 0.021422813929772626,
-          "std_dev": 0.0006440438467213847,
-          "min_time": 0.02099241700489074,
-          "max_time": 0.02371508299256675
-        },
-        "backward": {
-          "median_time": 0.22606149900821038,
-          "mean_time": 0.17697767493858313,
-          "std_dev": 0.0,
-          "min_time": 0.1463420829968527,
-          "max_time": 0.22606149900821038
+          "median_time": 0.021645875000103842,
+          "mean_time": 0.02185650826698596,
+          "std_dev": 0.0006274741192602789,
+          "min_time": 0.021415541999886045,
+          "max_time": 0.02343283300069743
         },
         "forward_and_backward": {
-          "median_time": 0.19543029202031903,
-          "mean_time": 0.19840048886835576,
-          "std_dev": 0.02805231006721193,
-          "min_time": 0.16774170799180865,
-          "max_time": 0.24705391601310112
+          "median_time": 0.1618402909989527,
+          "mean_time": 0.1643437497325067,
+          "std_dev": 0.009685699345553755,
+          "min_time": 0.16066645800310653,
+          "max_time": 0.19925787500324077
         },
-        "throughput_forward_proj_per_sec": 96295.27890793988,
-        "throughput_total_proj_per_sec": 10479.439900683707
+        "throughput_forward_proj_per_sec": 94613.86984772734,
+        "throughput_total_proj_per_sec": 12654.450800593611
       }
     },
     "forward_2d_linear_128x128_batch1_proj2048_nograd": {
@@ -1650,13 +1468,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.020903750002617016,
-          "mean_time": 0.02092366120001922,
-          "std_dev": 8.600109156826025e-05,
-          "min_time": 0.020811374997720122,
-          "max_time": 0.021128749998752028
+          "median_time": 0.021051625000836793,
+          "mean_time": 0.02106103886665854,
+          "std_dev": 9.899247015451271e-05,
+          "min_time": 0.020935749998898245,
+          "max_time": 0.021301415999914752
         },
-        "throughput_proj_per_sec": 97972.85174878208
+        "throughput_proj_per_sec": 97284.6514185291
       }
     },
     "forward_2d_cubic_256x256_batch1_proj8_grad": {
@@ -1674,28 +1492,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0010064579837489873,
-          "mean_time": 0.0011171667332140107,
-          "std_dev": 0.00019945150878575798,
-          "min_time": 0.0009788339957594872,
-          "max_time": 0.0015524169721174985
-        },
-        "backward": {
-          "median_time": 0.007086333003826439,
-          "mean_time": 0.0068619303967958935,
-          "std_dev": 0.0,
-          "min_time": 0.005951498984359205,
-          "max_time": 0.007383375021163374
+          "median_time": 0.0011080410004069563,
+          "mean_time": 0.0011330694001420246,
+          "std_dev": 0.00017536028435335431,
+          "min_time": 0.0009869999994407408,
+          "max_time": 0.0015380000004370231
         },
         "forward_and_backward": {
-          "median_time": 0.007917874987469986,
-          "mean_time": 0.007979097130009905,
-          "std_dev": 0.00042046964052364907,
-          "min_time": 0.006979874975513667,
-          "max_time": 0.008615416998509318
+          "median_time": 0.007811374998709653,
+          "mean_time": 0.008496033399812102,
+          "std_dev": 0.0027684170539962884,
+          "min_time": 0.007406207998428727,
+          "max_time": 0.01842166700225789
         },
-        "throughput_forward_proj_per_sec": 7948.667633596135,
-        "throughput_total_proj_per_sec": 1010.3721026992692
+        "throughput_forward_proj_per_sec": 7219.94943965232,
+        "throughput_total_proj_per_sec": 1024.1474774058993
       }
     },
     "forward_2d_cubic_256x256_batch1_proj8_nograd": {
@@ -1713,13 +1524,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0009980410104617476,
-          "mean_time": 0.001064864000848805,
-          "std_dev": 0.00018665120661449054,
-          "min_time": 0.0009726659918669611,
-          "max_time": 0.0016450000111944973
+          "median_time": 0.000979249998636078,
+          "mean_time": 0.0010417417336914998,
+          "std_dev": 0.00021139092201344023,
+          "min_time": 0.0009677090019977186,
+          "max_time": 0.001797625001927372
         },
-        "throughput_proj_per_sec": 8015.702677687331
+        "throughput_proj_per_sec": 8169.517499252064
       }
     },
     "forward_2d_cubic_256x256_batch8_proj8_grad": {
@@ -1737,28 +1548,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.007056541013298556,
-          "mean_time": 0.007130594466192027,
-          "std_dev": 0.00022804728232060672,
-          "min_time": 0.006929374998435378,
-          "max_time": 0.00781695797923021
-        },
-        "backward": {
-          "median_time": 0.028375458001391962,
-          "mean_time": 0.030200047203106806,
-          "std_dev": 0.0,
-          "min_time": 0.02612883402616717,
-          "max_time": 0.039976416999707
+          "median_time": 0.006949374997930136,
+          "mean_time": 0.0069845416665581675,
+          "std_dev": 0.00011439510697233621,
+          "min_time": 0.00692200000048615,
+          "max_time": 0.0073810409994621295
         },
         "forward_and_backward": {
-          "median_time": 0.03553937500691973,
-          "mean_time": 0.03733064166929883,
-          "std_dev": 0.0045131225101255595,
-          "min_time": 0.033674958016490564,
-          "max_time": 0.047032958013005555
+          "median_time": 0.03362254200328607,
+          "mean_time": 0.035252361266854375,
+          "std_dev": 0.004064691101823304,
+          "min_time": 0.032364624999900116,
+          "max_time": 0.04633154100156389
         },
-        "throughput_forward_proj_per_sec": 9069.599380119442,
-        "throughput_total_proj_per_sec": 1800.8195132170677
+        "throughput_forward_proj_per_sec": 9209.46128523246,
+        "throughput_total_proj_per_sec": 1903.4848701726662
       }
     },
     "forward_2d_cubic_256x256_batch8_proj8_nograd": {
@@ -1776,13 +1580,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.007267417007824406,
-          "mean_time": 0.007466416734193141,
-          "std_dev": 0.0007077748726294831,
-          "min_time": 0.007236542005557567,
-          "max_time": 0.010019915993325412
+          "median_time": 0.0075063750009576324,
+          "mean_time": 0.007455322333650353,
+          "std_dev": 0.00010903875503759188,
+          "min_time": 0.007293374997971114,
+          "max_time": 0.00760137500037672
         },
-        "throughput_proj_per_sec": 8806.4301155548
+        "throughput_proj_per_sec": 8526.086159009528
       }
     },
     "forward_2d_cubic_32x32_batch8_proj128_grad": {
@@ -1800,28 +1604,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.002245499985292554,
-          "mean_time": 0.0022407500674792875,
-          "std_dev": 0.00013001484229499278,
-          "min_time": 0.0020847909909207374,
-          "max_time": 0.002421667013550177
-        },
-        "backward": {
-          "median_time": 0.007685834018047899,
-          "mean_time": 0.008035277802264318,
-          "std_dev": 0.0,
-          "min_time": 0.007487875001970679,
-          "max_time": 0.009353417000966147
+          "median_time": 0.002132458997948561,
+          "mean_time": 0.0022866221998507777,
+          "std_dev": 0.0003466633896189619,
+          "min_time": 0.002081667000311427,
+          "max_time": 0.0034528750002209563
         },
         "forward_and_backward": {
-          "median_time": 0.009915375005220994,
-          "mean_time": 0.010276027869743605,
-          "std_dev": 0.0006445082068531449,
-          "min_time": 0.009770625008968636,
-          "max_time": 0.01155820902204141
+          "median_time": 0.009569083005771972,
+          "mean_time": 0.010519152733468217,
+          "std_dev": 0.002809712210884996,
+          "min_time": 0.009262832998501835,
+          "max_time": 0.020306000002165092
         },
-        "throughput_forward_proj_per_sec": 456023.1604127972,
-        "throughput_total_proj_per_sec": 103273.95579701295
+        "throughput_forward_proj_per_sec": 480196.8061215219,
+        "throughput_total_proj_per_sec": 107011.29871925384
       }
     },
     "forward_2d_cubic_32x32_batch8_proj128_nograd": {
@@ -1839,13 +1636,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.002135041984729469,
-          "mean_time": 0.0023379862638345608,
-          "std_dev": 0.000526551314724261,
-          "min_time": 0.002061625011265278,
-          "max_time": 0.0038711669913027436
+          "median_time": 0.0020888750004814938,
+          "mean_time": 0.0021809832003782505,
+          "std_dev": 0.0003153074452307047,
+          "min_time": 0.0020737500017276034,
+          "max_time": 0.003314541001600446
         },
-        "throughput_proj_per_sec": 479615.86110436654
+        "throughput_proj_per_sec": 490216.0252595124
       }
     },
     "forward_2d_linear_128x128_batch8_proj128_grad": {
@@ -1863,28 +1660,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.010851457976968959,
-          "mean_time": 0.01223719166397738,
-          "std_dev": 0.00228340609978372,
-          "min_time": 0.010710667003877461,
-          "max_time": 0.0172180829977151
-        },
-        "backward": {
-          "median_time": 0.04948608300765045,
-          "mean_time": 0.04990081113452713,
-          "std_dev": 0.0,
-          "min_time": 0.04302450001705438,
-          "max_time": 0.05931262599187903
+          "median_time": 0.010538917002122616,
+          "mean_time": 0.010618505599995842,
+          "std_dev": 0.00016956475514836051,
+          "min_time": 0.010496625000087079,
+          "max_time": 0.01101162499981001
         },
         "forward_and_backward": {
-          "median_time": 0.06083870798465796,
-          "mean_time": 0.0621380027985045,
-          "std_dev": 0.003341043417189279,
-          "min_time": 0.06006537500070408,
-          "max_time": 0.07207554200431332
+          "median_time": 0.055732793000061065,
+          "mean_time": 0.06642421706710593,
+          "std_dev": 0.02204221177856908,
+          "min_time": 0.055367584001942305,
+          "max_time": 0.11656150099952356
         },
-        "throughput_forward_proj_per_sec": 94365.19978912776,
-        "throughput_total_proj_per_sec": 16831.389651769525
+        "throughput_forward_proj_per_sec": 97163.68387698269,
+        "throughput_total_proj_per_sec": 18373.38387112374
       }
     },
     "forward_2d_linear_128x128_batch8_proj128_nograd": {
@@ -1902,13 +1692,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.01050958299310878,
-          "mean_time": 0.01054849733482115,
-          "std_dev": 9.025503191667412e-05,
-          "min_time": 0.010460166988195851,
-          "max_time": 0.01075279200449586
+          "median_time": 0.010526750000281027,
+          "mean_time": 0.010539069333511482,
+          "std_dev": 6.198469569687132e-05,
+          "min_time": 0.010455457999341888,
+          "max_time": 0.010655458001565421
         },
-        "throughput_proj_per_sec": 97434.88401694389
+        "throughput_proj_per_sec": 97275.98736292425
       }
     },
     "forward_2d_cubic_128x128_batch8_proj8_grad": {
@@ -1926,28 +1716,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.001993041980313137,
-          "mean_time": 0.0020341137967382866,
-          "std_dev": 0.00013354073136488754,
-          "min_time": 0.0018949169898405671,
-          "max_time": 0.0022569160209968686
-        },
-        "backward": {
-          "median_time": 0.008828499994706362,
-          "mean_time": 0.008033158604909356,
-          "std_dev": 0.0,
-          "min_time": 0.007410041987895966,
-          "max_time": 0.009319833014160395
+          "median_time": 0.001911750001454493,
+          "mean_time": 0.0019832945996313355,
+          "std_dev": 0.00013196328054466464,
+          "min_time": 0.001889374998427229,
+          "max_time": 0.0022610410014749505
         },
         "forward_and_backward": {
-          "median_time": 0.009830249997321516,
-          "mean_time": 0.010067272401647643,
-          "std_dev": 0.0005101874855702797,
-          "min_time": 0.009601583005860448,
-          "max_time": 0.011312874994473532
+          "median_time": 0.009319582997704856,
+          "mean_time": 0.010298452733210676,
+          "std_dev": 0.0030590007091229558,
+          "min_time": 0.00895745799789438,
+          "max_time": 0.02111933300329838
         },
-        "throughput_forward_proj_per_sec": 32111.716979461027,
-        "throughput_total_proj_per_sec": 6510.5160110310835
+        "throughput_forward_proj_per_sec": 33477.180568226846,
+        "throughput_total_proj_per_sec": 6867.260049699794
       }
     },
     "forward_2d_cubic_128x128_batch8_proj8_nograd": {
@@ -1965,13 +1748,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0019531660072971135,
-          "mean_time": 0.0020589416710815084,
-          "std_dev": 0.00028838994140354155,
-          "min_time": 0.0018812499765772372,
-          "max_time": 0.002893249999033287
+          "median_time": 0.0019013749988516793,
+          "mean_time": 0.0019948861328884957,
+          "std_dev": 0.00028941571271652204,
+          "min_time": 0.001884874996903818,
+          "max_time": 0.003009166000992991
         },
-        "throughput_proj_per_sec": 32767.31202616327
+        "throughput_proj_per_sec": 33659.851443640684
       }
     },
     "forward_2d_linear_32x32_batch8_proj2048_grad": {
@@ -1989,28 +1772,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.013683708006283268,
-          "mean_time": 0.01368604726740159,
-          "std_dev": 0.0001518251773470159,
-          "min_time": 0.013463541981764138,
-          "max_time": 0.013979915995150805
-        },
-        "backward": {
-          "median_time": 0.09792883199406788,
-          "mean_time": 0.05652368053173026,
-          "std_dev": 0.0,
-          "min_time": 0.05186737497569993,
-          "max_time": 0.09792883199406788
+          "median_time": 0.0132804999993823,
+          "mean_time": 0.01334259173333218,
+          "std_dev": 0.00015877987162000358,
+          "min_time": 0.013148209000064526,
+          "max_time": 0.013650333999976283
         },
         "forward_and_backward": {
-          "median_time": 0.06621087499661371,
-          "mean_time": 0.07020972779913184,
-          "std_dev": 0.011746984792731795,
-          "min_time": 0.0657559169922024,
-          "max_time": 0.11161229098797776
+          "median_time": 0.0620163749990752,
+          "mean_time": 0.06936895826656837,
+          "std_dev": 0.010153249100825993,
+          "min_time": 0.06075958300061757,
+          "max_time": 0.08626662399910856
         },
-        "throughput_forward_proj_per_sec": 1197336.27701474,
-        "throughput_total_proj_per_sec": 247451.7970173018
+        "throughput_forward_proj_per_sec": 1233688.4907015585,
+        "throughput_total_proj_per_sec": 264188.28898406785
       }
     },
     "forward_2d_linear_32x32_batch8_proj2048_nograd": {
@@ -2028,13 +1804,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.013331750000361353,
-          "mean_time": 0.013543736197364827,
-          "std_dev": 0.0006351976468882453,
-          "min_time": 0.013222000008681789,
-          "max_time": 0.015758249995997176
+          "median_time": 0.01325991700286977,
+          "mean_time": 0.013264086267008679,
+          "std_dev": 5.3111043160705784e-05,
+          "min_time": 0.013178458000766113,
+          "max_time": 0.013382166998781031
         },
-        "throughput_proj_per_sec": 1228945.9372967477
+        "throughput_proj_per_sec": 1235603.5106746221
       }
     },
     "forward_2d_linear_256x256_batch8_proj8_grad": {
@@ -2052,28 +1828,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0022939170012250543,
-          "mean_time": 0.0023687194702991595,
-          "std_dev": 0.0002603636503756642,
-          "min_time": 0.0022290839988272637,
-          "max_time": 0.0032903339888434857
-        },
-        "backward": {
-          "median_time": 0.019364875013707206,
-          "mean_time": 0.014947061124257744,
-          "std_dev": 0.0,
-          "min_time": 0.012082166009349748,
-          "max_time": 0.02083929197397083
+          "median_time": 0.0022700000008626375,
+          "mean_time": 0.002491330600363047,
+          "std_dev": 0.000577866035252999,
+          "min_time": 0.002249083998322021,
+          "max_time": 0.003932415998860961
         },
         "forward_and_backward": {
-          "median_time": 0.01616595801897347,
-          "mean_time": 0.017315780594556903,
-          "std_dev": 0.0026408133205193533,
-          "min_time": 0.014970666001318023,
-          "max_time": 0.023085999971954152
+          "median_time": 0.013336084000911796,
+          "mean_time": 0.014805897066010706,
+          "std_dev": 0.003635245947917759,
+          "min_time": 0.013196165997214848,
+          "max_time": 0.026818833001016174
         },
-        "throughput_forward_proj_per_sec": 27899.876048619517,
-        "throughput_total_proj_per_sec": 3958.9364221337974
+        "throughput_forward_proj_per_sec": 28193.83258840482,
+        "throughput_total_proj_per_sec": 4799.009963916265
       }
     },
     "forward_2d_linear_256x256_batch8_proj8_nograd": {
@@ -2091,13 +1860,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0027363749977666885,
-          "mean_time": 0.002865322136009733,
-          "std_dev": 0.00043433779348888427,
-          "min_time": 0.0025646249996498227,
-          "max_time": 0.004180499992799014
+          "median_time": 0.0026463750000402797,
+          "mean_time": 0.0028996304662238497,
+          "std_dev": 0.0007015979907213678,
+          "min_time": 0.0025781250005820766,
+          "max_time": 0.004737750001368113
         },
-        "throughput_proj_per_sec": 23388.60720925825
+        "throughput_proj_per_sec": 24184.025317283405
       }
     },
     "forward_2d_linear_256x256_batch1_proj128_grad": {
@@ -2115,28 +1884,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00456962498719804,
-          "mean_time": 0.004608727799495682,
-          "std_dev": 0.00021908739472019248,
-          "min_time": 0.004419333999976516,
-          "max_time": 0.00521991599816829
-        },
-        "backward": {
-          "median_time": 0.03873458399903029,
-          "mean_time": 0.03850250553805381,
-          "std_dev": 0.0,
-          "min_time": 0.0343929179944098,
-          "max_time": 0.04299704101867974
+          "median_time": 0.00445587500144029,
+          "mean_time": 0.004554669332719641,
+          "std_dev": 0.0003219674055281858,
+          "min_time": 0.004423708000103943,
+          "max_time": 0.005702250000467757
         },
         "forward_and_backward": {
-          "median_time": 0.04252804099814966,
-          "mean_time": 0.043111233337549494,
-          "std_dev": 0.0023509347278921075,
-          "min_time": 0.03961283399257809,
-          "max_time": 0.047416375018656254
+          "median_time": 0.03963616700275452,
+          "mean_time": 0.043148038933820014,
+          "std_dev": 0.007508802926167198,
+          "min_time": 0.03721070800020243,
+          "max_time": 0.05873470900405664
         },
-        "throughput_forward_proj_per_sec": 28011.051313531494,
-        "throughput_total_proj_per_sec": 3009.7788893113866
+        "throughput_forward_proj_per_sec": 28726.120000813768,
+        "throughput_total_proj_per_sec": 3229.373818893856
       }
     },
     "forward_2d_linear_256x256_batch1_proj128_nograd": {
@@ -2154,13 +1916,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.005172499979380518,
-          "mean_time": 0.005465600131234775,
-          "std_dev": 0.000864369171859496,
-          "min_time": 0.005129874974954873,
-          "max_time": 0.008310499979415908
+          "median_time": 0.005131542002345668,
+          "mean_time": 0.005349894600173381,
+          "std_dev": 0.0008119222335225498,
+          "min_time": 0.005104584000946488,
+          "max_time": 0.00828262499999255
         },
-        "throughput_proj_per_sec": 24746.254327743827
+        "throughput_proj_per_sec": 24943.76932732699
       }
     },
     "forward_2d_cubic_32x32_batch1_proj2048_grad": {
@@ -2178,28 +1940,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.003972957987571135,
-          "mean_time": 0.004008799998943383,
-          "std_dev": 9.111561058626686e-05,
-          "min_time": 0.003918000002158806,
-          "max_time": 0.004212959000142291
-        },
-        "backward": {
-          "median_time": 0.04552729200804606,
-          "mean_time": 0.04604242233326659,
-          "std_dev": 0.0,
-          "min_time": 0.04460704198572785,
-          "max_time": 0.054881832998944446
+          "median_time": 0.003931457998987753,
+          "mean_time": 0.003933683266465474,
+          "std_dev": 2.832872938055404e-05,
+          "min_time": 0.0038744999983464368,
+          "max_time": 0.003975957999500679
         },
         "forward_and_backward": {
-          "median_time": 0.04938420801772736,
-          "mean_time": 0.05005122233220997,
-          "std_dev": 0.0025469407683198224,
-          "min_time": 0.04852504198788665,
-          "max_time": 0.05881629200302996
+          "median_time": 0.05092154100202606,
+          "mean_time": 0.05084541919956488,
+          "std_dev": 0.003158897955561587,
+          "min_time": 0.04761458299981314,
+          "max_time": 0.060802665997471195
         },
-        "throughput_forward_proj_per_sec": 515484.9375218396,
-        "throughput_total_proj_per_sec": 41470.74707090236
+        "throughput_forward_proj_per_sec": 520926.33331636916,
+        "throughput_total_proj_per_sec": 40218.73571969305
       }
     },
     "forward_2d_cubic_32x32_batch1_proj2048_nograd": {
@@ -2217,13 +1972,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0039167920185718685,
-          "mean_time": 0.004041119468941663,
-          "std_dev": 0.00047457957491100626,
-          "min_time": 0.00388512498466298,
-          "max_time": 0.005755375022999942
+          "median_time": 0.0039289170017582364,
+          "mean_time": 0.0040673916671948975,
+          "std_dev": 0.0004151655245753403,
+          "min_time": 0.003891500000463566,
+          "max_time": 0.005507750000106171
         },
-        "throughput_proj_per_sec": 522876.8824816838
+        "throughput_proj_per_sec": 521263.2384658408
       }
     },
     "forward_2d_cubic_128x128_batch1_proj128_grad": {
@@ -2241,28 +1996,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.003607416001614183,
-          "mean_time": 0.0036252222043306878,
-          "std_dev": 6.951423535138607e-05,
-          "min_time": 0.003543457976775244,
-          "max_time": 0.003735750011401251
-        },
-        "backward": {
-          "median_time": 0.02011937601491809,
-          "mean_time": 0.021514855525068318,
-          "std_dev": 0.0,
-          "min_time": 0.01980637398082763,
-          "max_time": 0.027326750016072765
+          "median_time": 0.003545083996868925,
+          "mean_time": 0.0035479887992551085,
+          "std_dev": 1.6771164280630646e-05,
+          "min_time": 0.003520292000757763,
+          "max_time": 0.0035731669995584525
         },
         "forward_and_backward": {
-          "median_time": 0.024592457979451865,
-          "mean_time": 0.025140077729399007,
-          "std_dev": 0.002126537672208749,
-          "min_time": 0.023500207986216992,
-          "max_time": 0.03103562499745749
+          "median_time": 0.023674625001149252,
+          "mean_time": 0.0246048720665082,
+          "std_dev": 0.0030644961068491874,
+          "min_time": 0.023132582999096485,
+          "max_time": 0.03557787500176346
         },
-        "throughput_forward_proj_per_sec": 35482.46166860845,
-        "throughput_total_proj_per_sec": 5204.8477670247485
+        "throughput_forward_proj_per_sec": 36106.33770964289,
+        "throughput_total_proj_per_sec": 5406.632628554261
       }
     },
     "forward_2d_cubic_128x128_batch1_proj128_nograd": {
@@ -2280,13 +2028,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0036096669791731983,
-          "mean_time": 0.003614183468744159,
-          "std_dev": 6.515161805529634e-05,
-          "min_time": 0.003529125009663403,
-          "max_time": 0.0037261669931467623
+          "median_time": 0.004829416000575293,
+          "mean_time": 0.004737377666848867,
+          "std_dev": 0.0009618714695741405,
+          "min_time": 0.003555040999344783,
+          "max_time": 0.0059795829984068405
         },
-        "throughput_proj_per_sec": 35460.33491137143
+        "throughput_proj_per_sec": 26504.239846961267
       }
     }
   }

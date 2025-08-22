@@ -11,6 +11,7 @@ Usage:
     python backward_2d.py --platform-name "m2-mps" --device mps --batch-sizes 1 4 --image-sizes 32 64
 """
 
+import statistics
 import sys
 import time
 import torch
@@ -63,52 +64,77 @@ class Backward2DBenchmark(BenchmarkBase):
             batch_size, image_size, num_projections
         )
         
-        def forward_pass():
-            """Forward back-projection operation."""
+        def combined_forward_backward():
+            """Combined forward + backward pass with internal timing."""
+            # Reset tensor state
+            projections.grad = None
+            weights.grad = None
             projections.requires_grad_(True)
             weights.requires_grad_(True)
-            reconstruction, weight_reconstruction = torch_projectors.backproject_2d_forw(
-                projections, rotations, weights=weights, shifts=shifts,
-                interpolation=interpolation
-            )
-            # Don't return tensors to avoid memory profiler issues
-            del reconstruction, weight_reconstruction
             
-        def backward_pass():
-            """Combined forward + backward pass."""
-            projections.requires_grad_(True)
-            weights.requires_grad_(True)
+            # Time forward pass
+            self._synchronize()
+            forward_start = time.perf_counter()
             reconstruction, weight_reconstruction = torch_projectors.backproject_2d_forw(
                 projections, rotations, weights=weights, shifts=shifts,
                 interpolation=interpolation
             )
-            # Loss includes both outputs
+            self._synchronize()
+            forward_end = time.perf_counter()
+            
+            # Time backward pass
             loss = torch.sum(torch.abs(reconstruction)**2) + 0.1 * torch.sum(weight_reconstruction**2)
+            backward_start = time.perf_counter()
             loss.backward()
+            self._synchronize()
+            backward_end = time.perf_counter()
+            
+            # Calculate times
+            forward_time = forward_end - forward_start
+            backward_time = backward_end - backward_start
+            total_time = forward_time + backward_time
+            
+            # Clean up
             projections.grad = None
             weights.grad = None
             del reconstruction, weight_reconstruction, loss
             
+            return forward_time, backward_time, total_time
+            
         # Reset memory stats
         self.reset_memory_stats()
         
-        # Time forward pass
-        forward_times, forward_stats = self.time_function(forward_pass)
+        # Run combined timing measurements
+        forward_times = []
+        backward_times = []
+        total_times = []
         
-        # Time backward pass (forward + backward)
-        backward_times, backward_stats = self.time_function(backward_pass)
+        # Warmup runs
+        for _ in range(self.warmup_runs):
+            combined_forward_backward()
         
-        # Calculate pure backward time by subtracting forward time
-        pure_backward_times = []
-        for b_time, f_time in zip(backward_times, forward_times):
-            pure_backward_times.append(max(0.0, b_time - f_time))
-            
-        pure_backward_stats = {
-            "median_time": pure_backward_times[len(pure_backward_times)//2] if pure_backward_times else 0.0,
-            "mean_time": sum(pure_backward_times) / len(pure_backward_times) if pure_backward_times else 0.0,
-            "std_dev": 0.0,  # Simplified for now
-            "min_time": min(pure_backward_times) if pure_backward_times else 0.0,
-            "max_time": max(pure_backward_times) if pure_backward_times else 0.0
+        # Timing runs
+        for _ in range(self.timing_runs):
+            f_time, b_time, t_time = combined_forward_backward()
+            forward_times.append(f_time)
+            backward_times.append(b_time)
+            total_times.append(t_time)
+        
+        # Calculate statistics
+        forward_stats = {
+            "median_time": statistics.median(forward_times),
+            "mean_time": statistics.mean(forward_times),
+            "std_dev": statistics.stdev(forward_times) if len(forward_times) > 1 else 0.0,
+            "min_time": min(forward_times),
+            "max_time": max(forward_times)
+        }
+        
+        total_stats = {
+            "median_time": statistics.median(total_times),
+            "mean_time": statistics.mean(total_times),
+            "std_dev": statistics.stdev(total_times) if len(total_times) > 1 else 0.0,
+            "min_time": min(total_times),
+            "max_time": max(total_times)
         }
         
         # Get peak memory usage
@@ -117,12 +143,11 @@ class Backward2DBenchmark(BenchmarkBase):
         # Calculate throughput (total back-projections processed)
         total_backprojections = batch_size * num_projections
         forward_throughput = total_backprojections / forward_stats["median_time"] if forward_stats["median_time"] > 0 else 0.0
-        total_throughput = total_backprojections / backward_stats["median_time"] if backward_stats["median_time"] > 0 else 0.0
+        total_throughput = total_backprojections / total_stats["median_time"] if total_stats["median_time"] > 0 else 0.0
         
         results = {
             "forward": forward_stats,
-            "backward": pure_backward_stats,
-            "forward_and_backward": backward_stats,
+            "forward_and_backward": total_stats,
             "throughput_forward_backproj_per_sec": forward_throughput,
             "throughput_total_backproj_per_sec": total_throughput,
             **peak_memory
@@ -198,6 +223,10 @@ class Backward2DBenchmark(BenchmarkBase):
                     projections, rotations, weights=weights, shifts=shifts,
                     interpolation=interpolation
                 )
+                # Ensure operation completes before timing ends
+                self._synchronize()
+                # Force tensor materialization by accessing shape (essentially free)
+                _ = reconstruction.shape, weight_reconstruction.shape
                 del reconstruction, weight_reconstruction
         
         # Reset memory stats

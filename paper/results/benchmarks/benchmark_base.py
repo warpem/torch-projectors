@@ -466,10 +466,42 @@ class BenchmarkBase:
         self.results["benchmarks"][test_name] = result
     
     def save_results(self):
-        """Save results to JSON file."""
+        """Save results to JSON file, merging with existing results."""
+        existing_results = self.load_results()
+        
+        # If existing results exist, merge them
+        if existing_results.get("benchmarks"):
+            # Start with existing benchmarks
+            merged_benchmarks = existing_results["benchmarks"].copy()
+            
+            # Overwrite with new results from current execution
+            for test_name, result_data in self.results["benchmarks"].items():
+                merged_benchmarks[test_name] = result_data
+            
+            # Create merged results structure
+            merged_results = {
+                "metadata": self.results["metadata"],  # Use current metadata
+                "benchmarks": merged_benchmarks
+            }
+        else:
+            # No existing results, use current results as-is
+            merged_results = self.results
+        
+        # Save merged results
         with open(self.results_file, 'w') as f:
-            json.dump(self.results, f, indent=2)
-        print(f"Results saved to {self.results_file}")
+            json.dump(merged_results, f, indent=2)
+        
+        # Report what was saved
+        new_count = len(self.results["benchmarks"])
+        total_count = len(merged_results["benchmarks"])
+        if new_count < total_count:
+            preserved_count = total_count - new_count
+            print(f"Results saved to {self.results_file}")
+            print(f"  Added/updated: {new_count} experiments")
+            print(f"  Preserved: {preserved_count} existing experiments")
+            print(f"  Total: {total_count} experiments")
+        else:
+            print(f"Results saved to {self.results_file}")
     
     def load_results(self) -> Dict[str, Any]:
         """Load existing results from JSON file."""

@@ -22,28 +22,40 @@ def parse_benchmark_key(key):
     # Find interpolation method (linear/cubic)
     interp = None
     for part in parts:
-        if part in ['linear', 'cubic']:
+        if part.startswith('interpolation_'):
+            interp = part[14:]  # Remove 'interpolation_' prefix
+            break
+        elif part in ['linear', 'cubic']:
             interp = part
             break
     
-    # Find image size (e.g., "128x128")
+    # Find image size (e.g., "128x128" or "image_size_256")
     image_size = None
     for part in parts:
-        if 'x' in part and part.replace('x', '').replace('128', '').replace('256', '').replace('512', '').replace('32', '') == '':
+        if part.startswith('image_size_'):
+            image_size = int(part[11:])  # Remove 'image_size_' prefix
+            break
+        elif 'x' in part and part.replace('x', '').replace('128', '').replace('256', '').replace('512', '').replace('32', '') == '':
             image_size = int(part.split('x')[0])
             break
     
     # Find batch size
     batch_size = None
     for part in parts:
-        if part.startswith('batch'):
+        if part.startswith('batch_size_'):
+            batch_size = int(part[11:])  # Remove 'batch_size_' prefix
+            break
+        elif part.startswith('batch') and len(part) > 5:
             batch_size = int(part[5:])  # Remove 'batch' prefix
             break
     
     # Find projection count
     proj_count = None
     for part in parts:
-        if part.startswith('proj'):
+        if part.startswith('num_projections_'):
+            proj_count = int(part[16:])  # Remove 'num_projections_' prefix
+            break
+        elif part.startswith('proj') and len(part) > 4 and part != 'projections':
             proj_count = int(part[4:])  # Remove 'proj' prefix
             break
     
@@ -99,7 +111,7 @@ def organize_data(benchmarks):
         
         # Calculate throughputs
         forward_time = results['forward']['median_time']
-        backward_time = results['backward']['median_time']
+        backward_time = results['forward_and_backward']['median_time']
         
         forward_throughput = calculate_throughput(forward_time, batch_size, proj_count)
         backward_throughput = calculate_throughput(backward_time, batch_size, proj_count)
@@ -139,7 +151,7 @@ def organize_multi_json_data(json_data_list):
             
             # Calculate throughputs
             forward_time = results['forward']['median_time']
-            backward_time = results['backward']['median_time']
+            backward_time = results['forward_and_backward']['median_time']
             
             forward_throughput = calculate_throughput(forward_time, batch_size, proj_count)
             backward_throughput = calculate_throughput(backward_time, batch_size, proj_count)
