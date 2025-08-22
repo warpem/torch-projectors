@@ -1,7 +1,7 @@
 {
   "metadata": {
     "platform_name": "h100-cuda",
-    "timestamp": "2025-08-19T16:12:08.024976",
+    "timestamp": "2025-08-22T01:50:34.896623",
     "torch_projectors_version": "unknown",
     "torch_version": "2.7.0",
     "device_info": {
@@ -11,10 +11,10 @@
       "compute_capability": "9.0"
     },
     "system_info": {
-      "platform": "Linux-6.8.0-60-generic-x86_64-with-glibc2.35",
+      "platform": "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
       "cpu": "x86_64",
-      "memory_gb": 237.49095424,
-      "python_version": "3.10.12",
+      "memory_gb": 237.48978688,
+      "python_version": "3.12.3",
       "architecture": "x86_64"
     },
     "title": "H100: CUDA"
@@ -35,28 +35,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.626899996334032e-05,
-          "mean_time": 3.931733333502052e-05,
-          "std_dev": 7.666981343043947e-06,
-          "min_time": 3.388900000800277e-05,
-          "max_time": 6.213000000343527e-05
-        },
-        "backward": {
-          "median_time": 0.00021047499996029728,
-          "mean_time": 0.00021756033333986124,
-          "std_dev": 0.0,
-          "min_time": 0.00017642300002762568,
-          "max_time": 0.00026147700003775753
+          "median_time": 3.9667000010013e-05,
+          "mean_time": 4.047079999812316e-05,
+          "std_dev": 2.888198853471548e-06,
+          "min_time": 3.6592000014934456e-05,
+          "max_time": 4.6782000026723836e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0002470560000347177,
-          "mean_time": 0.0002568776666748818,
-          "std_dev": 1.979949142683669e-05,
-          "min_time": 0.00023855300003106095,
-          "max_time": 0.00030096800003320823
+          "median_time": 0.0002240530000108265,
+          "mean_time": 0.0003824025999999018,
+          "std_dev": 0.0005401823095858585,
+          "min_time": 0.0001952110000047469,
+          "max_time": 0.0023178470000857487
         },
-        "throughput_forward_proj_per_sec": 220574.04417232826,
-        "throughput_total_proj_per_sec": 32381.32244865858,
+        "throughput_forward_proj_per_sec": 201678.97743667505,
+        "throughput_total_proj_per_sec": 35705.83745637608,
         "gpu_peak_memory_mb": 0.128512
       }
     },
@@ -75,13 +68,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.8372000005892914e-05,
-          "mean_time": 4.123079999468852e-05,
-          "std_dev": 9.864024848719927e-06,
-          "min_time": 3.535300004386954e-05,
-          "max_time": 7.544099997858211e-05
+          "median_time": 3.4054999900945404e-05,
+          "mean_time": 3.630979997524264e-05,
+          "std_dev": 6.257403976919042e-06,
+          "min_time": 3.235799999856681e-05,
+          "max_time": 5.6494999967071635e-05
         },
-        "throughput_proj_per_sec": 208485.35387187047,
+        "throughput_proj_per_sec": 234914.11021199008,
         "gpu_peak_memory_mb": 0.040448
       }
     },
@@ -100,28 +93,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.012659924999979921,
-          "mean_time": 0.012664805266661005,
-          "std_dev": 1.2893277662601624e-05,
-          "min_time": 0.012656533999972908,
-          "max_time": 0.012698053999997683
-        },
-        "backward": {
-          "median_time": 0.18454350100006423,
-          "mean_time": 0.18428099813335166,
-          "std_dev": 0.0,
-          "min_time": 0.1840819409999881,
-          "max_time": 0.18454350100006423
+          "median_time": 0.012674290000063593,
+          "mean_time": 0.012679961933334502,
+          "std_dev": 1.7012097229547146e-05,
+          "min_time": 0.012669889999983752,
+          "max_time": 0.012738082000055329
         },
         "forward_and_backward": {
-          "median_time": 0.19692818900000475,
-          "mean_time": 0.19694580340001266,
-          "std_dev": 0.00013713216446135582,
-          "min_time": 0.196741865999968,
-          "max_time": 0.19720003500003713
+          "median_time": 0.19732494699997005,
+          "mean_time": 0.19686772359997728,
+          "std_dev": 0.0016689422265958867,
+          "min_time": 0.19085448499993163,
+          "max_time": 0.19748247100005756
         },
-        "throughput_forward_proj_per_sec": 1294162.485166854,
-        "throughput_total_proj_per_sec": 83197.84020356581,
+        "throughput_forward_proj_per_sec": 1292695.6855112037,
+        "throughput_total_proj_per_sec": 83030.55568540194,
         "gpu_peak_memory_mb": 15152.333824
       }
     },
@@ -140,13 +126,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.012666012000011051,
-          "mean_time": 0.0126691610000042,
-          "std_dev": 1.2457642627068605e-05,
-          "min_time": 0.012658850000036637,
-          "max_time": 0.012711310000042886
+          "median_time": 0.01266030299996146,
+          "mean_time": 0.01266049739999744,
+          "std_dev": 2.3855918770863492e-06,
+          "min_time": 0.01265590399998473,
+          "max_time": 0.012664119000078244
         },
-        "throughput_proj_per_sec": 1293540.5398309827,
+        "throughput_proj_per_sec": 1294123.845223126,
         "gpu_peak_memory_mb": 4331.02848
       }
     },
@@ -165,28 +151,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.44649999988178e-05,
-          "mean_time": 3.689786666427608e-05,
-          "std_dev": 7.0758190514621165e-06,
-          "min_time": 3.1885999987935065e-05,
-          "max_time": 6.086700000196288e-05
-        },
-        "backward": {
-          "median_time": 0.00019824200001039571,
-          "mean_time": 0.00021838460000556855,
-          "std_dev": 0.0,
-          "min_time": 0.00018401700003778387,
-          "max_time": 0.0002545110000369277
+          "median_time": 4.032899994399486e-05,
+          "mean_time": 4.2376266674182264e-05,
+          "std_dev": 6.238087712036219e-06,
+          "min_time": 3.824999998869316e-05,
+          "max_time": 6.30150000233698e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00025100499999552994,
-          "mean_time": 0.00025528246666984465,
-          "std_dev": 1.6775123072979543e-05,
-          "min_time": 0.00023934199998620898,
-          "max_time": 0.00029388000001517867
+          "median_time": 0.00021398000001227047,
+          "mean_time": 0.00037831393334120854,
+          "std_dev": 0.0005481207705123046,
+          "min_time": 0.00019560200007617823,
+          "max_time": 0.0023431559999380625
         },
-        "throughput_forward_proj_per_sec": 232119.54157186745,
-        "throughput_total_proj_per_sec": 31871.87506281735,
+        "throughput_forward_proj_per_sec": 198368.42002305167,
+        "throughput_total_proj_per_sec": 37386.67164941232,
         "gpu_peak_memory_mb": 0.128512
       }
     },
@@ -205,13 +184,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.8120999988677795e-05,
-          "mean_time": 4.0856133330180457e-05,
-          "std_dev": 7.824685517483999e-06,
-          "min_time": 3.542600001082974e-05,
-          "max_time": 6.472999996276485e-05
+          "median_time": 3.4301000027880946e-05,
+          "mean_time": 3.597406669086922e-05,
+          "std_dev": 6.018954350487476e-06,
+          "min_time": 3.152500005398906e-05,
+          "max_time": 5.607700006748928e-05
         },
-        "throughput_proj_per_sec": 209858.083533382,
+        "throughput_proj_per_sec": 233229.35172436212,
         "gpu_peak_memory_mb": 0.040448
       }
     },
@@ -230,28 +209,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0044200140000043575,
-          "mean_time": 0.00442061560000108,
-          "std_dev": 2.7103582688920063e-06,
-          "min_time": 0.004417951999982961,
-          "max_time": 0.004426653999985319
-        },
-        "backward": {
-          "median_time": 0.05710901899999499,
-          "mean_time": 0.057076812866667596,
-          "std_dev": 0.0,
-          "min_time": 0.05701808499992467,
-          "max_time": 0.05714407099998198
+          "median_time": 0.004433920999986185,
+          "mean_time": 0.004434659399998963,
+          "std_dev": 4.8917425791806676e-06,
+          "min_time": 0.004430281000054492,
+          "max_time": 0.004450204000022495
         },
         "forward_and_backward": {
-          "median_time": 0.061489057000017056,
-          "mean_time": 0.06149742846666868,
-          "std_dev": 3.502619721985214e-05,
-          "min_time": 0.06143820299996605,
-          "max_time": 0.061562659999992775
+          "median_time": 0.06141239899989159,
+          "mean_time": 0.06098443446667261,
+          "std_dev": 0.0016577953556886219,
+          "min_time": 0.05499306899992007,
+          "max_time": 0.061471931000028235
         },
-        "throughput_forward_proj_per_sec": 3706775.589394931,
-        "throughput_total_proj_per_sec": 266453.9155315954,
+        "throughput_forward_proj_per_sec": 3695149.2821029173,
+        "throughput_total_proj_per_sec": 266786.5165148315,
         "gpu_peak_memory_mb": 15152.333824
       }
     },
@@ -270,13 +242,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0044232299999862335,
-          "mean_time": 0.004425413733334456,
-          "std_dev": 6.223821530924102e-06,
-          "min_time": 0.00442097300003752,
-          "max_time": 0.004444992999992792
+          "median_time": 0.004421135000029608,
+          "mean_time": 0.004423943666696081,
+          "std_dev": 7.347899733865484e-06,
+          "min_time": 0.004418143000066266,
+          "max_time": 0.004442082999958075
         },
-        "throughput_proj_per_sec": 3704080.5022689286,
+        "throughput_proj_per_sec": 3705835.7186311386,
         "gpu_peak_memory_mb": 4331.02848
       }
     },
@@ -295,28 +267,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.487700001869598e-05,
-          "mean_time": 3.7340333339367744e-05,
-          "std_dev": 6.039632136253008e-06,
-          "min_time": 3.2879000002594694e-05,
-          "max_time": 5.449799999723837e-05
-        },
-        "backward": {
-          "median_time": 0.00020866700003807637,
-          "mean_time": 0.0002189711333357991,
-          "std_dev": 0.0,
-          "min_time": 0.00020186400001875882,
-          "max_time": 0.000258485000017572
+          "median_time": 4.151099994942342e-05,
+          "mean_time": 4.2558200001015696e-05,
+          "std_dev": 4.727994143400488e-06,
+          "min_time": 3.7949999978081905e-05,
+          "max_time": 5.301199996665673e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00024941700002045764,
-          "mean_time": 0.00025631146667516683,
-          "std_dev": 1.6934863282229936e-05,
-          "min_time": 0.00024065799999561932,
-          "max_time": 0.0002981450000447694
+          "median_time": 0.0002111740000145801,
+          "mean_time": 0.0003766075333411815,
+          "std_dev": 0.0005453927850659408,
+          "min_time": 0.00019345599991993367,
+          "max_time": 0.002331440999910228
         },
-        "throughput_forward_proj_per_sec": 1835020.2129108724,
-        "throughput_total_proj_per_sec": 256598.38741846225,
+        "throughput_forward_proj_per_sec": 1541760.0172960649,
+        "throughput_total_proj_per_sec": 303067.6124692493,
         "gpu_peak_memory_mb": 1.012224
       }
     },
@@ -335,13 +300,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.703100003349391e-05,
-          "mean_time": 3.8900800003223894e-05,
-          "std_dev": 7.301201708714487e-06,
-          "min_time": 3.396500000008018e-05,
-          "max_time": 6.406099998912396e-05
+          "median_time": 3.391899997495784e-05,
+          "mean_time": 3.566200001235605e-05,
+          "std_dev": 7.224277470609256e-06,
+          "min_time": 3.176600000642793e-05,
+          "max_time": 6.1047000031067e-05
         },
-        "throughput_proj_per_sec": 1728281.7083555153,
+        "throughput_proj_per_sec": 1886848.080640666,
         "gpu_peak_memory_mb": 0.31488
       }
     },
@@ -360,28 +325,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0033474139999611907,
-          "mean_time": 0.0033477987333223307,
-          "std_dev": 1.8942080620848386e-06,
-          "min_time": 0.0033455249999860825,
-          "max_time": 0.0033531379999658384
-        },
-        "backward": {
-          "median_time": 0.06499268000004577,
-          "mean_time": 0.0650198434000193,
-          "std_dev": 0.0,
-          "min_time": 0.06490647499998659,
-          "max_time": 0.06514355899997781
+          "median_time": 0.0033823510000274837,
+          "mean_time": 0.003382766733337424,
+          "std_dev": 2.8206453508915277e-06,
+          "min_time": 0.0033783390000508007,
+          "max_time": 0.0033894419999569436
         },
         "forward_and_backward": {
-          "median_time": 0.06835702899996932,
-          "mean_time": 0.06836764213334164,
-          "std_dev": 6.844713806531072e-05,
-          "min_time": 0.06825206100000969,
-          "max_time": 0.0684890839999639
+          "median_time": 0.06847369299998718,
+          "mean_time": 0.06840868680000464,
+          "std_dev": 0.00022341872642358347,
+          "min_time": 0.06761809900001481,
+          "max_time": 0.06852940700002819
         },
-        "throughput_forward_proj_per_sec": 4894524.549455177,
-        "throughput_total_proj_per_sec": 239682.7398687464,
+        "throughput_forward_proj_per_sec": 4843967.99736836,
+        "throughput_total_proj_per_sec": 239274.373590498,
         "gpu_peak_memory_mb": 3817.74336
       }
     },
@@ -400,13 +358,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.003350415999989309,
-          "mean_time": 0.003351871733332246,
-          "std_dev": 2.9706406656639065e-06,
-          "min_time": 0.003348381000023437,
-          "max_time": 0.003357280000045648
+          "median_time": 0.003372643000034259,
+          "mean_time": 0.0033740922000030575,
+          "std_dev": 2.889472716945783e-06,
+          "min_time": 0.0033700950000365992,
+          "max_time": 0.0033796170000641723
         },
-        "throughput_proj_per_sec": 4890139.0155885955,
+        "throughput_proj_per_sec": 4857911.139671045,
         "gpu_peak_memory_mb": 1091.444736
       }
     },
@@ -425,28 +383,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.403400000934198e-05,
-          "mean_time": 3.588113333231983e-05,
-          "std_dev": 4.501742919603489e-06,
-          "min_time": 3.165599997601021e-05,
-          "max_time": 4.9588000024414214e-05
-        },
-        "backward": {
-          "median_time": 0.00021282300002667398,
-          "mean_time": 0.00021904959999877367,
-          "std_dev": 0.0,
-          "min_time": 0.00020370499998989544,
-          "max_time": 0.000245825000035893
+          "median_time": 3.940299995974783e-05,
+          "mean_time": 4.0833800017026076e-05,
+          "std_dev": 3.6862305166975063e-06,
+          "min_time": 3.774000003886613e-05,
+          "max_time": 4.9963000037678285e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00024693599999636717,
-          "mean_time": 0.0002549307333310935,
-          "std_dev": 1.4915363918737998e-05,
-          "min_time": 0.00023671799999647192,
-          "max_time": 0.0002851090000035583
+          "median_time": 0.00022054900000512134,
+          "mean_time": 0.000402784866643439,
+          "std_dev": 0.0006335775523115169,
+          "min_time": 0.00019527000006291928,
+          "max_time": 0.0026775790000783672
         },
-        "throughput_forward_proj_per_sec": 3760944.9363831854,
-        "throughput_total_proj_per_sec": 518352.9335612591,
+        "throughput_forward_proj_per_sec": 3248483.6213171207,
+        "throughput_total_proj_per_sec": 580369.8951118696,
         "gpu_peak_memory_mb": 1.9584
       }
     },
@@ -465,13 +416,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.607499996860497e-05,
-          "mean_time": 3.692046667538307e-05,
-          "std_dev": 2.485762149152524e-06,
-          "min_time": 3.378399998155146e-05,
-          "max_time": 4.2463000056613964e-05
+          "median_time": 3.3070000085899665e-05,
+          "mean_time": 3.377966668267618e-05,
+          "std_dev": 3.0779759580560603e-06,
+          "min_time": 3.131300002223725e-05,
+          "max_time": 4.3422999965514464e-05
         },
-        "throughput_proj_per_sec": 3548163.5512514124,
+        "throughput_proj_per_sec": 3870577.552691826,
         "gpu_peak_memory_mb": 0.564736
       }
     },
@@ -490,28 +441,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0016728349999652892,
-          "mean_time": 0.0016738416666688257,
-          "std_dev": 4.440042089978429e-06,
-          "min_time": 0.0016683879999845885,
-          "max_time": 0.001683548000016799
-        },
-        "backward": {
-          "median_time": 0.023439101999940704,
-          "mean_time": 0.02342364933332798,
-          "std_dev": 0.0,
-          "min_time": 0.02324714200000244,
-          "max_time": 0.023790123000026142
+          "median_time": 0.001694337000003543,
+          "mean_time": 0.0016966311333514266,
+          "std_dev": 4.974205699716526e-06,
+          "min_time": 0.0016921349999847735,
+          "max_time": 0.0017078270000183693
         },
         "forward_and_backward": {
-          "median_time": 0.02506612400003405,
-          "mean_time": 0.025097490999996808,
-          "std_dev": 0.00015321948920744608,
-          "min_time": 0.02491805900001509,
-          "max_time": 0.02546295799999143
+          "median_time": 0.02536596000004465,
+          "mean_time": 0.025404406533334624,
+          "std_dev": 0.00014914196655225413,
+          "min_time": 0.025239532000114195,
+          "max_time": 0.025811034999833282
         },
-        "throughput_forward_proj_per_sec": 1224268.980528561,
-        "throughput_total_proj_per_sec": 81703.89646190284,
+        "throughput_forward_proj_per_sec": 1208732.3832246582,
+        "throughput_total_proj_per_sec": 80738.12305926505,
         "gpu_peak_memory_mb": 1894.042624
       }
     },
@@ -530,13 +474,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0016785859999686181,
-          "mean_time": 0.0016801397333286634,
-          "std_dev": 6.336898012750693e-06,
-          "min_time": 0.0016733950000116238,
-          "max_time": 0.0016988729999525276
+          "median_time": 0.001684975999978633,
+          "mean_time": 0.0016858649999903718,
+          "std_dev": 3.586344296214097e-06,
+          "min_time": 0.0016816449999623728,
+          "max_time": 0.0016934210000272287
         },
-        "throughput_proj_per_sec": 1220074.5151206362,
+        "throughput_proj_per_sec": 1215447.5790907233,
         "gpu_peak_memory_mb": 541.37856
       }
     },
@@ -555,28 +499,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 4.295600001569255e-05,
-          "mean_time": 4.4509200002570044e-05,
-          "std_dev": 3.5158901331719805e-06,
-          "min_time": 4.173600001422528e-05,
-          "max_time": 5.4316999978709646e-05
-        },
-        "backward": {
-          "median_time": 0.00019572199994399853,
-          "mean_time": 0.00021326346666607302,
-          "std_dev": 0.0,
-          "min_time": 0.00019483700003775084,
-          "max_time": 0.00023922100001527724
+          "median_time": 5.2391000053830794e-05,
+          "mean_time": 5.503059998469932e-05,
+          "std_dev": 7.252796916311712e-06,
+          "min_time": 4.910500001642504e-05,
+          "max_time": 7.694300006733101e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00025479500004621514,
-          "mean_time": 0.00025777266666864306,
-          "std_dev": 1.5487743642273183e-05,
-          "min_time": 0.0002394120000417388,
-          "max_time": 0.0002869059999852652
+          "median_time": 0.00022082000009504554,
+          "mean_time": 0.0004042402000777656,
+          "std_dev": 0.0006120045967358936,
+          "min_time": 0.00020516599988695816,
+          "max_time": 0.0026013589999820397
         },
-        "throughput_forward_proj_per_sec": 186237.07973455315,
-        "throughput_total_proj_per_sec": 31397.790374806988,
+        "throughput_forward_proj_per_sec": 152697.98232101212,
+        "throughput_total_proj_per_sec": 36228.60246606572,
         "gpu_peak_memory_mb": 1.932288
       }
     },
@@ -595,13 +532,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 4.508700004635102e-05,
-          "mean_time": 4.7060333330743256e-05,
-          "std_dev": 4.879360640068953e-06,
-          "min_time": 4.3750000031650416e-05,
-          "max_time": 6.336500001680179e-05
+          "median_time": 4.390799995235284e-05,
+          "mean_time": 4.584366664251623e-05,
+          "std_dev": 6.039769173644347e-06,
+          "min_time": 4.280200005268853e-05,
+          "max_time": 6.701400002384617e-05
         },
-        "throughput_proj_per_sec": 177434.73710328294,
+        "throughput_proj_per_sec": 182199.1438617398,
         "gpu_peak_memory_mb": 0.600064
       }
     },
@@ -620,28 +557,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0008890739999856123,
-          "mean_time": 0.0008891280000057122,
-          "std_dev": 1.0121176505459767e-05,
-          "min_time": 0.0008783040000253095,
-          "max_time": 0.0009161199999994096
-        },
-        "backward": {
-          "median_time": 0.010802019999971435,
-          "mean_time": 0.010926789466657283,
-          "std_dev": 0.0,
-          "min_time": 0.01066071700000748,
-          "max_time": 0.01112718600001017
+          "median_time": 0.0009070739999970101,
+          "mean_time": 0.0009056444666991107,
+          "std_dev": 1.007332981001491e-05,
+          "min_time": 0.0008936729998367809,
+          "max_time": 0.000927869999941322
         },
         "forward_and_backward": {
-          "median_time": 0.01186880399995971,
-          "mean_time": 0.011815917466662995,
-          "std_dev": 0.00012746054967865947,
-          "min_time": 0.011554446999980428,
-          "max_time": 0.012006197000005159
+          "median_time": 0.011889007999798196,
+          "mean_time": 0.011994685266669573,
+          "std_dev": 0.00042518187063204775,
+          "min_time": 0.011698962999844298,
+          "max_time": 0.013488879000078668
         },
-        "throughput_forward_proj_per_sec": 1151760.1459682446,
-        "throughput_total_proj_per_sec": 86276.59535059103,
+        "throughput_forward_proj_per_sec": 1128904.587722033,
+        "throughput_total_proj_per_sec": 86129.97821326905,
         "gpu_peak_memory_mb": 950.05184
       }
     },
@@ -660,13 +590,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.000892134000025635,
-          "mean_time": 0.000893731333337655,
-          "std_dev": 8.738567339321378e-06,
-          "min_time": 0.0008791799999698924,
-          "max_time": 0.0009076580000169088
+          "median_time": 0.0008943880000060744,
+          "mean_time": 0.0008965942000183229,
+          "std_dev": 1.024849772708342e-05,
+          "min_time": 0.0008793399999831308,
+          "max_time": 0.0009195909999561991
         },
-        "throughput_proj_per_sec": 1147809.6339457703,
+        "throughput_proj_per_sec": 1144916.9711501554,
         "gpu_peak_memory_mb": 272.67072
       }
     },
@@ -685,28 +615,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.450999997767212e-05,
-          "mean_time": 3.7013866672926574e-05,
-          "std_dev": 7.007581049054546e-06,
-          "min_time": 3.184400003419796e-05,
-          "max_time": 5.891400002155933e-05
-        },
-        "backward": {
-          "median_time": 0.0002388199999927565,
-          "mean_time": 0.000220301799996984,
-          "std_dev": 0.0,
-          "min_time": 0.00020662599996512654,
-          "max_time": 0.0002542560000051708
+          "median_time": 4.104000004190311e-05,
+          "mean_time": 4.2836533354299414e-05,
+          "std_dev": 6.843980826176003e-06,
+          "min_time": 3.6571999999068794e-05,
+          "max_time": 6.332600014502532e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00025400499998795567,
-          "mean_time": 0.00025731566666991056,
-          "std_dev": 1.695330922881359e-05,
-          "min_time": 0.0002384699999993245,
-          "max_time": 0.0002943829999821901
+          "median_time": 0.00022136899997349246,
+          "mean_time": 0.0003844737999619004,
+          "std_dev": 0.0005520971208775083,
+          "min_time": 0.0001978479997433169,
+          "max_time": 0.002363298000091163
         },
-        "throughput_forward_proj_per_sec": 1854534.918615121,
-        "throughput_total_proj_per_sec": 251963.54403667146,
+        "throughput_forward_proj_per_sec": 1559454.1894408872,
+        "throughput_total_proj_per_sec": 289110.038025485,
         "gpu_peak_memory_mb": 1.012224
       }
     },
@@ -725,13 +648,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.741800003354001e-05,
-          "mean_time": 3.8029066668817295e-05,
-          "std_dev": 3.5860846100874898e-06,
-          "min_time": 3.475099998695441e-05,
-          "max_time": 4.936800002042219e-05
+          "median_time": 3.30289999510569e-05,
+          "mean_time": 3.357220002726535e-05,
+          "std_dev": 2.0452888698264914e-06,
+          "min_time": 3.115200001957419e-05,
+          "max_time": 3.848100004688604e-05
         },
-        "throughput_proj_per_sec": 1710406.754573546,
+        "throughput_proj_per_sec": 1937691.1227962277,
         "gpu_peak_memory_mb": 0.31488
       }
     },
@@ -750,28 +673,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0011497479999889038,
-          "mean_time": 0.0011501614666713067,
-          "std_dev": 1.3861101685673581e-06,
-          "min_time": 0.0011486570000442953,
-          "max_time": 0.0011536190000356328
-        },
-        "backward": {
-          "median_time": 0.0187495819999981,
-          "mean_time": 0.018746802666665494,
-          "std_dev": 0.0,
-          "min_time": 0.01870616099995459,
-          "max_time": 0.018774167999993097
+          "median_time": 0.0011669539999275003,
+          "mean_time": 0.0011674763333151836,
+          "std_dev": 2.7875758543243942e-06,
+          "min_time": 0.0011641870000858034,
+          "max_time": 0.0011738509999759117
         },
         "forward_and_backward": {
-          "median_time": 0.01990134800001897,
-          "mean_time": 0.0198969641333368,
-          "std_dev": 1.9971422171917022e-05,
-          "min_time": 0.019857029999968745,
-          "max_time": 0.019923339999991185
+          "median_time": 0.019862688000102935,
+          "mean_time": 0.01981242273333616,
+          "std_dev": 0.00021079607649601443,
+          "min_time": 0.01905357200007529,
+          "max_time": 0.01990261399987503
         },
-        "throughput_forward_proj_per_sec": 14250079.147915997,
-        "throughput_total_proj_per_sec": 823260.8163017089,
+        "throughput_forward_proj_per_sec": 14039970.728081737,
+        "throughput_total_proj_per_sec": 824863.1806488172,
         "gpu_peak_memory_mb": 3817.74336
       }
     },
@@ -790,13 +706,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.001154933999998775,
-          "mean_time": 0.0011554541333377226,
-          "std_dev": 3.1168382070007523e-06,
-          "min_time": 0.0011514500000089356,
-          "max_time": 0.001161265000007461
+          "median_time": 0.0011568139998416882,
+          "mean_time": 0.0011578746666600637,
+          "std_dev": 3.0481612882449095e-06,
+          "min_time": 0.0011548330001005525,
+          "max_time": 0.0011658700000225508
         },
-        "throughput_proj_per_sec": 14186092.019126095,
+        "throughput_proj_per_sec": 14163037.447888922,
         "gpu_peak_memory_mb": 1091.444736
       }
     },
@@ -815,28 +731,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.442299998823728e-05,
-          "mean_time": 3.580646666705434e-05,
-          "std_dev": 4.305206539681124e-06,
-          "min_time": 3.218400001969712e-05,
-          "max_time": 4.9462999982097244e-05
-        },
-        "backward": {
-          "median_time": 0.0003052259999662965,
-          "mean_time": 0.00031448233333245906,
-          "std_dev": 0.0,
-          "min_time": 0.0003040170000190301,
-          "max_time": 0.00034262299999454626
+          "median_time": 3.9899000057630474e-05,
+          "mean_time": 4.1508800010584915e-05,
+          "std_dev": 4.753958804802011e-06,
+          "min_time": 3.6833999956797925e-05,
+          "max_time": 5.522400010704587e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0003456910000068092,
-          "mean_time": 0.0003502887999995134,
-          "std_dev": 1.1306523544552263e-05,
-          "min_time": 0.0003406330000075286,
-          "max_time": 0.0003820229999860203
+          "median_time": 0.00032494599986421235,
+          "mean_time": 0.0004924741999275284,
+          "std_dev": 0.0005906385266384336,
+          "min_time": 0.0003076580001106777,
+          "max_time": 0.0026153549999889947
         },
-        "throughput_forward_proj_per_sec": 3718444.0648327866,
-        "throughput_total_proj_per_sec": 370272.8737441205,
+        "throughput_forward_proj_per_sec": 3208100.4490116457,
+        "throughput_total_proj_per_sec": 393911.6039387724,
         "gpu_peak_memory_mb": 1.9584
       }
     },
@@ -855,13 +764,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.5991000004287343e-05,
-          "mean_time": 3.622013333218395e-05,
-          "std_dev": 2.0964117228415475e-06,
-          "min_time": 3.372300000137329e-05,
-          "max_time": 3.9920999995501916e-05
+          "median_time": 3.2792000183690106e-05,
+          "mean_time": 3.5192333371014684e-05,
+          "std_dev": 7.814002827768207e-06,
+          "min_time": 3.119600000900391e-05,
+          "max_time": 6.260700001803343e-05
         },
-        "throughput_proj_per_sec": 3556444.666298583,
+        "throughput_proj_per_sec": 3903391.0491273995,
         "gpu_peak_memory_mb": 0.564736
       }
     },
@@ -880,28 +789,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0006048739999187092,
-          "mean_time": 0.0006049106666750958,
-          "std_dev": 2.2558222814092955e-06,
-          "min_time": 0.0006009350000795166,
-          "max_time": 0.0006080500000962274
-        },
-        "backward": {
-          "median_time": 0.00701068800003668,
-          "mean_time": 0.007022077466649535,
-          "std_dev": 0.0,
-          "min_time": 0.0069766289999506625,
-          "max_time": 0.007069343000011941
+          "median_time": 0.0006144199999198463,
+          "mean_time": 0.0006157208666839627,
+          "std_dev": 4.5601688208289555e-06,
+          "min_time": 0.0006098779999774706,
+          "max_time": 0.0006297090001226024
         },
         "forward_and_backward": {
-          "median_time": 0.007623121000051469,
-          "mean_time": 0.00762698813332463,
-          "std_dev": 2.506452986747973e-05,
-          "min_time": 0.0075846729999966556,
-          "max_time": 0.007674073999965003
+          "median_time": 0.007606609999811553,
+          "mean_time": 0.00764888433335121,
+          "std_dev": 0.0001612879790573966,
+          "min_time": 0.007565053999996962,
+          "max_time": 0.008225140999911673
         },
-        "throughput_forward_proj_per_sec": 3385829.1152789453,
-        "throughput_total_proj_per_sec": 268656.36790838983,
+        "throughput_forward_proj_per_sec": 3333224.830355734,
+        "throughput_total_proj_per_sec": 269239.5166901862,
         "gpu_peak_memory_mb": 1894.042624
       }
     },
@@ -920,13 +822,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0006074049999824638,
-          "mean_time": 0.0006078820000084307,
-          "std_dev": 3.664904208516391e-06,
-          "min_time": 0.0006040319999556232,
-          "max_time": 0.0006174710000550476
+          "median_time": 0.0006045819998234947,
+          "mean_time": 0.000604648599983193,
+          "std_dev": 2.343634370503443e-06,
+          "min_time": 0.0005998980000185838,
+          "max_time": 0.0006078059998344543
         },
-        "throughput_proj_per_sec": 3371720.6806976027,
+        "throughput_proj_per_sec": 3387464.397878047,
         "gpu_peak_memory_mb": 541.37856
       }
     },
@@ -945,28 +847,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 6.702199993924296e-05,
-          "mean_time": 6.82902666691613e-05,
-          "std_dev": 2.947156850155388e-06,
-          "min_time": 6.51670000024751e-05,
-          "max_time": 7.616400000642898e-05
-        },
-        "backward": {
-          "median_time": 0.000308266000047297,
-          "mean_time": 0.0003138920666742706,
-          "std_dev": 0.0,
-          "min_time": 0.00029811400008838973,
-          "max_time": 0.0003349260000504728
+          "median_time": 7.538399995610234e-05,
+          "mean_time": 7.609553332864986e-05,
+          "std_dev": 2.592819471390878e-06,
+          "min_time": 7.289299992407905e-05,
+          "max_time": 8.228699994106137e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0003764990000263424,
-          "mean_time": 0.0003821823333434319,
-          "std_dev": 1.1048017430408288e-05,
-          "min_time": 0.0003734330000497721,
-          "max_time": 0.00040482400004293595
+          "median_time": 0.0003637439999693015,
+          "mean_time": 0.000534313066661222,
+          "std_dev": 0.0005946657447795795,
+          "min_time": 0.00035188299989385996,
+          "max_time": 0.00267403199995897
         },
-        "throughput_forward_proj_per_sec": 119363.7911022081,
-        "throughput_total_proj_per_sec": 21248.396408596745,
+        "throughput_forward_proj_per_sec": 106123.31535416753,
+        "throughput_total_proj_per_sec": 21993.489928837775,
         "gpu_peak_memory_mb": 1.932288
       }
     },
@@ -985,13 +880,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 7.001199992373586e-05,
-          "mean_time": 7.138026667234954e-05,
-          "std_dev": 4.7583974991583956e-06,
-          "min_time": 6.821900001341419e-05,
-          "max_time": 8.744199999455304e-05
+          "median_time": 6.686500000796514e-05,
+          "mean_time": 6.753946665109349e-05,
+          "std_dev": 1.8684361349109064e-06,
+          "min_time": 6.591900000785245e-05,
+          "max_time": 7.372799996119284e-05
         },
-        "throughput_proj_per_sec": 114266.12593147471,
+        "throughput_proj_per_sec": 119644.0589104467,
         "gpu_peak_memory_mb": 0.600064
       }
     },
@@ -1010,28 +905,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00046109499999147374,
-          "mean_time": 0.0004612188666669681,
-          "std_dev": 1.8297655507063111e-06,
-          "min_time": 0.0004578399999672911,
-          "max_time": 0.00046352200001820165
-        },
-        "backward": {
-          "median_time": 0.008456637000108458,
-          "mean_time": 0.008415280466662504,
-          "std_dev": 0.0,
-          "min_time": 0.00837691399999585,
-          "max_time": 0.008459038999944823
+          "median_time": 0.00047596900003554765,
+          "mean_time": 0.0004776745333401777,
+          "std_dev": 6.0372415588441875e-06,
+          "min_time": 0.0004719019998447038,
+          "max_time": 0.0004926930000692664
         },
         "forward_and_backward": {
-          "median_time": 0.008864814000048682,
-          "mean_time": 0.008876499333329473,
-          "std_dev": 2.832102245282137e-05,
-          "min_time": 0.008837017000018932,
-          "max_time": 0.008921088999954918
+          "median_time": 0.0088624750001145,
+          "mean_time": 0.009001332533352979,
+          "std_dev": 0.0005285993359111778,
+          "min_time": 0.008812587000193162,
+          "max_time": 0.01090936899981898
         },
-        "throughput_forward_proj_per_sec": 4441600.971682344,
-        "throughput_total_proj_per_sec": 231025.71582311296,
+        "throughput_forward_proj_per_sec": 4302801.232532046,
+        "throughput_total_proj_per_sec": 231086.68853492287,
         "gpu_peak_memory_mb": 478.267392
       }
     },
@@ -1050,13 +938,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0004653639999787629,
-          "mean_time": 0.0004650740666496252,
-          "std_dev": 3.838343870645513e-06,
-          "min_time": 0.0004599869999992734,
-          "max_time": 0.000476884999898175
+          "median_time": 0.0004650970001875976,
+          "mean_time": 0.000464634600014809,
+          "std_dev": 2.1300785686270317e-06,
+          "min_time": 0.0004603350000706996,
+          "max_time": 0.00046849799991832697
         },
-        "throughput_proj_per_sec": 4400856.104239824,
+        "throughput_proj_per_sec": 4403382.518429351,
         "gpu_peak_memory_mb": 136.430592
       }
     },
@@ -1075,28 +963,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 8.97099999974671e-05,
-          "mean_time": 9.047460000601859e-05,
-          "std_dev": 4.922083710413521e-06,
-          "min_time": 8.584400006839132e-05,
-          "max_time": 0.00010589400005756033
-        },
-        "backward": {
-          "median_time": 0.00028073499993297446,
-          "mean_time": 0.0002815239333434268,
-          "std_dev": 0.0,
-          "min_time": 0.0002700090000189448,
-          "max_time": 0.0003031710000414023
+          "median_time": 9.833900003286544e-05,
+          "mean_time": 0.00010088433332384738,
+          "std_dev": 7.409600013844314e-06,
+          "min_time": 9.480700009589782e-05,
+          "max_time": 0.00012147999996159342
         },
         "forward_and_backward": {
-          "median_time": 0.0003678780000200277,
-          "mean_time": 0.0003719985333494454,
-          "std_dev": 1.3756138577936522e-05,
-          "min_time": 0.000357578000034664,
-          "max_time": 0.0004041440000719376
+          "median_time": 0.00037782499998684216,
+          "mean_time": 0.000526878199980274,
+          "std_dev": 0.0005067097436961653,
+          "min_time": 0.0003682930000650231,
+          "max_time": 0.002350021999745877
         },
-        "throughput_forward_proj_per_sec": 89176.23453601466,
-        "throughput_total_proj_per_sec": 21746.33981799529,
+        "throughput_forward_proj_per_sec": 81351.24413840241,
+        "throughput_total_proj_per_sec": 21173.823860990145,
         "gpu_peak_memory_mb": 7.663616
       }
     },
@@ -1115,13 +996,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 9.090699995795148e-05,
-          "mean_time": 9.137453331125774e-05,
-          "std_dev": 2.3457501179411077e-06,
-          "min_time": 8.87920000423037e-05,
-          "max_time": 9.689900002740615e-05
+          "median_time": 8.95670000318205e-05,
+          "mean_time": 9.011593336557173e-05,
+          "std_dev": 2.706691477539529e-06,
+          "min_time": 8.756300007917162e-05,
+          "max_time": 9.677800017016125e-05
         },
-        "throughput_proj_per_sec": 88002.0240872579,
+        "throughput_proj_per_sec": 89318.6106172791,
         "gpu_peak_memory_mb": 2.378752
       }
     },
@@ -1140,28 +1021,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.0003289249999625099,
-          "mean_time": 0.0003302073999975619,
-          "std_dev": 3.4998750353365464e-06,
-          "min_time": 0.0003254340000466982,
-          "max_time": 0.00033818700001120305
-        },
-        "backward": {
-          "median_time": 0.003431804000001648,
-          "mean_time": 0.0034128813333078748,
-          "std_dev": 0.0,
-          "min_time": 0.003375149000021338,
-          "max_time": 0.0034774329999436304
+          "median_time": 0.00034138199998778873,
+          "mean_time": 0.00034180326668623213,
+          "std_dev": 4.212383841144582e-06,
+          "min_time": 0.00033551100000295264,
+          "max_time": 0.0003506880000259116
         },
         "forward_and_backward": {
-          "median_time": 0.0037401170000066486,
-          "mean_time": 0.0037430887333054367,
-          "std_dev": 3.401623677826782e-05,
-          "min_time": 0.0037023209999915707,
-          "max_time": 0.0038156199999548335
+          "median_time": 0.0037218499999198684,
+          "mean_time": 0.0038131966666696826,
+          "std_dev": 0.0003508660508076661,
+          "min_time": 0.003679629999851386,
+          "max_time": 0.005077363000054902
         },
-        "throughput_forward_proj_per_sec": 3113171.696030138,
-        "throughput_total_proj_per_sec": 273788.22641061223,
+        "throughput_forward_proj_per_sec": 2999572.326709166,
+        "throughput_total_proj_per_sec": 275131.990816945,
         "gpu_peak_memory_mb": 950.05184
       }
     },
@@ -1180,13 +1054,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0003339219999816123,
-          "mean_time": 0.00033437106666648714,
-          "std_dev": 3.21720087464934e-06,
-          "min_time": 0.00032988999998906365,
-          "max_time": 0.00034100999994279846
+          "median_time": 0.000332049000007828,
+          "mean_time": 0.000332600333361673,
+          "std_dev": 3.359023044752354e-06,
+          "min_time": 0.00032787000009193434,
+          "max_time": 0.00033789000008255243
         },
-        "throughput_proj_per_sec": 3066584.412097398,
+        "throughput_proj_per_sec": 3083882.1980366134,
         "gpu_peak_memory_mb": 272.67072
       }
     },
@@ -1205,28 +1079,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.6832999967373325e-05,
-          "mean_time": 3.865633332983028e-05,
-          "std_dev": 6.794427968921108e-06,
-          "min_time": 3.420799998821167e-05,
-          "max_time": 6.0017999999217864e-05
-        },
-        "backward": {
-          "median_time": 0.0002768960000594234,
-          "mean_time": 0.00028118173333192923,
-          "std_dev": 0.0,
-          "min_time": 0.0002536649999456131,
-          "max_time": 0.0003175909999981741
+          "median_time": 4.034700009469816e-05,
+          "mean_time": 4.2534466668560826e-05,
+          "std_dev": 4.931891374275478e-06,
+          "min_time": 3.791099993577518e-05,
+          "max_time": 5.4501000022355583e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00031452999996872677,
-          "mean_time": 0.0003198380666617595,
-          "std_dev": 1.3851250400388345e-05,
-          "min_time": 0.0003013629999486511,
-          "max_time": 0.000352098999996997
+          "median_time": 0.0002866160000394302,
+          "mean_time": 0.00043763466669588524,
+          "std_dev": 0.0005323785451865311,
+          "min_time": 0.0002685770000425691,
+          "max_time": 0.0023519060000580794
         },
-        "throughput_forward_proj_per_sec": 27801156.59617895,
-        "throughput_total_proj_per_sec": 3255651.2895488977,
+        "throughput_forward_proj_per_sec": 25379829.91539834,
+        "throughput_total_proj_per_sec": 3572724.481044766,
         "gpu_peak_memory_mb": 15.657984
       }
     },
@@ -1245,13 +1112,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.826099998605059e-05,
-          "mean_time": 4.219253333606806e-05,
-          "std_dev": 1.3058752048597587e-05,
-          "min_time": 3.558100002010178e-05,
-          "max_time": 8.830999991005228e-05
+          "median_time": 3.2025999871621025e-05,
+          "mean_time": 3.286419993552651e-05,
+          "std_dev": 3.2113458319444485e-06,
+          "min_time": 3.069499985031143e-05,
+          "max_time": 4.3842999957632856e-05
         },
-        "throughput_proj_per_sec": 26763545.134035587,
+        "throughput_proj_per_sec": 31974021.236020487,
         "gpu_peak_memory_mb": 4.51584
       }
     },
@@ -1270,28 +1137,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00025289900008829136,
-          "mean_time": 0.0002547477333640321,
-          "std_dev": 3.3006846801061827e-06,
-          "min_time": 0.00025097299999288225,
-          "max_time": 0.00026053900000988506
-        },
-        "backward": {
-          "median_time": 0.0036466039999822897,
-          "mean_time": 0.0036560477999879972,
-          "std_dev": 0.0,
-          "min_time": 0.00359946100002162,
-          "max_time": 0.003808166999988316
+          "median_time": 0.00026308800011065614,
+          "mean_time": 0.00026607286667967855,
+          "std_dev": 6.9111013167758465e-06,
+          "min_time": 0.0002578680000624445,
+          "max_time": 0.0002822179999384389
         },
         "forward_and_backward": {
-          "median_time": 0.003904056000010314,
-          "mean_time": 0.003910795533352029,
-          "std_dev": 5.171268047334453e-05,
-          "min_time": 0.0038548610000361805,
-          "max_time": 0.0040609940000422284
+          "median_time": 0.003944992000015191,
+          "mean_time": 0.004078825999977198,
+          "std_dev": 0.0005336564538271477,
+          "min_time": 0.0038463759999558533,
+          "max_time": 0.005996514000116804
         },
-        "throughput_forward_proj_per_sec": 4049047.2466973145,
-        "throughput_total_proj_per_sec": 262291.3195910342,
+        "throughput_forward_proj_per_sec": 3892233.7756541553,
+        "throughput_total_proj_per_sec": 259569.60115408522,
         "gpu_peak_memory_mb": 243.303424
       }
     },
@@ -1310,13 +1170,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.000254821999988053,
-          "mean_time": 0.00025665639999867076,
-          "std_dev": 3.273031764218411e-06,
-          "min_time": 0.00025312899992968596,
-          "max_time": 0.00026408400003674615
+          "median_time": 0.0002548119998664333,
+          "mean_time": 0.00025506733336442264,
+          "std_dev": 3.3422697550380735e-06,
+          "min_time": 0.00025047600001926185,
+          "max_time": 0.0002611869999782357
         },
-        "throughput_proj_per_sec": 4018491.33924076,
+        "throughput_proj_per_sec": 4018649.04532266,
         "gpu_peak_memory_mb": 69.763072
       }
     },
@@ -1335,28 +1195,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 4.4493000018519524e-05,
-          "mean_time": 4.590253331571148e-05,
-          "std_dev": 4.875495448058739e-06,
-          "min_time": 4.240599992044736e-05,
-          "max_time": 6.240699997306365e-05
-        },
-        "backward": {
-          "median_time": 0.00021565200006534724,
-          "mean_time": 0.0002253958000210332,
-          "std_dev": 0.0,
-          "min_time": 0.00019757000006848102,
-          "max_time": 0.00025715399999626243
+          "median_time": 5.266900006972719e-05,
+          "mean_time": 5.396153333094844e-05,
+          "std_dev": 4.4010618508713915e-06,
+          "min_time": 5.072599992672622e-05,
+          "max_time": 6.822999989708478e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0002685069999870393,
-          "mean_time": 0.0002712983333367447,
-          "std_dev": 1.452383731031255e-05,
-          "min_time": 0.00025530699997489137,
-          "max_time": 0.00030558399998881214
+          "median_time": 0.0002515390001462947,
+          "mean_time": 0.00040394526658928955,
+          "std_dev": 0.0005381381939351007,
+          "min_time": 0.0002231779999419814,
+          "max_time": 0.0023371320000933338
         },
-        "throughput_forward_proj_per_sec": 1438428.516246623,
-        "throughput_total_proj_per_sec": 238355.0522075374,
+        "throughput_forward_proj_per_sec": 1215136.0366680967,
+        "throughput_total_proj_per_sec": 254433.705957238,
         "gpu_peak_memory_mb": 15.44448
       }
     },
@@ -1375,13 +1228,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 4.595699999754288e-05,
-          "mean_time": 4.7191800005445356e-05,
-          "std_dev": 2.9885853213232046e-06,
-          "min_time": 4.3444999960229325e-05,
-          "max_time": 5.426100005934131e-05
+          "median_time": 4.4070000058127334e-05,
+          "mean_time": 4.616446663021634e-05,
+          "std_dev": 7.514301861926904e-06,
+          "min_time": 4.2497000094954274e-05,
+          "max_time": 7.304699988708308e-05
         },
-        "throughput_proj_per_sec": 1392606.1318933307,
+        "throughput_proj_per_sec": 1452235.0786381993,
         "gpu_peak_memory_mb": 4.793856
       }
     },
@@ -1400,28 +1253,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.000260240999978123,
-          "mean_time": 0.000261243799999041,
-          "std_dev": 3.527568686968363e-06,
-          "min_time": 0.00025608799990095577,
-          "max_time": 0.0002687120000928189
-        },
-        "backward": {
-          "median_time": 0.014238468999906218,
-          "mean_time": 0.014243443533329507,
-          "std_dev": 0.0,
-          "min_time": 0.014209854000000632,
-          "max_time": 0.01428702299995166
+          "median_time": 0.000270645999989938,
+          "mean_time": 0.0002706457999920531,
+          "std_dev": 3.341733033887538e-06,
+          "min_time": 0.00026437999986228533,
+          "max_time": 0.00027602400018622575
         },
         "forward_and_backward": {
-          "median_time": 0.014500624999982392,
-          "mean_time": 0.014504687333328548,
-          "std_dev": 2.2692958356976573e-05,
-          "min_time": 0.014468801000020903,
-          "max_time": 0.014552481999999145
+          "median_time": 0.014488203999690086,
+          "mean_time": 0.014636256799910067,
+          "std_dev": 0.0005486468594159014,
+          "min_time": 0.014465885999925376,
+          "max_time": 0.0166124659997422
         },
-        "throughput_forward_proj_per_sec": 62957028.29829777,
-        "throughput_total_proj_per_sec": 1129882.332659447,
+        "throughput_forward_proj_per_sec": 60536641.96259734,
+        "throughput_total_proj_per_sec": 1130851.0012939123,
         "gpu_peak_memory_mb": 249.990144
       }
     },
@@ -1440,13 +1286,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00026341300008425605,
-          "mean_time": 0.000264176666670816,
-          "std_dev": 1.8956374922369742e-06,
-          "min_time": 0.0002614429999994172,
-          "max_time": 0.00026802799993674853
+          "median_time": 0.00025910499994097336,
+          "mean_time": 0.00026039573332733805,
+          "std_dev": 2.8195028836928283e-06,
+          "min_time": 0.0002563490002103208,
+          "max_time": 0.00026535500001045875
         },
-        "throughput_proj_per_sec": 62198904.36219688,
+        "throughput_proj_per_sec": 63233052.25191499,
         "gpu_peak_memory_mb": 71.7312
       }
     },
@@ -1465,28 +1311,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 3.672299999379902e-05,
-          "mean_time": 3.877466666229642e-05,
-          "std_dev": 6.067079858528993e-06,
-          "min_time": 3.5191000051781884e-05,
-          "max_time": 5.934199998591794e-05
-        },
-        "backward": {
-          "median_time": 0.0006134430000201974,
-          "mean_time": 0.0006282072667014897,
-          "std_dev": 0.0,
-          "min_time": 0.0005997010000555747,
-          "max_time": 0.0006501999999954933
+          "median_time": 4.602599983627442e-05,
+          "mean_time": 4.793813329039646e-05,
+          "std_dev": 5.602587358839177e-06,
+          "min_time": 4.259299998921051e-05,
+          "max_time": 6.067300000722753e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0006614570000920139,
-          "mean_time": 0.0006669819333637861,
-          "std_dev": 1.0714916511298652e-05,
-          "min_time": 0.0006544420000409445,
-          "max_time": 0.00068554300003143
+          "median_time": 0.0006353320000016538,
+          "mean_time": 0.0007844273999580764,
+          "std_dev": 0.0005251893436630197,
+          "min_time": 0.0006189919999997073,
+          "max_time": 0.0026721500000803644
         },
-        "throughput_forward_proj_per_sec": 55768864.208964996,
-        "throughput_total_proj_per_sec": 3096195.217096662,
+        "throughput_forward_proj_per_sec": 44496589.04282861,
+        "throughput_total_proj_per_sec": 3223511.486899242,
         "gpu_peak_memory_mb": 31.24992
       }
     },
@@ -1505,13 +1344,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 3.906700010247732e-05,
-          "mean_time": 4.188680000728103e-05,
-          "std_dev": 6.992611706886507e-06,
-          "min_time": 3.75669999357342e-05,
-          "max_time": 6.329600000753999e-05
+          "median_time": 3.611599981923064e-05,
+          "mean_time": 3.668699998039908e-05,
+          "std_dev": 1.7841365738179175e-06,
+          "min_time": 3.4236999908898724e-05,
+          "max_time": 4.040899989377067e-05
         },
-        "throughput_proj_per_sec": 52422760.76043351,
+        "throughput_proj_per_sec": 56706169.29479284,
         "gpu_peak_memory_mb": 8.966656
       }
     },
@@ -1530,28 +1369,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00020357300002160628,
-          "mean_time": 0.00020480366666409585,
-          "std_dev": 3.95139365951955e-06,
-          "min_time": 0.00020103299993934343,
-          "max_time": 0.000214936000020316
-        },
-        "backward": {
-          "median_time": 0.0016843470000367233,
-          "mean_time": 0.001715652733355455,
-          "std_dev": 0.0,
-          "min_time": 0.0016771420000623039,
-          "max_time": 0.0017612010000220835
+          "median_time": 0.0002136030000201572,
+          "mean_time": 0.0002133716666927891,
+          "std_dev": 3.1034777499431022e-06,
+          "min_time": 0.0002081279999401886,
+          "max_time": 0.00022132399999463814
         },
         "forward_and_backward": {
-          "median_time": 0.0019184660000064468,
-          "mean_time": 0.0019204564000195508,
-          "std_dev": 2.6242836991788646e-05,
-          "min_time": 0.0018813330000284623,
-          "max_time": 0.001965721000033227
+          "median_time": 0.0019106989998363133,
+          "mean_time": 0.0020751482666886054,
+          "std_dev": 0.0005843621132683174,
+          "min_time": 0.001858729000105086,
+          "max_time": 0.0041706330002853065
         },
-        "throughput_forward_proj_per_sec": 628767.076117239,
-        "throughput_total_proj_per_sec": 66719.97314498661,
+        "throughput_forward_proj_per_sec": 599242.5199455108,
+        "throughput_total_proj_per_sec": 66991.19014086759,
         "gpu_peak_memory_mb": 118.626304
       }
     },
@@ -1570,13 +1402,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00020690600001671555,
-          "mean_time": 0.00020750999999563646,
-          "std_dev": 3.5457621760672794e-06,
-          "min_time": 0.00020311899993430416,
-          "max_time": 0.00021436500003346737
+          "median_time": 0.00020393800014062435,
+          "mean_time": 0.00020455573335311782,
+          "std_dev": 3.0135422969803358e-06,
+          "min_time": 0.00020012599998153746,
+          "max_time": 0.00020903499989799457
         },
-        "throughput_proj_per_sec": 618638.4154623796,
+        "throughput_proj_per_sec": 627641.7338197799,
         "gpu_peak_memory_mb": 34.08384
       }
     },
@@ -1595,28 +1427,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 4.4046999960301036e-05,
-          "mean_time": 4.678720000204824e-05,
-          "std_dev": 6.487544709407206e-06,
-          "min_time": 4.262700008439424e-05,
-          "max_time": 6.539900005009258e-05
-        },
-        "backward": {
-          "median_time": 0.00027892499997506093,
-          "mean_time": 0.0002953777999891827,
-          "std_dev": 0.0,
-          "min_time": 0.00027892499997506093,
-          "max_time": 0.00032352100004118256
+          "median_time": 5.342200006452913e-05,
+          "mean_time": 5.5553199990754366e-05,
+          "std_dev": 4.924578371208503e-06,
+          "min_time": 5.103600005895714e-05,
+          "max_time": 6.905600002937717e-05
         },
         "forward_and_backward": {
-          "median_time": 0.00033583300000827876,
-          "mean_time": 0.00034216499999123093,
-          "std_dev": 1.4077605660298225e-05,
-          "min_time": 0.0003289640000048166,
-          "max_time": 0.0003735450000021956
+          "median_time": 0.000310368000100425,
+          "mean_time": 0.00046313366669892275,
+          "std_dev": 0.0005229652210617682,
+          "min_time": 0.0002996959999563842,
+          "max_time": 0.002343311000004178
         },
-        "throughput_forward_proj_per_sec": 2905986.789460455,
-        "throughput_total_proj_per_sec": 381141.81750109314,
+        "throughput_forward_proj_per_sec": 2396016.619471138,
+        "throughput_total_proj_per_sec": 412413.6507584009,
         "gpu_peak_memory_mb": 29.889536
       }
     },
@@ -1635,13 +1460,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 4.674100000556791e-05,
-          "mean_time": 4.773453332897286e-05,
-          "std_dev": 3.4005286663046645e-06,
-          "min_time": 4.514900001595379e-05,
-          "max_time": 5.749399997512228e-05
+          "median_time": 4.395099995235796e-05,
+          "mean_time": 4.4745133330555593e-05,
+          "std_dev": 1.9906732235074598e-06,
+          "min_time": 4.293400002097769e-05,
+          "max_time": 5.0286000032429e-05
         },
-        "throughput_proj_per_sec": 2738495.1110321195,
+        "throughput_proj_per_sec": 2912334.193505257,
         "gpu_peak_memory_mb": 8.589312
       }
     },
@@ -1660,28 +1485,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00017433400000754773,
-          "mean_time": 0.0001757290666849561,
-          "std_dev": 4.1351128439746695e-06,
-          "min_time": 0.00017163600000458246,
-          "max_time": 0.00018805299998803093
-        },
-        "backward": {
-          "median_time": 0.0024950699998953496,
-          "mean_time": 0.002491795066642529,
-          "std_dev": 0.0,
-          "min_time": 0.002470503999916218,
-          "max_time": 0.0025142900000219015
+          "median_time": 0.0001850450000802084,
+          "mean_time": 0.00018435940002442902,
+          "std_dev": 3.787352067968337e-06,
+          "min_time": 0.00017859400009001547,
+          "max_time": 0.0001911320000544947
         },
         "forward_and_backward": {
-          "median_time": 0.002668209000034949,
-          "mean_time": 0.002667524133327485,
-          "std_dev": 8.887572608095842e-06,
-          "min_time": 0.0026557410000123127,
-          "max_time": 0.0026887840000426877
+          "median_time": 0.0026368439998805115,
+          "mean_time": 0.002764866266655493,
+          "std_dev": 0.0005014075117610887,
+          "min_time": 0.002617557000121451,
+          "max_time": 0.004576597999857768
         },
-        "throughput_forward_proj_per_sec": 11747565.018363213,
-        "throughput_total_proj_per_sec": 767556.0647509901,
+        "throughput_forward_proj_per_sec": 11067578.151867313,
+        "throughput_total_proj_per_sec": 776686.0686839286,
         "gpu_peak_memory_mb": 478.267392
       }
     },
@@ -1700,13 +1518,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00017686200010302855,
-          "mean_time": 0.0001778831333240305,
-          "std_dev": 2.510387425162219e-06,
-          "min_time": 0.00017511399994418753,
-          "max_time": 0.00018343499993989099
+          "median_time": 0.00017551400014781393,
+          "mean_time": 0.0001758390000456226,
+          "std_dev": 2.3719658786266684e-06,
+          "min_time": 0.000172380000094563,
+          "max_time": 0.00018037799986814207
         },
-        "throughput_proj_per_sec": 11579649.663618898,
+        "throughput_proj_per_sec": 11668584.83240779,
         "gpu_peak_memory_mb": 136.430592
       }
     },
@@ -1725,28 +1543,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00018966499999351072,
-          "mean_time": 0.0001904262666660846,
-          "std_dev": 3.5985325127442664e-06,
-          "min_time": 0.00018626299993229622,
-          "max_time": 0.00019810300000244752
-        },
-        "backward": {
-          "median_time": 0.000697925000054056,
-          "mean_time": 0.000695126333372779,
-          "std_dev": 0.0,
-          "min_time": 0.0006858380000949182,
-          "max_time": 0.0007017780000069251
+          "median_time": 0.00019953300011366082,
+          "mean_time": 0.00020035839996429178,
+          "std_dev": 4.623774184967685e-06,
+          "min_time": 0.0001956210001026193,
+          "max_time": 0.0002130589998614596
         },
         "forward_and_backward": {
-          "median_time": 0.0008844900000894995,
-          "mean_time": 0.0008855526000388636,
-          "std_dev": 2.8854495957978254e-06,
-          "min_time": 0.0008805239999674086,
-          "max_time": 0.0008916710000903549
+          "median_time": 0.0009218800000780902,
+          "mean_time": 0.0010728175333194181,
+          "std_dev": 0.0005117682476610514,
+          "min_time": 0.0009115320001455984,
+          "max_time": 0.002913628999976936
         },
-        "throughput_forward_proj_per_sec": 42179.632511394906,
-        "throughput_total_proj_per_sec": 9044.76025640821,
+        "throughput_forward_proj_per_sec": 40093.618576590976,
+        "throughput_total_proj_per_sec": 8677.919034280318,
         "gpu_peak_memory_mb": 7.663616
       }
     },
@@ -1765,13 +1576,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0001905670000041937,
-          "mean_time": 0.00019260413332631288,
-          "std_dev": 4.567494975865609e-06,
-          "min_time": 0.00018894699996963027,
-          "max_time": 0.00020278000010875985
+          "median_time": 0.00018897299992204353,
+          "mean_time": 0.00019160446666622495,
+          "std_dev": 5.529588112157246e-06,
+          "min_time": 0.00018657200007510255,
+          "max_time": 0.00020252999979675224
         },
-        "throughput_proj_per_sec": 41979.986040730815,
+        "throughput_proj_per_sec": 42334.090072657025,
         "gpu_peak_memory_mb": 2.378752
       }
     },
@@ -1790,28 +1601,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00019689499993091886,
-          "mean_time": 0.0001984547999957916,
-          "std_dev": 3.33591891796498e-06,
-          "min_time": 0.00019502399993598374,
-          "max_time": 0.00020447700001113844
-        },
-        "backward": {
-          "median_time": 0.0010041539999292581,
-          "mean_time": 0.0010190229999807344,
-          "std_dev": 0.0,
-          "min_time": 0.0009879159999854892,
-          "max_time": 0.0010490390000086336
+          "median_time": 0.00020894099998258753,
+          "mean_time": 0.00020856080003189465,
+          "std_dev": 2.6128322038639044e-06,
+          "min_time": 0.00020455700018828793,
+          "max_time": 0.0002143849999356462
         },
         "forward_and_backward": {
-          "median_time": 0.0012158739999676982,
-          "mean_time": 0.001217477799976526,
-          "std_dev": 1.8303689036642254e-05,
-          "min_time": 0.0011844240000300488,
-          "max_time": 0.0012440629999446173
+          "median_time": 0.0011776899998494628,
+          "mean_time": 0.0013179932666844251,
+          "std_dev": 0.0005281722014164171,
+          "min_time": 0.0011303389999284263,
+          "max_time": 0.003218156999992061
         },
-        "throughput_forward_proj_per_sec": 325046.3446123801,
-        "throughput_total_proj_per_sec": 52637.03311502695,
+        "throughput_forward_proj_per_sec": 306306.565036702,
+        "throughput_total_proj_per_sec": 54343.67279010669,
         "gpu_peak_memory_mb": 61.295104
       }
     },
@@ -1830,13 +1634,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00019954900005814125,
-          "mean_time": 0.0002003275333587832,
-          "std_dev": 3.3935347192466412e-06,
-          "min_time": 0.00019659200006572064,
-          "max_time": 0.0002092830000037793
+          "median_time": 0.0001984529999390361,
+          "mean_time": 0.00019905813337572908,
+          "std_dev": 2.6799272895563293e-06,
+          "min_time": 0.00019600899986471632,
+          "max_time": 0.0002041999998709798
         },
-        "throughput_proj_per_sec": 320723.2307922002,
+        "throughput_proj_per_sec": 322494.4950172611,
         "gpu_peak_memory_mb": 19.02336
       }
     },
@@ -1855,28 +1659,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 4.1869000028782466e-05,
-          "mean_time": 4.3895599977380094e-05,
-          "std_dev": 5.687168923700608e-06,
-          "min_time": 4.033799996250309e-05,
-          "max_time": 6.36549999626368e-05
-        },
-        "backward": {
-          "median_time": 0.0005669090000992583,
-          "mean_time": 0.0005665655333662775,
-          "std_dev": 0.0,
-          "min_time": 0.0005488950000653858,
-          "max_time": 0.0006014819999791143
+          "median_time": 5.1593000080174534e-05,
+          "mean_time": 5.20471333857131e-05,
+          "std_dev": 3.364780431992691e-06,
+          "min_time": 4.754700012199464e-05,
+          "max_time": 5.7213999980376684e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0006083240000407386,
-          "mean_time": 0.0006104611333436575,
-          "std_dev": 1.5632867728514075e-05,
-          "min_time": 0.0005904649999592948,
-          "max_time": 0.000643340999999964
+          "median_time": 0.0005888650000542839,
+          "mean_time": 0.0007402148000286009,
+          "std_dev": 0.0005142516763730976,
+          "min_time": 0.0005777400001534261,
+          "max_time": 0.002589877999980672
         },
-        "throughput_forward_proj_per_sec": 24457235.646804567,
-        "throughput_total_proj_per_sec": 1683313.497299834,
+        "throughput_forward_proj_per_sec": 19847653.72063504,
+        "throughput_total_proj_per_sec": 1738938.4662114468,
         "gpu_peak_memory_mb": 15.657984
       }
     },
@@ -1895,13 +1692,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 4.339099996286677e-05,
-          "mean_time": 4.348686664646569e-05,
-          "std_dev": 1.4868144398774832e-06,
-          "min_time": 4.189699996004492e-05,
-          "max_time": 4.6578000024055655e-05
+          "median_time": 4.294500013202196e-05,
+          "mean_time": 4.4255666701549974e-05,
+          "std_dev": 3.884706639413507e-06,
+          "min_time": 4.0788999967844575e-05,
+          "max_time": 5.5524000117657124e-05
         },
-        "throughput_proj_per_sec": 23599363.943590157,
+        "throughput_proj_per_sec": 23844452.133007538,
         "gpu_peak_memory_mb": 4.51584
       }
     },
@@ -1920,28 +1717,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00010512200003631733,
-          "mean_time": 0.00010586086667293178,
-          "std_dev": 2.3400424981798597e-06,
-          "min_time": 0.00010324299989861174,
-          "max_time": 0.00011194100000011531
-        },
-        "backward": {
-          "median_time": 0.001096786999937649,
-          "mean_time": 0.0010929793333161798,
-          "std_dev": 0.0,
-          "min_time": 0.0010750489999509227,
-          "max_time": 0.001106866999975864
+          "median_time": 0.00011477599991849274,
+          "mean_time": 0.00011599599999196168,
+          "std_dev": 4.109348586453225e-06,
+          "min_time": 0.00011175600002388819,
+          "max_time": 0.00012498499995672319
         },
         "forward_and_backward": {
-          "median_time": 0.0011991679999709959,
-          "mean_time": 0.0011988401999891115,
-          "std_dev": 8.696670852471494e-06,
-          "min_time": 0.0011819110000033106,
-          "max_time": 0.0012164209999809827
+          "median_time": 0.0011743750001187436,
+          "mean_time": 0.001322680800027835,
+          "std_dev": 0.0005419502395836211,
+          "min_time": 0.0011526320001848944,
+          "max_time": 0.0032761410000148317
         },
-        "throughput_forward_proj_per_sec": 9741062.761802768,
-        "throughput_total_proj_per_sec": 853925.3882898538,
+        "throughput_forward_proj_per_sec": 8921725.80266942,
+        "throughput_total_proj_per_sec": 871953.166489802,
         "gpu_peak_memory_mb": 243.303424
       }
     },
@@ -1960,13 +1750,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.0001083790000393492,
-          "mean_time": 0.0001095516666888822,
-          "std_dev": 2.797360511536956e-06,
-          "min_time": 0.00010653600008936337,
-          "max_time": 0.00011655099990548479
+          "median_time": 0.0001056590001553559,
+          "mean_time": 0.00010679853335204825,
+          "std_dev": 2.71631861068696e-06,
+          "min_time": 0.0001040649999595189,
+          "max_time": 0.00011225999992348079
         },
-        "throughput_proj_per_sec": 9448324.856551694,
+        "throughput_proj_per_sec": 9691554.893519338,
         "gpu_peak_memory_mb": 69.763072
       }
     },
@@ -1985,28 +1775,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 7.214699996893614e-05,
-          "mean_time": 7.265553332066095e-05,
-          "std_dev": 2.303557976993735e-06,
-          "min_time": 7.014899995283486e-05,
-          "max_time": 7.790200004365033e-05
-        },
-        "backward": {
-          "median_time": 0.0003909359999170192,
-          "mean_time": 0.0004006452666847811,
-          "std_dev": 0.0,
-          "min_time": 0.0003878219999933208,
-          "max_time": 0.000423972000021422
+          "median_time": 8.059499987211893e-05,
+          "mean_time": 8.2308666666601e-05,
+          "std_dev": 4.566628184653477e-06,
+          "min_time": 7.727100000920473e-05,
+          "max_time": 9.34409999899799e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0004738769999903525,
-          "mean_time": 0.0004733008000054421,
-          "std_dev": 1.2104395817630584e-05,
-          "min_time": 0.00045959199997014366,
-          "max_time": 0.0004999730000463387
+          "median_time": 0.00045782000006511225,
+          "mean_time": 0.000608003399959974,
+          "std_dev": 0.0005185584775389041,
+          "min_time": 0.0004396589997668343,
+          "max_time": 0.0024728559997129196
         },
-        "throughput_forward_proj_per_sec": 887077.7721534652,
-        "throughput_total_proj_per_sec": 135056.14326355353,
+        "throughput_forward_proj_per_sec": 794093.9276822332,
+        "throughput_total_proj_per_sec": 139792.93170000822,
         "gpu_peak_memory_mb": 15.44448
       }
     },
@@ -2025,13 +1808,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 7.446400002208975e-05,
-          "mean_time": 7.566206668343511e-05,
-          "std_dev": 3.6182811049956307e-06,
-          "min_time": 7.168900003762246e-05,
-          "max_time": 8.420500000738684e-05
+          "median_time": 7.124799981284013e-05,
+          "mean_time": 7.292713332086956e-05,
+          "std_dev": 4.645169245399997e-06,
+          "min_time": 6.999700008236687e-05,
+          "max_time": 8.826699991004716e-05
         },
-        "throughput_proj_per_sec": 859475.7195559518,
+        "throughput_proj_per_sec": 898270.8310144881,
         "gpu_peak_memory_mb": 4.793856
       }
     },
@@ -2050,28 +1833,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 0.00011431100006120687,
-          "mean_time": 0.00011596993335084941,
-          "std_dev": 4.7708955415138e-06,
-          "min_time": 0.00011230899997372035,
-          "max_time": 0.00012989300000754156
-        },
-        "backward": {
-          "median_time": 0.003775451999899815,
-          "mean_time": 0.0037979381999624215,
-          "std_dev": 0.0,
-          "min_time": 0.003775451999899815,
-          "max_time": 0.0038138950000075056
+          "median_time": 0.00012141000001975044,
+          "mean_time": 0.0001232061333363769,
+          "std_dev": 3.677030670491457e-06,
+          "min_time": 0.00011945900018872635,
+          "max_time": 0.00013108300004205375
         },
         "forward_and_backward": {
-          "median_time": 0.003912158000048294,
-          "mean_time": 0.003913908133313271,
-          "std_dev": 7.0187736600908775e-06,
-          "min_time": 0.0039053449999073564,
-          "max_time": 0.003930275000016081
+          "median_time": 0.003886132999923575,
+          "mean_time": 0.004034038800000417,
+          "std_dev": 0.0005383185831065901,
+          "min_time": 0.0038724870000805822,
+          "max_time": 0.005973947000256885
         },
-        "throughput_forward_proj_per_sec": 143328288.53939974,
-        "throughput_total_proj_per_sec": 4187969.9132289,
+        "throughput_forward_proj_per_sec": 134947697.86125296,
+        "throughput_total_proj_per_sec": 4216016.281563757,
         "gpu_peak_memory_mb": 249.990144
       }
     },
@@ -2090,13 +1866,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 0.00011705700001130026,
-          "mean_time": 0.00011829206666031193,
-          "std_dev": 4.724527445928915e-06,
-          "min_time": 0.00011442400000305497,
-          "max_time": 0.00013318900005288015
+          "median_time": 0.0001132449999659002,
+          "mean_time": 0.00011404126668518681,
+          "std_dev": 2.6463449648547024e-06,
+          "min_time": 0.00011152199999742152,
+          "max_time": 0.00012082199987162312
         },
-        "throughput_proj_per_sec": 139965999.4568317,
+        "throughput_proj_per_sec": 144677469.24750295,
         "gpu_peak_memory_mb": 71.7312
       }
     },
@@ -2115,28 +1891,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 9.137899996858323e-05,
-          "mean_time": 9.269226666977678e-05,
-          "std_dev": 2.7430213452601764e-06,
-          "min_time": 9.001800003716198e-05,
-          "max_time": 9.951999993518257e-05
-        },
-        "backward": {
-          "median_time": 0.00030801100001554005,
-          "mean_time": 0.0003267284666738609,
-          "std_dev": 0.0,
-          "min_time": 0.0002978270000539851,
-          "max_time": 0.00035217400011333666
+          "median_time": 0.00010143999998035724,
+          "mean_time": 0.00010217799999736598,
+          "std_dev": 3.151882136650057e-06,
+          "min_time": 9.776999991117918e-05,
+          "max_time": 0.00010864000000765373
         },
         "forward_and_backward": {
-          "median_time": 0.0004162149999729081,
-          "mean_time": 0.00041942073334363765,
-          "std_dev": 1.6716949798505267e-05,
-          "min_time": 0.0003891160000648597,
-          "max_time": 0.0004493900000852591
+          "median_time": 0.00044029400010003883,
+          "mean_time": 0.0006042733332833449,
+          "std_dev": 0.0005692218739321785,
+          "min_time": 0.0004229679998388747,
+          "max_time": 0.002651002999755292
         },
-        "throughput_forward_proj_per_sec": 700379.7373795256,
-        "throughput_total_proj_per_sec": 153766.6830944724,
+        "throughput_forward_proj_per_sec": 630914.8266205925,
+        "throughput_total_proj_per_sec": 145357.42023615722,
         "gpu_peak_memory_mb": 61.295104
       }
     },
@@ -2155,13 +1924,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 9.376499997415522e-05,
-          "mean_time": 9.443126665094799e-05,
-          "std_dev": 2.1506222418471247e-06,
-          "min_time": 9.25589999951626e-05,
-          "max_time": 0.00010075199998027529
+          "median_time": 9.142699991571135e-05,
+          "mean_time": 9.252719996766245e-05,
+          "std_dev": 3.1063708050416913e-06,
+          "min_time": 8.972399996309832e-05,
+          "max_time": 0.00010038000004897185
         },
-        "throughput_proj_per_sec": 682557.4576616067,
+        "throughput_proj_per_sec": 700012.0321021478,
         "gpu_peak_memory_mb": 19.02336
       }
     },
@@ -2180,28 +1949,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 9.70940000115661e-05,
-          "mean_time": 9.785479999209201e-05,
-          "std_dev": 3.207546019238103e-06,
-          "min_time": 9.350599998469988e-05,
-          "max_time": 0.00010570999995707098
-        },
-        "backward": {
-          "median_time": 0.0005328060000238111,
-          "mean_time": 0.0005269299999933234,
-          "std_dev": 0.0,
-          "min_time": 0.0005200909999985015,
-          "max_time": 0.0005404249999401145
+          "median_time": 0.00010558500002844085,
+          "mean_time": 0.00010812173334973825,
+          "std_dev": 5.63214124451949e-06,
+          "min_time": 0.00010269899985360098,
+          "max_time": 0.0001224279999405553
         },
         "forward_and_backward": {
-          "median_time": 0.0006247329999951035,
-          "mean_time": 0.0006247847999854154,
-          "std_dev": 6.230216117549412e-06,
-          "min_time": 0.0006144070000573265,
-          "max_time": 0.0006402899999784495
+          "median_time": 0.0006269259999953647,
+          "mean_time": 0.0007975219999934779,
+          "std_dev": 0.0005815420288065194,
+          "min_time": 0.0006103539999458008,
+          "max_time": 0.0028788999998141662
         },
-        "throughput_forward_proj_per_sec": 1318310.091094736,
-        "throughput_total_proj_per_sec": 204887.52795354693,
+        "throughput_forward_proj_per_sec": 1212293.4125635398,
+        "throughput_total_proj_per_sec": 204170.82718047488,
         "gpu_peak_memory_mb": 118.626304
       }
     },
@@ -2220,13 +1982,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 9.885700001177611e-05,
-          "mean_time": 9.981079999761277e-05,
-          "std_dev": 3.0371828321644225e-06,
-          "min_time": 9.640899997975794e-05,
-          "max_time": 0.00010716999997839594
+          "median_time": 9.64289999956236e-05,
+          "mean_time": 9.737766663420189e-05,
+          "std_dev": 2.29543300498987e-06,
+          "min_time": 9.504600006948749e-05,
+          "max_time": 0.00010242899998047506
         },
-        "throughput_proj_per_sec": 1294799.5588046603,
+        "throughput_proj_per_sec": 1327401.507905394,
         "gpu_peak_memory_mb": 34.08384
       }
     },
@@ -2245,28 +2007,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 5.4589999990639626e-05,
-          "mean_time": 5.556600000697169e-05,
-          "std_dev": 2.149166973121615e-06,
-          "min_time": 5.3552000053969095e-05,
-          "max_time": 6.07719999834444e-05
-        },
-        "backward": {
-          "median_time": 0.001954832999899736,
-          "mean_time": 0.00195488966665683,
-          "std_dev": 0.0,
-          "min_time": 0.0019440379999196011,
-          "max_time": 0.00198272399995858
+          "median_time": 6.391199985955609e-05,
+          "mean_time": 6.487460001759852e-05,
+          "std_dev": 2.7882829688252355e-06,
+          "min_time": 6.139299989627034e-05,
+          "max_time": 6.98730000294745e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0020069040000407767,
-          "mean_time": 0.002010455666663802,
-          "std_dev": 1.1316082252820216e-05,
-          "min_time": 0.0019979819999207393,
-          "max_time": 0.002042387999949824
+          "median_time": 0.001995341000110784,
+          "mean_time": 0.002142145133317778,
+          "std_dev": 0.0005096501937462925,
+          "min_time": 0.001979851999976745,
+          "max_time": 0.003975204000198573
         },
-        "throughput_forward_proj_per_sec": 37516028.58309515,
-        "throughput_total_proj_per_sec": 1020477.3122971444,
+        "throughput_forward_proj_per_sec": 32044060.653717507,
+        "throughput_total_proj_per_sec": 1026390.9777257582,
         "gpu_peak_memory_mb": 31.24992
       }
     },
@@ -2285,13 +2040,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 5.8352999985800125e-05,
-          "mean_time": 5.928186665187241e-05,
-          "std_dev": 5.109983721990423e-06,
-          "min_time": 5.562399996961176e-05,
-          "max_time": 7.701399999859859e-05
+          "median_time": 5.5742000085956533e-05,
+          "mean_time": 5.59065333466909e-05,
+          "std_dev": 1.2839966562565505e-06,
+          "min_time": 5.419099989012466e-05,
+          "max_time": 5.885199993826973e-05
         },
-        "throughput_proj_per_sec": 35096738.82231195,
+        "throughput_proj_per_sec": 36740698.16012875,
         "gpu_peak_memory_mb": 8.966656
       }
     },
@@ -2310,28 +2065,21 @@
       "results": {
         "raw_times": [],
         "forward": {
-          "median_time": 7.134899999527988e-05,
-          "mean_time": 7.22766666588844e-05,
-          "std_dev": 2.415310656899394e-06,
-          "min_time": 6.985000004533504e-05,
-          "max_time": 7.877300004111021e-05
-        },
-        "backward": {
-          "median_time": 0.0006615139999439634,
-          "mean_time": 0.0006574714000104602,
-          "std_dev": 0.0,
-          "min_time": 0.0006411099999468206,
-          "max_time": 0.0006863580000526781
+          "median_time": 8.119899985103984e-05,
+          "mean_time": 8.224566666588846e-05,
+          "std_dev": 3.5390347139174755e-06,
+          "min_time": 7.758199990348658e-05,
+          "max_time": 8.944499995777733e-05
         },
         "forward_and_backward": {
-          "median_time": 0.0007315740000422011,
-          "mean_time": 0.0007297480666693445,
-          "std_dev": 1.2215432293934233e-05,
-          "min_time": 0.0007169340000245938,
-          "max_time": 0.0007602130000350371
+          "median_time": 0.0007536729999628733,
+          "mean_time": 0.0008964502666761594,
+          "std_dev": 0.0005175447638551057,
+          "min_time": 0.000728789000049801,
+          "max_time": 0.002757789999805027
         },
-        "throughput_forward_proj_per_sec": 1793998.5144636629,
-        "throughput_total_proj_per_sec": 174965.2119848659,
+        "throughput_forward_proj_per_sec": 1576374.0961688806,
+        "throughput_total_proj_per_sec": 169834.92841896342,
         "gpu_peak_memory_mb": 29.889536
       }
     },
@@ -2350,13 +2098,13 @@
       "results": {
         "raw_times": [],
         "forward_no_grad": {
-          "median_time": 7.371799995326e-05,
-          "mean_time": 7.429580001219923e-05,
-          "std_dev": 2.1885752267389086e-06,
-          "min_time": 7.176199994773924e-05,
-          "max_time": 7.942699994600844e-05
+          "median_time": 7.183399998211826e-05,
+          "mean_time": 7.329966667081559e-05,
+          "std_dev": 3.0984992652993248e-06,
+          "min_time": 7.05969998762157e-05,
+          "max_time": 8.097700015241571e-05
         },
-        "throughput_proj_per_sec": 1736346.619294566,
+        "throughput_proj_per_sec": 1781886.0154225468,
         "gpu_peak_memory_mb": 8.589312
       }
     }
