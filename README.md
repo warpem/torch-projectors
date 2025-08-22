@@ -44,11 +44,11 @@ pip install torch-projectors --index-url https://warpem.github.io/torch-projecto
 # CUDA 12.6 on Linux (requires torch==2.6.0) 
 pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu126/simple/
 
-# CUDA 12.7 on Linux (requires torch==2.7.0)
-pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu127/simple/
-
-# CUDA 12.8 on Linux (requires torch==2.8.0)
+# CUDA 12.8 on Linux (requires torch==2.7.0)
 pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu128/simple/
+
+# CUDA 12.9 on Linux (requires torch==2.8.0)
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu129/simple/
 ```
 
 **Note**: Ensure you have the correct PyTorch version installed for your chosen CUDA version.
@@ -69,11 +69,11 @@ pip install torch==2.6.0
 # For CUDA 12.6:
 pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
 
-# For CUDA 12.7:  
-pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu127
+# For CUDA 12.8:  
+pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
 
-# For CUDA 12.8:
-pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+# For CUDA 12.9:
+pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu129
 
 # Install development dependencies
 pip install pytest matplotlib
