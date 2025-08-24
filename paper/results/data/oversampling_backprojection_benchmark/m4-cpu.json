@@ -1,0 +1,235 @@
+{
+  "metadata": {
+    "platform_name": "m4-cpu",
+    "timestamp": "2025-08-22T13:41:31.039571",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.1",
+    "device_info": {
+      "type": "cpu",
+      "name": "arm",
+      "cores": 12,
+      "threads": 12,
+      "memory_gb": 51.539607552
+    },
+    "system_info": {
+      "platform": "macOS-26.0-arm64-arm-64bit-Mach-O",
+      "cpu": "arm",
+      "memory_gb": 51.539607552,
+      "python_version": "3.13.5",
+      "architecture": "arm64"
+    },
+    "title": "M4: CPU"
+  },
+  "benchmarks": {
+    "scenario_1_linear": {
+      "parameters": {
+        "scenario": "scenario_1",
+        "scenario_description": "128x128 basic backprojection",
+        "interpolation": "linear",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.14495356249972247,
+          "mean_time": 0.1648171436496341,
+          "std_dev": 0.03210729767851465,
+          "min_time": 0.1359448750008596,
+          "max_time": 0.2142341660000966
+        },
+        "backward": {
+          "median_time": 0.04727570799877867,
+          "mean_time": 0.11483587285110844,
+          "std_dev": 0.0,
+          "min_time": 0.04727570799877867,
+          "max_time": 0.17712066700914875
+        },
+        "forward_and_backward": {
+          "median_time": 0.2724573120030982,
+          "mean_time": 0.27965301650074254,
+          "std_dev": 0.029866707047990312,
+          "min_time": 0.2454287500004284,
+          "max_time": 0.31758054200327024
+        },
+        "throughput_forward_proj_per_sec": 28257.325514216613,
+        "throughput_total_proj_per_sec": 15033.547713901777
+      }
+    },
+    "scenario_1_cubic": {
+      "parameters": {
+        "scenario": "scenario_1",
+        "scenario_description": "128x128 basic backprojection",
+        "interpolation": "cubic",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.37002620800194563,
+          "mean_time": 0.35253217715071516,
+          "std_dev": 0.02846108940290316,
+          "min_time": 0.31266516700270586,
+          "max_time": 0.3838232920024893
+        },
+        "backward": {
+          "median_time": 0.1312828329973854,
+          "mean_time": 0.16859628339989285,
+          "std_dev": 0.0,
+          "min_time": 0.12700862500059884,
+          "max_time": 0.2562233330027084
+        },
+        "forward_and_backward": {
+          "median_time": 0.5100267915040604,
+          "mean_time": 0.521128460550608,
+          "std_dev": 0.02546052651187975,
+          "min_time": 0.5001623339994694,
+          "max_time": 0.5688885000054142
+        },
+        "throughput_forward_proj_per_sec": 11069.486191579335,
+        "throughput_total_proj_per_sec": 8030.9506642209235
+      }
+    },
+    "scenario_2_linear": {
+      "parameters": {
+        "scenario": "scenario_2",
+        "scenario_description": "256x256 oversampling=2",
+        "interpolation": "linear",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.17929077100052382,
+          "mean_time": 0.19768343125033425,
+          "std_dev": 0.0299107148978116,
+          "min_time": 0.17254020800464787,
+          "max_time": 0.24795216700294986
+        },
+        "backward": {
+          "median_time": 0.42696529199020006,
+          "mean_time": 0.39397690829973725,
+          "std_dev": 0.0,
+          "min_time": 0.31146466700010933,
+          "max_time": 0.44892783300747396
+        },
+        "forward_and_backward": {
+          "median_time": 0.5936595835009939,
+          "mean_time": 0.5916603395500715,
+          "std_dev": 0.026608998018741344,
+          "min_time": 0.5513770840043435,
+          "max_time": 0.6251876250025816
+        },
+        "throughput_forward_proj_per_sec": 22845.57078505749,
+        "throughput_total_proj_per_sec": 6899.576986266478
+      }
+    },
+    "scenario_2_cubic": {
+      "parameters": {
+        "scenario": "scenario_2",
+        "scenario_description": "256x256 oversampling=2",
+        "interpolation": "cubic",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.36267993799992837,
+          "mean_time": 0.374594622800214,
+          "std_dev": 0.025339425216954536,
+          "min_time": 0.3453468329971656,
+          "max_time": 0.4145924170006765
+        },
+        "backward": {
+          "median_time": 0.46445795899489895,
+          "mean_time": 0.47032013545031076,
+          "std_dev": 0.0,
+          "min_time": 0.4043854160045157,
+          "max_time": 0.527082500004326
+        },
+        "forward_and_backward": {
+          "median_time": 0.835722750001878,
+          "mean_time": 0.8449147582505248,
+          "std_dev": 0.028947258528469685,
+          "min_time": 0.8163722910030629,
+          "max_time": 0.9304873750006664
+        },
+        "throughput_forward_proj_per_sec": 11293.704368066836,
+        "throughput_total_proj_per_sec": 4901.146941363982
+      }
+    },
+    "scenario_3_linear": {
+      "parameters": {
+        "scenario": "scenario_3",
+        "scenario_description": "real-space cropping + oversampling=2",
+        "interpolation": "linear",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.830462145502679,
+          "mean_time": 0.8507991958005732,
+          "std_dev": 0.037540176673290966,
+          "min_time": 0.824322458000097,
+          "max_time": 0.9570350000067265
+        },
+        "backward": {
+          "median_time": 0.8542021659959573,
+          "mean_time": 0.877947241649963,
+          "std_dev": 0.0,
+          "min_time": 0.7453875839928514,
+          "max_time": 0.9631461250028224
+        },
+        "forward_and_backward": {
+          "median_time": 1.7110678540011577,
+          "mean_time": 1.7287464374505361,
+          "std_dev": 0.03647804917845395,
+          "min_time": 1.692438874997606,
+          "max_time": 1.815442625003925
+        },
+        "throughput_forward_proj_per_sec": 4932.19350476317,
+        "throughput_total_proj_per_sec": 2393.8267500157413
+      }
+    },
+    "scenario_3_cubic": {
+      "parameters": {
+        "scenario": "scenario_3",
+        "scenario_description": "real-space cropping + oversampling=2",
+        "interpolation": "cubic",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.9988206459966023,
+          "mean_time": 1.014677854049296,
+          "std_dev": 0.027424097786237448,
+          "min_time": 0.9930237500011572,
+          "max_time": 1.0647398329965654
+        },
+        "backward": {
+          "median_time": 1.0158420000007027,
+          "mean_time": 0.9613766876002046,
+          "std_dev": 0.0,
+          "min_time": 0.8940811669963296,
+          "max_time": 1.0254310839954996
+        },
+        "forward_and_backward": {
+          "median_time": 1.9670324584985792,
+          "mean_time": 1.9760545416495006,
+          "std_dev": 0.022992751100223134,
+          "min_time": 1.9519387910040678,
+          "max_time": 2.0193804160007858
+        },
+        "throughput_forward_proj_per_sec": 4100.836337752207,
+        "throughput_total_proj_per_sec": 2082.3245606869373
+      }
+    }
+  }
+}

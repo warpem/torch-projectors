@@ -303,13 +303,13 @@ Optional weight accumulation supports applications requiring per-Fourier compone
 During backpropagation, projection gradients are computed using 3D→2D forward projection of reconstruction gradients, exploiting the adjoint relationship. The 3×3 rotation matrix gradients follow equation~\ref{eq:rotation_gradient_chain_3d} with spatial derivatives computed using equations~\ref{eq:trilinear_grad_d}--\ref{eq:trilinear_grad_c} for trilinear interpolation or equation~\ref{eq:tricubic_gradients} for tricubic interpolation. Shift gradients are computed using equation~\ref{eq:shift_gradient_3d}, applied to the 2D projection coordinates since shifts affect only the 2D projection plane.
 
 \section{Results}
-Performance benchmarks were conducted on three representative platforms: NVIDIA H100 CUDA, Apple M4 CPU, and Apple M4 MPS. Throughput measurements in thousands of projections per second were obtained across systematic parameter sweeps including box sizes (32, 128, 256 pixels), batch dimensions (1, 8), pose counts (8, 128, 2048), and interpolation methods (linear, cubic). Benchmarking each test case included 3 warm-up runs, followed by 15 timed runs, for which the median throughput is reported.
+Performance benchmarks were conducted on three representative platforms: NVIDIA H100 CUDA, Apple M4 CPU, and Apple M4 MPS. Throughput was measured in thousands of projections per second across systematic parameter sweeps including box sizes (32, 128, 256 pixels), batch dimensions (1, 8), pose counts (8, 128, 2048), and interpolation methods (linear, cubic). Each test case used three warm-up runs followed by 15 timed runs, with median throughput reported.
 
 \subsection{Performance Benchmarks}
 
-Because computation is parallelized per-projection (1 thread per projection on CPU, 1 thread block per projection on MPS and CUDA), projection throughput exhibits strong scaling with batch size and pose count across all platforms (Tables~\ref{tab:project-2d-performance}--\ref{tab:backproject-2d-to-3d-performance}). Overall, there is a significant performance gap between the platforms, with CUDA implementations achieving the highest throughput, followed by MPS and CPU. The difference between CPU and CUDA is ca. 2 orders of magnitude, owing to the much higher computational throughput and memory bandwidth of the H100 chip.
+Because computation is parallelized per-projection (1 thread per projection on CPU, 1 thread block per projection on MPS and CUDA), projection throughput exhibits strong scaling with batch size and pose count across all platforms (Tables~\ref{tab:project-2d-performance}--\ref{tab:backproject-2d-to-3d-performance}). The platforms show significant performance differences, with CUDA implementations achieving the highest throughput, followed by MPS and CPU. The difference between CPU and CUDA is over 2 orders of magnitude, owing to the much higher computational throughput and memory bandwidth of the H100 chip.
 
-Cubic interpolation requires 4x more samples than linear interpolation in 2D, and 8x more in 3D. In practice, the penalty isn't quite as large, possibly because each group of samples in the fastest dimension is co-located in memory, and the difference between reading 2 and 4 samples is smaller. Overall, scattered memory access patterns are the biggest performance bottleneck in these algorithms. This is especially pronounced on GPUs, which are optimized for large, coalesced reads and writes.
+Cubic interpolation requires $4\times$ more samples than linear interpolation in 2D, and $8\times$ more in 3D. In practice, the penalty is smaller than expected because sample groups in the fastest dimension are co-located in memory, reducing the cost difference between reading 2 and 4 samples. Interestingly, despite a very scattered memory access pattern, the CUDA backend exceeds the H100 chip's theoretical bandwidth: $3.4\,\mathrm{TB/s}$ corresponds to $3{.}4\times 10^6$ projections/second with 4 fp32 reads per pixel, yet $3{.}7\times 10^6$ are achieved in the most favorable case here. This suggests the reference data fit entirely into the chip's cache.
 
 The backward pass in forward projection and the forward pass in backward projection are significantly slower than their counterparts because they involve scatter operations, requiring costly atomic writes to global memory.
 
@@ -323,11 +323,13 @@ The backward pass in forward projection and the forward pass in backward project
 
 \subsection{Performance Comparison with torch-fourier-slice}
 
-Direct comparison with the existing \texttt{torch-fourier-slice} library demonstrates substantial performance improvements (Tables~\ref{tab:project-3d-to-2d-comparison}, \ref{tab:backproject-2d-to-3d-comparison}). \texttt{torch-projectors} consistently outperforms \texttt{torch-fourier-slice} by 1-2 orders of magnitude across all tested configurations. The new operators also have a significantly lower memory footprint because it calculates everything in a single step and doesn't keep intermediate tensors.
+Direct comparison with the existing \texttt{torch-fourier-slice} library demonstrates substantial performance improvements (Tables~\ref{tab:project-3d-to-2d-comparison}, \ref{tab:backproject-2d-to-3d-comparison}). \texttt{torch-projectors} consistently outperforms \texttt{torch-fourier-slice} by 1-2 orders of magnitude across all tested configurations. The new operators also have a significantly lower memory footprint because they calculate everything in a single step and avoid storing intermediate tensors.
 
-For \texttt{torch-fourier-slice}, most testing scenarios for forward projection could only be tested in the forward pass, as memory consumption in the backward pass exceeded the test system's memory. One particularly memory-intensive backward projection scenario could not be tested in either pass.
+For \texttt{torch-fourier-slice}, most testing scenarios for forward projection could only be tested in the forward pass, as memory consumption in the backward pass exceeded the test system's 48\,GB of memory. One particularly memory-intensive backward projection scenario could not be tested in either pass.
 
-The CUDA backend is especially sensitive to replacing a long chain of kernel invocations with a single custom kernel, as it reduces GPU driver overhead and dramatically improves memory locality in an IO-starved algorithm. The performance gap is less pronounced on CPU and MPS, where the relative overhead of multiple kernel calls is smaller, and the ratio between ALUs and memory bandwidth is lower.
+The CUDA backend benefits most from replacing multiple kernel invocations with a single custom kernel, as this reduces GPU driver overhead and dramatically improves memory locality in these memory-bandwidth-limited algorithms. The performance gap is less pronounced on CPU and MPS, where the relative overhead of multiple kernel calls is smaller, and the ratio between ALUs and memory bandwidth is lower.
+
+Only 3D->2D forward and 2D->3D backward projections were compared because \texttt{torch-fourier-slice} does not implement 2D->2D operations.
 
 \input{results/tables/project-3d-to-2d-comparison}
 
@@ -335,16 +337,17 @@ The CUDA backend is especially sensitive to replacing a long chain of kernel inv
 
 \subsection{Interpolation Efficiency}
 
-Cubic interpolation without oversampling and linear interpolation with 2x oversampling result in roughly the same real-space signal attenuation up to ca. half the box size. Most algorithms for EM data will likely restrict the real-space signal extent to this limit to leave room for signal delocalization after CTF convolution. 
+Because interpolation happens in Fourier space, the most pronounced artifacts can be found in real space. This is the opposite of interpolating in real space, where Fourier-space artifacts are more pronounced.
 
-3 scenarios were benchmarked to provide guidance on when to use which interpolation scheme. 1: 4096 128\,px 2D references projected without padding using linear or cubic interpolation, 1 pose per reference. 2: With offline 2x padding, i.e. preparing 128\,px projections from 256\,px references. 3: Same as 2, but the padding process (resulting in additional IFFT, padding, and FFT operations) was included in the timed code. The last scenario is meant to be representative of use cases where references are an intermediate representation in a longer processing chain and can't be pre-padded offline. In all scenarios, forward and backward passes through the operator chain were timed together.
+Cubic interpolation without oversampling and linear interpolation with 2x oversampling result in roughly the same real-space signal attenuation up to ca. half the box size. In practice, most algorithms for EM data will restrict the real-space signal extent to this range to leave room for signal delocalization after CTF convolution. 
 
-While sampling on an oversampled grid incurs a noticeable performance penalty (ca. 10\% on M4 CPU, 25\% on M4 MPS, 35\% on H100 CUDA), likely due to increased cache misses when accessing the larger amounts of reference data. This should be less of a problem if the number of references is reduced. However, using cubic interpolation without oversampling is still significantly slower, with the notable exception of the MPS platform. The equation changes if the oversampling needs to be achieved by padding the references on-the-fly, which adds expensive Fourier transforms to the process. Cubic interpolation without oversampling is ca. 4x faster than linear interpolation with on-the-fly 2x padding in this scenario across all platforms.
+Three scenarios were benchmarked to provide guidance on interpolation scheme selection. The first scenario used 4096 128-pixel 2D references projected without padding using linear or cubic interpolation, with one pose per reference. The second scenario employed offline 2x padding, preparing 128-pixel projections from 256-pixel references. The third scenario matched the second but included the padding process (additional IFFT, padding, and FFT operations) in the timed code. This last scenario represents use cases where references are intermediate representations in longer processing chains and cannot be pre-padded offline. All scenarios timed forward and backward passes through the operator chain together.
+
+Sampling on an oversampled grid incurs a noticeable performance penalty (ca. 10\% on M4 CPU, 25\% on M4 MPS, 35\% on H100 CUDA) due to increased cache misses when accessing larger amounts of reference data. This penalty decreases when fewer references are used. Using cubic interpolation without oversampling remains significantly slower than linear interpolation with offline oversampling, with the notable exception of the MPS platform.
+
+The trade-off changes when oversampling must be achieved by padding references on-the-fly, which adds expensive Fourier transforms to the process. In this scenario, cubic interpolation without oversampling is ca. 4x faster than linear interpolation with on-the-fly 2x padding across all platforms.
 
 \input{results/tables/oversampling-table}
-
-\subsection{Accuracy Validation}
-% TODO: Numerical accuracy tests
 
 \section{Discussion}
 % TODO: Discussion of results and implications

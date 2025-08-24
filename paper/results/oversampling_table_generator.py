@@ -76,7 +76,7 @@ def generate_latex_table(platform_data, caption=None):
     lines.append("\\begin{table}[htbp]")
     lines.append("\\centering")
     lines.append(f"\\caption{{{caption}}}")
-    lines.append("\\begin{tabular}{ll|ccc}")
+    lines.append("\\begin{tabular}{ll|rrr}")
     lines.append("\\toprule")
     lines.append("Platform & Interpolation & Oversampling = 1.0 & Oversampling = 2.0 & Pad 2x, Oversampling = 2.0 \\\\")
     lines.append("\\midrule")
