@@ -362,7 +362,11 @@ The trade-off changes when oversampling requires on-the-fly reference padding, a
 The 1–2 order of magnitude performance improvements enable previously impractical machine learning applications in cryo-EM, where projection operations must be performed thousands of times during gradient-based optimization. Benchmarks reveal cubic interpolation without oversampling becomes advantageous when reference volumes cannot be pre-padded offline, offering approximately $4\times$ speedup over on-the-fly oversampling—common in memory-constrained neural networks with dynamically generated intermediate representations. Future extensions could include 3D$\rightarrow$3D projection operators for subtomogram averaging and general volume rotation with accurate interpolation, plus real-space projection operators to broaden applicability beyond traditional Fourier-space cryo-EM workflows.
 
 \section{Availability}
-The \texttt{torch-projectors} library is available as an open-source Python package at \url{https://github.com/warpem/torch-projectors} and can be installed via pip from \url{https://warpem.github.io/torch-projectors/cpu/simple/}. For CUDA-enabled packages, please refer to the repository's README.
+The \texttt{torch-projectors} library is available as an open-source Python package at \url{https://github.com/warpem/torch-projectors} under the MIT license.
+
+\texttt{pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cpu/simple/}
+
+For CUDA-enabled packages, please refer to the repository's README.
 
 \section{Acknowledgements}
 Most of the library's code, the Methods section, and parts of other sections of this manuscript were generated using Claude Code \cite{anthropic2024claudecode} with the Claude 4.0 model family. I would like to thank Alister Burt for pointing me in the right direction when benchmarking \texttt{torch-fourier-slice}.
