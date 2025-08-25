@@ -59,7 +59,7 @@
 \maketitle
 
 \begin{abstract}
-Fourier-space projection operations are central to electron microscopy single-particle analysis and electron tomography algorithms. Machine learning methods require differentiable implementations for end-to-end model training, but PyTorch's built-in operations are too slow for practical use. This paper introduces \texttt{torch-projectors}: a high-performance library for differentiable Fourier-space projections in PyTorch. The library provides 2D and 3D forward and backward projection operators with linear and cubic interpolation, supporting gradient calculation for all inputs. Optimized for CPU, Apple Silicon (MPS), and CUDA devices, \texttt{torch-projectors} outperforms \texttt{torch-fourier-slice} by 1–2 orders of magnitude.
+\noindent Fourier-space projection operations are central to electron microscopy single-particle analysis and electron tomography algorithms. Machine learning methods require differentiable implementations for end-to-end model training, but PyTorch's built-in operations are too slow for practical use. This paper introduces \texttt{torch-projectors}: a high-performance library for differentiable Fourier-space projections in PyTorch. The library provides 2D and 3D forward and backward projection operators with linear and cubic interpolation, supporting gradient calculation for all inputs. Optimized for CPU, Apple Silicon (MPS), and CUDA devices, \texttt{torch-projectors} outperforms \texttt{torch-fourier-slice} by 1–2 orders of magnitude.
 \end{abstract}
 
 \section{Introduction}
