@@ -346,7 +346,7 @@ Cubic interpolation without oversampling and linear interpolation with $2\times$
 \begin{figure}[tb]
 \centering
 \includegraphics[width=\textwidth]{results/data/interpolation_accuracy/combined_correlation.pdf}
-\caption{Interpolation accuracy analysis comparing different methods and oversampling factors against a 30$\times$ oversampled reference. Left: Fourier ring correlation shows all methods producing negligible Fourier-space artifacts. Right: Real-space intensity attenuation demonstrates that both cubic interpolation at 1$\times$ and linear interpolation at 2$\times$ oversampling maintain signal strength up to approximately half the box size.}
+\caption{Interpolation accuracy analysis comparing different methods and oversampling factors. Left: Fourier ring correlation shows all methods producing negligible Fourier-space artifacts. Right: Real-space intensity attenuation demonstrates that both cubic interpolation at 1$\times$ and linear interpolation at 2$\times$ oversampling maintain signal strength up to approximately half the box size.}
 \label{fig:interpolation_accuracy}
 \end{figure}
 
@@ -364,7 +364,10 @@ The 1–2 order of magnitude performance improvements enable previously impracti
 \section{Availability}
 The \texttt{torch-projectors} library is available as an open-source Python package at \url{https://github.com/warpem/torch-projectors} and can be installed via pip from \url{https://warpem.github.io/torch-projectors/cpu/simple/}. For CUDA-enabled packages, please refer to the repository's README.
 
-\bibliographystyle{plain}
+\section{Acknowledgements}
+Most of the library's code, the Methods section, and parts of other sections of this manuscript were written by Claude Code \cite{anthropic2024claudecode} using the Sonnet 4.0 model under my direction. I would like to thank Alister Burt for pointing me in the right direction when benchmarking \texttt{torch-fourier-slice}.
+
+\bibliographystyle{unsrt}
 \bibliography{references}
 
 \end{document}
