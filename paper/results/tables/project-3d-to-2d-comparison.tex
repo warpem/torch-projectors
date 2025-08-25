@@ -1,0 +1,48 @@
+\begin{table}[htbp]
+\centering
+\caption{3D$\rightarrow$2D forward projection in torch-projectors and torch-fourier-slice, throughput in $10^3$ projections/second}
+\label{tab:project-3d-to-2d-comparison}
+\begin{tabular}{r@{\hspace{3mm}} c@{\hspace{2mm}} r@{\hspace{3mm}} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm}}
+\toprule
+\multirow{3}{*}[-1.2em]{Box} & \multirow{3}{*}[-1.2em]{Batch} & \multirow{3}{*}[-1.2em]{Poses} & \multicolumn{6}{c}{H100: CUDA} & \multicolumn{6}{c}{M4: CPU} \\
+& & & \multicolumn{3}{c}{Forward} & \multicolumn{3}{c}{Backward} & \multicolumn{3}{c}{Forward} & \multicolumn{3}{c}{Backward} \\
+& & & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ \\
+\midrule
+\multirow{6}{*}[-1.2em]{32} & \multirow{3}{*}[-0.6em]{1} & 8 & 5.4 & 28 & \textbf{$\times$5.3} & 6.2 & 42 & \textbf{$\times$6.7} & 9.1 & 153 & \textbf{$\times$17} & 0.3 & 55 & \textbf{$\times$202} \\
+\cmidrule{3-15}
+ &  & 128 & 84 & 449 & \textbf{$\times$5.3} & 18 & 621 & \textbf{$\times$35} & 38 & 643 & \textbf{$\times$17} & 0.2 & 87 & \textbf{$\times$364} \\
+\cmidrule{3-15}
+ &  & 2048 & 922 & 6604 & \textbf{$\times$7.2} & --- & 4174 & --- & 118 & 981 & \textbf{$\times$8.3} & --- & 109 & --- \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 6.0 & 1098 & \textbf{$\times$183} & 7.0 & 323 & \textbf{$\times$46} & 11 & 450 & \textbf{$\times$40} & 0.3 & 102 & \textbf{$\times$371} \\
+\cmidrule{3-15}
+ &  & 128 & 95 & 18894 & \textbf{$\times$200} & 18 & 4509 & \textbf{$\times$247} & 40 & 841 & \textbf{$\times$21} & 0.2 & 206 & \textbf{$\times$874} \\
+\cmidrule{3-15}
+ &  & 2048 & 941 & 85962 & \textbf{$\times$91} & --- & 7542 & --- & 115 & 935 & \textbf{$\times$8.2} & --- & 234 & --- \\
+\midrule
+\multirow{6}{*}[-1.2em]{128} & \multirow{3}{*}[-0.6em]{1} & 8 & 6.0 & 20 & \textbf{$\times$3.4} & --- & 36 & --- & 2.8 & 41 & \textbf{$\times$15} & --- & 7.3 & --- \\
+\cmidrule{3-15}
+ &  & 128 & 59 & 321 & \textbf{$\times$5.5} & --- & 410 & --- & 7.5 & 69 & \textbf{$\times$9.3} & --- & 10 & --- \\
+\cmidrule{3-15}
+ &  & 2048 & 99 & 2781 & \textbf{$\times$28} & --- & 728 & --- & 8.3 & 68 & \textbf{$\times$8.2} & --- & 10 & --- \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 6.5 & 759 & \textbf{$\times$118} & --- & 259 & --- & 2.7 & 44 & \textbf{$\times$17} & --- & 7.8 & --- \\
+\cmidrule{3-15}
+ &  & 128 & 60 & 5129 & \textbf{$\times$85} & --- & 663 & --- & 7.1 & 55 & \textbf{$\times$7.8} & --- & 11 & --- \\
+\cmidrule{3-15}
+ &  & 2048 & 99 & 7721 & \textbf{$\times$78} & --- & 761 & --- & 5.9 & 56 & \textbf{$\times$9.4} & --- & 11 & --- \\
+\midrule
+\multirow{6}{*}[-1.2em]{256} & \multirow{3}{*}[-0.6em]{1} & 8 & 5.5 & 13 & \textbf{$\times$2.3} & --- & 18 & --- & 1.0 & 9.5 & \textbf{$\times$9.1} & --- & 1.2 & --- \\
+\cmidrule{3-15}
+ &  & 128 & 22 & 206 & \textbf{$\times$9.3} & --- & 157 & --- & 1.8 & 10 & \textbf{$\times$5.9} & --- & 2.2 & --- \\
+\cmidrule{3-15}
+ &  & 2048 & 26 & 917 & \textbf{$\times$36} & --- & 191 & --- & 1.7 & 11 & \textbf{$\times$6.6} & --- & 2.3 & --- \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 5.7 & 314 & \textbf{$\times$55} & --- & 94 & --- & 1.0 & 7.0 & \textbf{$\times$7.0} & --- & 1.4 & --- \\
+\cmidrule{3-15}
+ &  & 128 & 22 & 1246 & \textbf{$\times$56} & --- & 166 & --- & 1.7 & 7.9 & \textbf{$\times$4.6} & --- & 2.0 & --- \\
+\cmidrule{3-15}
+ &  & 2048 & 26 & 1835 & \textbf{$\times$71} & --- & 196 & --- & 1.5 & 8.0 & \textbf{$\times$5.3} & --- & 2.0 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

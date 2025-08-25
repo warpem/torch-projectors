@@ -1,0 +1,48 @@
+\begin{table}[htbp]
+\centering
+\caption{2D$\rightarrow$3D backward projection in torch-projectors and torch-fourier-slice, throughput in $10^3$ projections/second}
+\label{tab:backproject-2d-to-3d-comparison}
+\begin{tabular}{r@{\hspace{3mm}} c@{\hspace{2mm}} r@{\hspace{3mm}} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} | >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm} >{\raggedleft\arraybackslash}p{0.8cm}}
+\toprule
+\multirow{3}{*}[-1.2em]{Box} & \multirow{3}{*}[-1.2em]{Batch} & \multirow{3}{*}[-1.2em]{Poses} & \multicolumn{6}{c}{H100: CUDA} & \multicolumn{6}{c}{M4: CPU} \\
+& & & \multicolumn{3}{c}{Forward} & \multicolumn{3}{c}{Backward} & \multicolumn{3}{c}{Forward} & \multicolumn{3}{c}{Backward} \\
+& & & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ & t-f-s & t-p & $\uparrow$ \\
+\midrule
+\multirow{6}{*}[-1.2em]{32} & \multirow{3}{*}[-0.6em]{1} & 8 & 3.3 & 97 & \textbf{$\times$29} & 10 & 33 & \textbf{$\times$3.2} & 6.5 & 45 & \textbf{$\times$6.8} & 21 & 53 & \textbf{$\times$2.5} \\
+\cmidrule{3-15}
+ &  & 128 & 47 & 1454 & \textbf{$\times$31} & 151 & 515 & \textbf{$\times$3.4} & 14 & 54 & \textbf{$\times$3.8} & 50 & 292 & \textbf{$\times$5.9} \\
+\cmidrule{3-15}
+ &  & 2048 & 159 & 4848 & \textbf{$\times$30} & 1222 & 8291 & \textbf{$\times$6.8} & 26 & 58 & \textbf{$\times$2.3} & 123 & 542 & \textbf{$\times$4.4} \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 3.6 & 754 & \textbf{$\times$211} & 14 & 262 & \textbf{$\times$19} & 6.5 & 96 & \textbf{$\times$15} & 21 & 89 & \textbf{$\times$4.2} \\
+\cmidrule{3-15}
+ &  & 128 & 51 & 5028 & \textbf{$\times$98} & 202 & 4251 & \textbf{$\times$21} & 13 & 126 & \textbf{$\times$9.6} & 41 & 362 & \textbf{$\times$8.8} \\
+\cmidrule{3-15}
+ &  & 2048 & 162 & 5614 & \textbf{$\times$35} & 1298 & 33718 & \textbf{$\times$26} & 25 & 129 & \textbf{$\times$5.2} & 102 & 539 & \textbf{$\times$5.3} \\
+\midrule
+\multirow{6}{*}[-1.2em]{128} & \multirow{3}{*}[-0.6em]{1} & 8 & 3.1 & 44 & \textbf{$\times$14} & 9.2 & 32 & \textbf{$\times$3.4} & 0.7 & 4.2 & \textbf{$\times$5.6} & 1.9 & 3.8 & \textbf{$\times$2.0} \\
+\cmidrule{3-15}
+ &  & 128 & 14 & 419 & \textbf{$\times$29} & 76 & 483 & \textbf{$\times$6.4} & 1.6 & 5.4 & \textbf{$\times$3.4} & 7.0 & 23 & \textbf{$\times$3.4} \\
+\cmidrule{3-15}
+ &  & 2048 & 18 & 557 & \textbf{$\times$31} & 108 & 2795 & \textbf{$\times$26} & 1.7 & 5.5 & \textbf{$\times$3.2} & 7.0 & 35 & \textbf{$\times$5.0} \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 3.4 & 261 & \textbf{$\times$77} & 12 & 146 & \textbf{$\times$12} & 0.7 & 4.8 & \textbf{$\times$6.7} & 1.6 & 3.7 & \textbf{$\times$2.3} \\
+\cmidrule{3-15}
+ &  & 128 & 15 & 529 & \textbf{$\times$36} & 80 & 1546 & \textbf{$\times$19} & 1.5 & 7.2 & \textbf{$\times$4.8} & 5.6 & 18 & \textbf{$\times$3.3} \\
+\cmidrule{3-15}
+ &  & 2048 & 18 & 588 & \textbf{$\times$33} & 102 & 3787 & \textbf{$\times$37} & 1.4 & 7.3 & \textbf{$\times$5.3} & 5.2 & 25 & \textbf{$\times$4.8} \\
+\midrule
+\multirow{6}{*}[-1.2em]{256} & \multirow{3}{*}[-0.6em]{1} & 8 & 2.1 & 15 & \textbf{$\times$7.1} & 6.5 & 13 & \textbf{$\times$2.0} & 0.2 & 0.8 & \textbf{$\times$3.7} & 0.4 & 0.5 & \textbf{$\times$1.4} \\
+\cmidrule{3-15}
+ &  & 128 & 4.1 & 124 & \textbf{$\times$30} & 24 & 198 & \textbf{$\times$8.3} & 0.3 & 1.4 & \textbf{$\times$4.5} & 1.3 & 3.2 & \textbf{$\times$2.4} \\
+\cmidrule{3-15}
+ &  & 2048 & 4.6 & 135 & \textbf{$\times$30} & 27 & 732 & \textbf{$\times$27} & 0.3 & 1.5 & \textbf{$\times$4.8} & 1.4 & 5.0 & \textbf{$\times$3.6} \\
+\cmidrule{2-15}
+ & \multirow{3}{*}[-0.6em]{8} & 8 & 2.3 & 70 & \textbf{$\times$30} & 7.3 & 27 & \textbf{$\times$3.7} & 0.2 & 0.9 & \textbf{$\times$4.3} & 0.3 & 0.5 & \textbf{$\times$1.5} \\
+\cmidrule{3-15}
+ &  & 128 & 4.1 & 102 & \textbf{$\times$25} & 23 & 285 & \textbf{$\times$12} & 0.3 & 1.3 & \textbf{$\times$4.6} & 1.2 & 2.8 & \textbf{$\times$2.4} \\
+\cmidrule{3-15}
+ &  & 2048 & 4.6 & 134 & \textbf{$\times$29} & --- & 791 & --- & 0.2 & 1.4 & \textbf{$\times$8.1} & --- & 4.0 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

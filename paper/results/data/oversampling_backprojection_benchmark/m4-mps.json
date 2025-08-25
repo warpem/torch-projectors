@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "platform_name": "m4-mps",
+    "timestamp": "2025-08-22T13:40:40.914649",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.1",
+    "device_info": {
+      "type": "mps",
+      "name": "Apple Metal Performance Shaders",
+      "memory_gb": 51.539607552
+    },
+    "system_info": {
+      "platform": "macOS-26.0-arm64-arm-64bit-Mach-O",
+      "cpu": "arm",
+      "memory_gb": 51.539607552,
+      "python_version": "3.13.5",
+      "architecture": "arm64"
+    },
+    "title": "M4: MPS"
+  },
+  "benchmarks": {
+    "scenario_1_linear": {
+      "parameters": {
+        "scenario": "scenario_1",
+        "scenario_description": "128x128 basic backprojection",
+        "interpolation": "linear",
+        "num_reconstructions": 4096,
+        "projections_per_reconstruction": 1
+      },
+      "results": {
+        "raw_times": [],
+        "forward": {
+          "median_time": 0.029423250001855195,
+          "mean_time": 0.029445404150828837,
+          "std_dev": 0.0007162673496662318,
+          "min_time": 0.028391750005539507,
+          "max_time": 0.03072062499995809
+        },
+        "backward": {
+          "median_time": 0.0,
+          "mean_time": 0.0,
+          "std_dev": 0.0,
+          "min_time": 0.0,
+          "max_time": 0.0
+        },
+        "forward_and_backward": {
+          "median_time": 0.0006673329990007915,
+          "mean_time": 0.0011321021003823262,
+          "std_dev": 0.0009963641770217313,
+          "min_time": 0.0005363750024116598,
+          "max_time": 0.004829500001505949
+        },
+        "throughput_forward_proj_per_sec": 139209.63862733517,
+        "throughput_total_proj_per_sec": 6137865.212919198
+      }
+    }
+  }
+}

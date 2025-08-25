@@ -1,0 +1,373 @@
+\documentclass[10pt,a4paper]{article}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{geometry}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Page geometry
+\geometry{left=1.5cm, right=1.5cm, top=2.5cm, bottom=2.5cm}
+
+% Paragraph formatting - no indentation, vertical spacing between paragraphs
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3\baselineskip}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\footnotesize\ttfamily,
+    commentstyle=\color{gray},
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    language=Python
+}
+
+\title{torch-projectors:\\A High-Performance Differentiable Projection Library for PyTorch}
+
+\author{
+    Dimitry Tegunov \\
+    \small{tegunovd@gene.com}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Fourier-space projection operations are central to electron microscopy single-particle analysis and electron tomography algorithms. Machine learning methods require differentiable implementations for end-to-end model training, but PyTorch's built-in operations are too slow for practical use. This paper introduces \texttt{torch-projectors}: a high-performance library for differentiable Fourier-space projections in PyTorch. The library provides 2D and 3D forward and backward projection operators with linear and cubic interpolation, supporting gradient calculation for all inputs. Optimized for CPU, Apple Silicon (MPS), and CUDA devices, \texttt{torch-projectors} outperforms \texttt{torch-fourier-slice} by 1–2 orders of magnitude.
+\end{abstract}
+
+\section{Introduction}
+Transmission electron microscopes capture 2D projections of the sample's Coulomb potential at very high optical resolution. Multiple projections from different angles enable computational reconstruction of the original 3D potential, allowing atomic model building in favorable cases. Cryogenic electron microscopy (cryo-EM) has emerged as the dominant method for solving protein structures and investigating their dynamics. Under the thin-object approximation, the Fourier slice theorem \cite{bracewell1956strip} establishes that each 2D projection corresponds to a central slice through the 3D Fourier transform of the potential. This relationship underpins algorithms in electron microscopy (EM) single-particle analysis (SPA) and electron tomography (ET).
+
+Modern machine learning methods can quickly optimize vast parameters using gradient back-propagation in differentiable models. PyTorch \cite{paszke2019pytorch} provides automatic differentiation for implementing such models. However, many EM algorithms require differentiable Fourier-space projection operations not natively supported by PyTorch. While implementing these operations using PyTorch's built-in functions is possible \cite{burt2025torchfourier}, performance is often insufficient and memory overhead too high for practical use. \texttt{torch-projectors} implements each projection operation in a single call without storing intermediate values, limiting memory footprint to input and output tensors.
+
+RELION \cite{scheres2012relion} popularized an accurate, computationally efficient interpolation method for Fourier-space projection operations in SPA. Forward projections sample from oversampled references (zero-padded in real space), while backward projections insert data into similarly oversampled reconstructions before cropping to regular size. This improves linear interpolation accuracy at the cost of increased memory usage. While effective for conventional SPA algorithms, machine learning methods may be memory-constrained or require costly Fourier transforms at every pass for oversampling. \texttt{torch-projectors} implements Catmull-Rom cubic interpolation \cite{catmull1974class} alongside linear interpolation, significantly improving accuracy without oversampling.
+
+The use of dual volumes for reconstructions is another elegant approach implemented in RELION: one volume with complex-valued data and another tracking real-valued weights for each Fourier component. This enables efficient normalization of sampling counts and Wiener-like deconvolution when weights incorporate the contrast transfer function (CTF) of back-projected images. \texttt{torch-projectors} implements this approach with optional gradient back-propagation through weight components.
+
+While 3D$\rightarrow$2D forward and 2D$\rightarrow$3D backward projections dominate SPA, procedures like 2D particle classification require same-dimensionality projections. \texttt{torch-projectors} implements all four operations.
+
+The terms 'forward' and 'backward' carry dual meanings throughout the text: When referring to the direction of the projection, a forward projection samples data from a reference tensor, while a backward projection scatters data into a reconstruction tensor. In PyTorch's automatic differentiation framework, the forward pass computes outputs from inputs, while the backward pass computes input gradients from output gradients.
+
+\section{Methods}
+
+\subsection{Data Conventions}
+
+\texttt{torch-projectors} operates exclusively in Fourier space using PyTorch's RFFT format, following FFTW conventions \cite{frigo2005design}. Unlike RELION's implementation, tensors remain RFFT-formatted throughout projection operations without intermediate format changes.
+
+Reconstruction and projection data must be shifted (fftshift) in real space to center at the 0th tensor element before fast Fourier transform (FFT). Results must be inverse-shifted (ifftshift) in real space to restore conventional centering.
+
+All spatial dimensions must be square (2D) or cubic (3D) with even sizes. 2D reconstructions use shape $[B, N, N/2+1]$ where $B$ is the batch dimension. 3D reconstructions use shape $[B, D, H, W/2+1]$. Projections follow the same RFFT convention with shape $[B, P, N, N/2+1]$, where $B$ is the reconstruction batch dimension, and $P$ is the pose dimension.
+
+Rotations are specified as matrices: $[B, P, 2, 2]$ for 2D and $[B, P, 3, 3]$ for 3D. Translation shifts use shape $[B, P, 2]$ and are applied via phase modulation. Positive shift values move image contents along the positive axis direction. In back-projection, shifts are applied in the opposite direction to ensure inverse relationship with forward projection. Batch broadcasting is supported: $B$ can be 1 or match the reconstruction batch size, and the $P$ dimension in either rotations or shifts (but not both) can be 1 for shared values across poses.
+
+\subsection{Interpolation}
+
+\texttt{torch-projectors} supports linear and cubic interpolation methods for sampling Fourier-space data at non-integer coordinates. Linear interpolation uses standard multilinear kernels: bilinear for 2D operations (4-point support) and trilinear for 3D operations (8-point support).
+
+Cubic interpolation employs separable Catmull-Rom kernels with parameter $a = -0.5$, providing $C^1$ continuity and exact interpolation through control points. The kernel function is defined as:
+
+\begin{equation}
+w(s) = \begin{cases}
+(a + 2)|s|^3 - (a + 3)|s|^2 + 1 & \text{if } |s| \leq 1 \\
+a|s|^3 - 5a|s|^2 + 8a|s| - 4a & \text{if } 1 < |s| \leq 2 \\
+0 & \text{if } |s| > 2
+\end{cases}
+\end{equation}
+
+For bicubic interpolation, a $4 \times 4$ neighborhood is sampled around each coordinate, while tricubic interpolation samples a $4 \times 4 \times 4$ neighborhood. The final interpolated value is computed as the separable product of 1D kernel evaluations along each dimension.
+
+All interpolation operations support oversampling, where coordinates are scaled by factors $> 1$ to sample from reconstructions previously zero-padded in real space. This improves interpolation accuracy at constant computational load but increases memory usage. The sampling grid remains sparse, matching the unpadded reconstruction box size, eliminating the need for additional real-space cropping.
+
+Optional hard low-pass filtering can be applied during projection operations, and the projection dimensions can be made smaller than the reference to downsample the resulting real-space image.
+
+Shifts are applied through phase modulation of complex Fourier components according to the Fourier shift theorem: $F\{f(\mathbf{x} - \mathbf{s})\} = F\{f(\mathbf{x})\} \cdot e^{-i2\pi \mathbf{k} \cdot \mathbf{s}}$, where $\mathbf{k}$ are Fourier coordinates and $\mathbf{s}$ is the shift vector.
+
+\subsection{Friedel Symmetry}
+The Fourier transform of a real-valued function exhibits Friedel symmetry, characterized by the relationship:
+
+\begin{equation}
+\label{eq:friedel_symmetry}
+F(-\mathbf{k}) = F^*(\mathbf{k})
+\end{equation}
+
+where $F^*(\mathbf{k})$ denotes the complex conjugate at frequency $\mathbf{k}$. This symmetry property allows PyTorch's RFFT format to store only the non-negative frequency components along the last dimension, yielding the characteristic $[\ldots, N/2+1]$ shape.
+
+However, the zero-frequency axis (where $k_c = 0$) requires careful handling during projection operations to maintain mathematical consistency and prevent double-counting:
+
+\textbf{Forward Pass}: Standard Friedel symmetry lookup is applied when sampling negative $k_c$ coordinates. For $k_c < 0$, the implementation accesses $F(-k_c, -k_r)$ and returns its complex conjugate $F^*(-k_c, -k_r)$ according to equation~\ref{eq:friedel_symmetry}.
+
+\textbf{Backward Pass}: To avoid over-representation in gradient accumulation, the implementation skips processing the negative half of the zero-frequency axis (specifically, components where $k_c = 0$ and $k_r < 0$), since these are present twice in the RFFT-formatted gradient.
+
+\textbf{Accumulation on Zero-Frequency Axis}: When projection operations result in values that must be accumulated at positions on the zero-frequency axis, the implementation maintains Friedel symmetry by inserting contributions at both the target location $(k_r, 0)$ and its symmetric counterpart $(-k_r, 0)$.
+
+\subsection{Implementation Architecture}
+
+\texttt{torch-projectors} follows PyTorch's hybrid C++/Python extension architecture using the \texttt{TORCH\_LIBRARY} registration system. The library implements a multi-backend design with separate optimized kernels for CPU, Apple Silicon (MPS), and CUDA devices.
+
+The Python interface wraps C++ operators with custom \texttt{torch.autograd.Function} classes that handle gradient computation. Library initialization loads the compiled C++ extension and registers Python autograd functions using \texttt{torch.library.register\_autograd}. This architecture provides seamless integration with PyTorch's automatic differentiation while maintaining high performance through backend-specific optimizations.
+
+\subsection{\texorpdfstring{2D $\rightarrow$ 2D Forward Projection}{2D to 2D Forward Projection}}
+
+The 2D forward projection operator generates rotated 2D projections from 2D Fourier-space reconstructions. Given a reconstruction tensor $[B, N, N/2+1]$ and rotation matrices $[B_{rot}, P, 2, 2]$, the operator produces projections $[B, P, N_{out}, N_{out}/2+1]$ by sampling the reconstruction at transformed Fourier coordinates.
+
+\subsubsection{Forward Pass}
+For each output Fourier coordinate $\mathbf{k}_{out}$ in the projection, the operator computes the corresponding coordinate in the reconstruction as:
+
+\begin{equation}
+\label{eq:coord_transform}
+\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{out}
+\end{equation}
+
+where $\mathbf{R}$ is the 2D rotation matrix. The projection value is obtained by interpolating the reconstruction at $\mathbf{k}_{rec}$, then applying phase modulation for translation:
+
+\begin{equation}
+\label{eq:forward_projection}
+P(\mathbf{k}_{out}) = F_{rec}(\mathbf{k}_{rec}) \cdot e^{-i 2\pi \mathbf{k}_{out} \cdot \mathbf{s}}
+\end{equation}
+
+where $\mathbf{s}$ is the shift vector.
+
+\subsubsection{Backward Pass}
+During backpropagation, the incoming projection gradients are first phase-modulated using the conjugate shift:
+
+\begin{equation}
+\label{eq:conjugate_phase}
+\nabla P' = \nabla P \cdot e^{i 2\pi \mathbf{k}_{out} \cdot \mathbf{s}}
+\end{equation}
+
+Reconstruction gradients are then accumulated via transposed interpolation operations at the transformed coordinates $\mathbf{k}_{rec}$.
+
+Analytical rotation matrix gradients require careful application of the chain rule: Since $\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{out}$, the gradient with respect to rotation matrix element $R_{ij}$ is:
+
+\begin{equation}
+\label{eq:rotation_gradient_chain}
+\frac{\partial P}{\partial R_{ij}} = \frac{\partial F_{rec}(\mathbf{k}_{rec})}{\partial \mathbf{k}_{rec}} \cdot \frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}
+\end{equation}
+
+For bilinear interpolation, spatial derivatives are computed from the $2\times2$ sample grid using separable linear kernel derivatives:
+
+\begin{align}
+\frac{\partial F}{\partial r} &= \sum_{i=0}^{1} \sum_{j=0}^{1} p_{ij} \cdot l'(r_f-i) \cdot l(c_f-j) \label{eq:bilinear_grad_r} \\
+\frac{\partial F}{\partial c} &= \sum_{i=0}^{1} \sum_{j=0}^{1} p_{ij} \cdot l(r_f-i) \cdot l'(c_f-j) \label{eq:bilinear_grad_c}
+\end{align}
+
+where $l(s) = 1-|s|$ for $|s| \leq 1$ and $l'(s) = \text{sign}(s)$ for $|s| < 1$.
+
+For bicubic interpolation, derivatives follow from separable Catmull-Rom kernel derivatives over the $4\times4$ neighborhood:
+
+\begin{align}
+\label{eq:bicubic_gradients}
+\frac{\partial F}{\partial r} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} p_{ij} \cdot w'(r_f-i) \cdot w(c_f-j) \\
+\frac{\partial F}{\partial c} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} p_{ij} \cdot w(r_f-i) \cdot w'(c_f-j)
+\end{align}
+
+where $w'(s)$ is the cubic kernel derivative. The coordinate transformation derivatives $\frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}$ are computed from the matrix inverse relationships.
+
+Shift gradients follow from the phase modulation derivative:
+
+\begin{equation}
+\label{eq:shift_gradient}
+\frac{\partial P}{\partial \mathbf{s}} = -i 2\pi \mathbf{k}_{out} P(\mathbf{k}_{out})
+\end{equation}
+
+\subsection{\texorpdfstring{2D $\rightarrow$ 2D Backward Projection}{2D to 2D Backward Projection}}
+
+The 2D backward projection operator is the mathematical adjoint of the forward projection operation. It accumulates 2D Fourier-space projections $[B, P, N, N/2+1]$ into 2D reconstructions $[B, N_{rec}, N_{rec}/2+1]$, where the reconstruction size accounts for oversampling: $N_{rec} = N \cdot \text{oversampling}$.
+
+\subsubsection{Forward Pass}
+For each projection coordinate $\mathbf{k}_{proj} = (k_r, k_c)$, the corresponding coordinate in the 2D reconstruction is computed using equation~\ref{eq:coord_transform} with the same $2\times2$ rotation matrix $\mathbf{R}$. The projection value is then accumulated into the reconstruction at the transformed coordinate. When shifts are present, the projection data is first conjugate phase-modulated:
+
+\begin{equation}
+\label{eq:backproj_conjugate_phase}
+P'(\mathbf{k}_{proj}) = P(\mathbf{k}_{proj}) \cdot e^{i 2\pi \mathbf{k}_{proj} \cdot \mathbf{s}}
+\end{equation}
+
+where the conjugate phase ensures the mathematical adjoint relationship with forward projection.
+
+The accumulation process uses 2D interpolation kernels in transpose mode. For bilinear interpolation, contributions are distributed to the $2\times2$ neighborhood around each fractional coordinate. For bicubic interpolation, contributions are spread across the $4\times4$ neighborhood according to the Catmull-Rom weights defined in equations~\ref{eq:bilinear_grad_r}--\ref{eq:bilinear_grad_c} and equations~\ref{eq:bicubic_gradients}.
+
+Optional weight accumulation supports applications requiring per-Fourier component weights, such as CTF correction in cryo-EM. Weights are accumulated using the absolute values of the 2D interpolation kernel weights, maintaining a reference for downstream normalization (e.g. for Wiener-like filters).
+
+\subsubsection{Backward Pass}
+During backpropagation, projection gradients are computed using forward projection of reconstruction gradients, exploiting the adjoint relationship. Rotation matrix gradients follow equation~\ref{eq:rotation_gradient_chain} with spatial derivatives computed using equations~\ref{eq:bilinear_grad_r}--\ref{eq:bilinear_grad_c} for bilinear interpolation or equations~\ref{eq:bicubic_gradients} for bicubic interpolation. Shift gradients are computed using equation~\ref{eq:shift_gradient}, applied to the accumulated reconstruction data.
+
+\subsection{\texorpdfstring{3D $\rightarrow$ 2D Forward Projection}{3D to 2D Forward Projection}}
+
+The 3D$\rightarrow$2D forward projection operator implements the Central Slice Theorem, generating 2D projections from 3D Fourier-space reconstructions. Given a 3D reconstruction tensor $[B, D, H, W/2+1]$, $3\times3$ rotation matrices $[B, P, 3, 3]$, and optional 2D shifts $[B, P, 2]$, the operator produces projections $[B, P, H_{out}, W_{out}/2+1]$ by sampling central slices through the 3D volume.
+
+\subsubsection{Forward Pass}
+For each output projection coordinate $\mathbf{k}_{proj} = (k_r, k_c)$, the operator extends it to 3D by setting the third coordinate to zero: $\mathbf{k}_{3D} = (k_c, k_r, 0)$. This implements the central slice through the origin required by the Central Slice Theorem. 
+
+The corresponding coordinate in the 3D reconstruction is computed using the $3\times3$ rotation matrix:
+
+\begin{equation}
+\label{eq:coord_transform_3d}
+\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{3D}
+\end{equation}
+
+where $\mathbf{R}$ is the $3\times3$ rotation matrix. The projection value is obtained by trilinear or tricubic interpolation in the 3D volume at $\mathbf{k}_{rec}$, then applying phase modulation for translation:
+
+\begin{equation}
+\label{eq:forward_projection_3d}
+P(\mathbf{k}_{proj}) = F_{rec}(\mathbf{k}_{rec}) \cdot e^{-i 2\pi \mathbf{k}_{proj} \cdot \mathbf{s}}
+\end{equation}
+
+where $\mathbf{s}$ is the 2D shift vector applied to the projection coordinates.
+
+\subsubsection{Backward Pass}
+During backpropagation, the incoming projection gradients are first phase-modulated using the conjugate shift applied to the 2D projection coordinates (using equation~\ref{eq:conjugate_phase}).
+
+Reconstruction gradients are then accumulated via 3D transposed interpolation operations at the transformed coordinates $\mathbf{k}_{rec}$.
+
+Analytical $3\times3$ rotation matrix gradients require extension of the chain rule to three dimensions: Since $\mathbf{k}_{rec} = \mathbf{R}^{-1} \mathbf{k}_{3D}$, the gradient with respect to rotation matrix element $R_{ij}$ is:
+
+\begin{equation}
+\label{eq:rotation_gradient_chain_3d}
+\frac{\partial P}{\partial R_{ij}} = \frac{\partial F_{rec}(\mathbf{k}_{rec})}{{\partial \mathbf{k}_{rec}}} \cdot \frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}
+\end{equation}
+
+For trilinear interpolation, spatial derivatives are computed from the $2\times2\times2$ sample grid using separable linear kernel derivatives:
+
+\begin{align}
+\frac{\partial F}{\partial d} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l'(d_f-i) \cdot l(r_f-j) \cdot l(c_f-k) \label{eq:trilinear_grad_d} \\
+\frac{\partial F}{\partial r} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l(d_f-i) \cdot l'(r_f-j) \cdot l(c_f-k) \label{eq:trilinear_grad_r} \\
+\frac{\partial F}{\partial c} &= \sum_{i=0}^{1} \sum_{j=0}^{1} \sum_{k=0}^{1} p_{ijk} \cdot l(d_f-i) \cdot l(r_f-j) \cdot l'(c_f-k) \label{eq:trilinear_grad_c}
+\end{align}
+
+where $l(s) = 1-|s|$ for $|s| \leq 1$ and $l'(s) = \text{sign}(s)$ for $|s| < 1$.
+
+For tricubic interpolation, derivatives follow from separable Catmull-Rom kernel derivatives over the $4\times4\times4$ neighborhood:
+
+\begin{align}
+\label{eq:tricubic_gradients}
+\frac{\partial F}{\partial d} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w'(d_f-i) \cdot w(r_f-j) \cdot w(c_f-k) \\
+\frac{\partial F}{\partial r} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w(d_f-i) \cdot w'(r_f-j) \cdot w(c_f-k) \\
+\frac{\partial F}{\partial c} &= \sum_{i=-1}^{2} \sum_{j=-1}^{2} \sum_{k=-1}^{2} p_{ijk} \cdot w(d_f-i) \cdot w(r_f-j) \cdot w'(c_f-k)
+\end{align}
+
+where $w'(s)$ is the cubic kernel derivative. The coordinate transformation derivatives $\frac{\partial \mathbf{k}_{rec}}{\partial R_{ij}}$ are computed from the matrix inverse relationships.
+
+Shift gradients follow from the phase modulation derivative applied to the 2D projection coordinates:
+
+\begin{equation}
+\label{eq:shift_gradient_3d}
+\frac{\partial P}{\partial \mathbf{s}} = -i 2\pi \mathbf{k}_{proj} P(\mathbf{k}_{proj})
+\end{equation}
+
+\subsection{\texorpdfstring{2D $\rightarrow$ 3D Backward Projection}{2D to 3D Backward Projection}}
+
+The 2D$\rightarrow$3D backward projection operator is the mathematical adjoint of the 3D$\rightarrow$2D forward projection operation. It accumulates 2D Fourier-space projections $[B, P, H, W/2+1]$ into 3D reconstructions $[B, D, H_{rec}, W_{rec}/2+1]$, where the reconstruction dimensions account for oversampling and form a cubic volume: $D = H_{rec} = W_{rec} = H \cdot \text{oversampling}$.
+
+\subsubsection{Forward Pass}
+For each projection coordinate $\mathbf{k}_{proj} = (k_r, k_c)$, the operator extends it to 3D by setting the third coordinate to zero, implementing the central slice through the origin required by the Central Slice Theorem:
+
+\begin{equation}
+\label{eq:coord_extension_3d}
+\mathbf{k}_{3D} = (k_c, k_r, 0)
+\end{equation}
+
+The 3D sampling coordinate in the reconstruction is computed using equation~\ref{eq:coord_transform_3d} with the same $3\times3$ rotation matrix $\mathbf{R}$. The projection value is then accumulated into the reconstruction at the transformed coordinate. When shifts are present, the projection data is first conjugate phase-modulated using equation~\ref{eq:backproj_conjugate_phase} to ensure the mathematical adjoint relationship.
+
+The accumulation process uses 3D interpolation kernels in transpose mode. For trilinear interpolation, contributions are distributed to the $2\times2\times2$ neighborhood around each fractional coordinate. For tricubic interpolation, contributions are spread across the $4\times4\times4$ neighborhood according to the Catmull-Rom weights defined in equations~\ref{eq:trilinear_grad_d}--\ref{eq:trilinear_grad_c} and equations~\ref{eq:tricubic_gradients}.
+
+Optional weight accumulation supports applications requiring per-Fourier component weights, such as CTF correction in cryo-EM. Weights are accumulated using the absolute values of the 3D interpolation kernel weights, with proper handling of 3D Friedel symmetry for real-valued reconstructions.
+
+\subsubsection{Backward Pass}
+During backpropagation, projection gradients are computed using 3D$\rightarrow$2D forward projection of reconstruction gradients, exploiting the adjoint relationship. The $3\times3$ rotation matrix gradients follow equation~\ref{eq:rotation_gradient_chain_3d} with spatial derivatives computed using equations~\ref{eq:trilinear_grad_d}--\ref{eq:trilinear_grad_c} for trilinear interpolation or equations~\ref{eq:tricubic_gradients} for tricubic interpolation. Shift gradients are computed using equation~\ref{eq:shift_gradient_3d}, applied to the 2D projection coordinates since shifts affect only the 2D projection plane.
+
+\section{Results}
+Performance benchmarks were conducted on three platforms: NVIDIA H100 CUDA, Apple M4 CPU, and Apple M4 Metal Performance Shaders (MPS). Throughput was measured in thousands of projections per second across systematic parameter sweeps: box sizes (32, 128, 256 pixels), batch dimensions (1, 8), pose counts (8, 128, 2048), and interpolation methods (linear, cubic). Each test used three warm-up runs followed by 15 timed runs, with median throughput reported.
+
+\subsection{Performance Benchmarks}
+
+Computation is parallelized per-projection (1 thread per projection on CPU, 1 thread block per projection on MPS and CUDA), leading to strong throughput scaling with batch size and pose count across all platforms (Tables~\ref{tab:project-2d-performance}--\ref{tab:backproject-2d-to-3d-performance}). CUDA achieves highest throughput, followed by MPS and CPU, with over 2 orders of magnitude difference between CPU and CUDA.
+
+Cubic interpolation requires $4\times$ more samples than linear in 2D and $8\times$ more in 3D. The penalty is smaller than expected because sample groups in the fastest dimension are co-located in memory, reducing the cost difference between reading 2 and 4 samples. 
+
+Despite scattered memory access, the CUDA backend exceeds the H100's theoretical bandwidth: $3.4\,\mathrm{TB/s}$ corresponds to $3{.}4\times 10^6$ projections/second with 4 fp32 reads per pixel, yet $3{.}7\times 10^6$ are achieved. This suggests reference data fit entirely in the chip's cache.
+
+The backward pass in forward projection and the forward pass in backward projection are significantly slower than their counterparts because they involve scatter operations, requiring costly atomic writes to global memory.
+
+\input{results/tables/project-2d-performance}
+
+\input{results/tables/backproject-2d-performance}
+
+\input{results/tables/project-3d-to-2d-performance}
+
+\input{results/tables/backproject-2d-to-3d-performance}
+
+\subsection{Performance Comparison with torch-fourier-slice}
+
+Direct comparison with \texttt{torch-fourier-slice} demonstrates substantial improvements (Tables~\ref{tab:project-3d-to-2d-comparison}, \ref{tab:backproject-2d-to-3d-comparison}). \texttt{torch-projectors} consistently outperforms \texttt{torch-fourier-slice} by 1-2 orders of magnitude across all configurations. The new operators also have significantly lower memory footprint by calculating everything in a single step without storing intermediate tensors.
+
+For \texttt{torch-fourier-slice}, most forward projection scenarios could only be tested in the forward pass, as backward pass memory consumption exceeded the test system's 48\,GB. One memory-intensive backward projection scenario could not be tested at all.
+
+The CUDA backend benefits most from replacing multiple kernel invocations with a single custom kernel, reducing GPU driver overhead and dramatically improving memory locality in these bandwidth-limited algorithms. The performance gap is less pronounced on CPU and MPS, where kernel call overhead is smaller.
+
+Only 3D$\rightarrow$2D forward and 2D$\rightarrow$3D backward projections were compared because \texttt{torch-fourier-slice} does not implement 2D$\rightarrow$2D operations.
+
+\input{results/tables/project-3d-to-2d-comparison}
+
+\input{results/tables/backproject-2d-to-3d-comparison}
+
+\subsection{Interpolation Efficiency}
+
+Because interpolation happens in Fourier space, the most pronounced artifacts can be found in real space. This is the opposite of the more common interpolation in real space, where Fourier-space artifacts are more pronounced.
+
+Cubic interpolation without oversampling and linear interpolation with $2\times$ oversampling produce similar real-space signal attenuation up to approximately half the box size (Figure~\ref{fig:interpolation_accuracy}). In practice, most EM algorithms will restrict real-space signal extent to this range, leaving room for signal delocalization after CTF convolution .
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=\textwidth]{results/data/interpolation_accuracy/combined_correlation.pdf}
+\caption{Interpolation accuracy analysis comparing different methods and oversampling factors. Left: Fourier ring correlation shows all methods producing negligible Fourier-space artifacts. Right: Real-space intensity attenuation demonstrates that both cubic interpolation at 1$\times$ and linear interpolation at 2$\times$ oversampling maintain signal strength up to approximately half the box size.}
+\label{fig:interpolation_accuracy}
+\end{figure}
+
+Three scenarios were benchmarked for interpolation scheme selection. First: 4096 128-pixel 2D references projected without padding using linear or cubic interpolation, one pose per reference. Second: offline $2\times$ padding, preparing 128-pixel projections from 256-pixel references. Third: matching the second but including padding operations (additional inverse FFT, padding, and FFT) in timing. This last scenario represents use cases where references are intermediate representations in large operator graphs that cannot be pre-padded offline. All scenarios timed forward and backward passes together.
+
+Oversampled grid sampling incurs performance penalties (ca. 10\% on M4 CPU, 25\% on M4 MPS, 35\% on H100 CUDA) due to increased cache misses when accessing larger reference tensors. This penalty decreases with fewer references. Cubic interpolation without oversampling remains slower than linear interpolation with offline oversampling, except on MPS.
+
+The trade-off changes when oversampling requires on-the-fly reference padding, adding expensive Fourier transforms. Here, cubic interpolation without oversampling is approximately $4\times$ faster than linear interpolation with on-the-fly $2\times$ padding across all platforms.
+
+\input{results/tables/oversampling-table}
+
+\section{Discussion}
+The 1–2 order of magnitude performance improvements enable previously impractical machine learning applications in cryo-EM, where projection operations must be performed thousands of times during gradient-based optimization. Benchmarks reveal cubic interpolation without oversampling becomes advantageous when reference volumes cannot be pre-padded offline, offering approximately $4\times$ speedup over on-the-fly oversampling—common in memory-constrained neural networks with dynamically generated intermediate representations. Future extensions could include 3D$\rightarrow$3D projection operators for subtomogram averaging and general volume rotation with accurate interpolation, plus real-space projection operators to broaden applicability beyond traditional Fourier-space cryo-EM workflows.
+
+\section{Availability}
+The \texttt{torch-projectors} library is available as an open-source Python package at \url{https://github.com/warpem/torch-projectors} and can be installed via pip from \url{https://warpem.github.io/torch-projectors/cpu/simple/}. For CUDA-enabled packages, please refer to the repository's README.
+
+\section{Acknowledgements}
+Most of the library's code, the Methods section, and parts of other sections of this manuscript were written by Claude Code \cite{anthropic2024claudecode} using the Sonnet 4.0 model under my direction. I would like to thank Alister Burt for pointing me in the right direction when benchmarking \texttt{torch-fourier-slice}.
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}

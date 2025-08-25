@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Throughput depending on interpolation and padding strategy, $10^3$ projections/second}
+\begin{tabular}{ll|rrr}
+\toprule
+Platform & Interpolation & Oversampling = 1.0 & Oversampling = 2.0 & Pad 2x, Oversampling = 2.0 \\
+\midrule
+\multirow{2}{*}{H100: CUDA} & linear & 10385.3 & 6809.0 & 1185.5 \\
+& cubic & 4795.0 & 4537.9 & 1090.4 \\
+\midrule
+\multirow{2}{*}{M4: CPU} & linear & 93.0 & 84.6 & 6.9 \\
+& cubic & 34.5 & 33.6 & 6.2 \\
+\midrule
+\multirow{2}{*}{M4: MPS} & linear & 442.5 & 335.9 & 81.7 \\
+& cubic & 332.7 & 308.6 & 80.3 \\
+\bottomrule
+\end{tabular}
+\end{table}

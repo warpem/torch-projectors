@@ -1,0 +1,1176 @@
+{
+  "metadata": {
+    "platform_name": "h100-cuda",
+    "timestamp": "2025-08-22T02:45:52.361549",
+    "torch_projectors_version": "unknown",
+    "torch_version": "2.7.0",
+    "device_info": {
+      "type": "cuda",
+      "name": "NVIDIA H100 80GB HBM3",
+      "memory_gb": 85.028896768,
+      "compute_capability": "9.0"
+    },
+    "system_info": {
+      "platform": "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
+      "cpu": "x86_64",
+      "memory_gb": 237.48978688,
+      "python_version": "3.12.3",
+      "architecture": "x86_64"
+    },
+    "title": "H100: CUDA"
+  },
+  "benchmarks": {
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch1_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.0024290740002470557,
+            "mean_time": 0.0024210396001459835,
+            "std_dev": 2.351865313367752e-05,
+            "min_time": 0.002377964000515931,
+            "max_time": 0.0024612340002931887
+          },
+          "backward": {
+            "median_time": 0.000777504999859957,
+            "mean_time": 0.0007754851332113806,
+            "std_dev": 1.5781240450449075e-05,
+            "min_time": 0.000748023999221914,
+            "max_time": 0.0008016149995455635
+          },
+          "throughput_backproj_per_sec": 3304.365611994788,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 8.287200034828857e-05,
+            "mean_time": 8.594440023443895e-05,
+            "std_dev": 8.750058904701476e-06,
+            "min_time": 7.702399943809723e-05,
+            "max_time": 0.00011184300001332304
+          },
+          "backward": {
+            "median_time": 0.0002407590000075288,
+            "mean_time": 0.00024175920007110107,
+            "std_dev": 1.6600484411224675e-05,
+            "min_time": 0.00022152200017444557,
+            "max_time": 0.00028015800035063876
+          },
+          "throughput_backproj_per_sec": 93083.43508335177,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 28.16983530680157,
+          "backward_speedup": 3.2076757905523823,
+          "total_speedup": 9.754316798402671,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=8)"
+        },
+        "gpu_peak_memory_mb": 37.37344
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch1_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.002715079000154219,
+            "mean_time": 0.002718527533276453,
+            "std_dev": 9.852690528576466e-06,
+            "min_time": 0.0027049460004491266,
+            "max_time": 0.0027381899999454618
+          },
+          "backward": {
+            "median_time": 0.0008500819994878839,
+            "mean_time": 0.0008667113334013266,
+            "std_dev": 7.078488714262392e-05,
+            "min_time": 0.0008120060001601814,
+            "max_time": 0.001115119000132836
+          },
+          "throughput_backproj_per_sec": 47084.312530662675,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 8.80070001585409e-05,
+            "mean_time": 9.043193313118536e-05,
+            "std_dev": 5.476863809055072e-06,
+            "min_time": 8.166599945980124e-05,
+            "max_time": 0.0001032169993777643
+          },
+          "backward": {
+            "median_time": 0.0002485939994585351,
+            "mean_time": 0.00024782113329517114,
+            "std_dev": 1.8436308666138382e-05,
+            "min_time": 0.00022328199975163443,
+            "max_time": 0.00028963400018255925
+          },
+          "throughput_backproj_per_sec": 1415429.2136420042,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 30.06158819288771,
+          "backward_speedup": 3.497326163741721,
+          "total_speedup": 10.599279718454076,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=128)"
+        },
+        "gpu_peak_memory_mb": 87.785472
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch1_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.01288125700011733,
+            "mean_time": 0.012882171599873498,
+            "std_dev": 3.452817420680303e-05,
+            "min_time": 0.012830104999920877,
+            "max_time": 0.012937874999806809
+          },
+          "backward": {
+            "median_time": 0.0016757539997342974,
+            "mean_time": 0.0016811505332952948,
+            "std_dev": 3.4068643122515766e-05,
+            "min_time": 0.0016522670002814266,
+            "max_time": 0.001795561999642814
+          },
+          "throughput_backproj_per_sec": 158979.40685870938,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.00042241399933118373,
+            "mean_time": 0.0004229516667085894,
+            "std_dev": 8.639307415777289e-06,
+            "min_time": 0.00041117099954135483,
+            "max_time": 0.00043826700039062416
+          },
+          "backward": {
+            "median_time": 0.0002470179997544619,
+            "mean_time": 0.00024828253323600316,
+            "std_dev": 1.9193998840547332e-05,
+            "min_time": 0.0002258770000480581,
+            "max_time": 0.0002821119996951893
+          },
+          "throughput_backproj_per_sec": 4842160.845321972,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 30.45778658380183,
+          "backward_speedup": 6.771118819289995,
+          "total_speedup": 21.69633510087974,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 887.993856
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch1_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.002584595999906014,
+            "mean_time": 0.002586859400131895,
+            "std_dev": 1.6929210941181213e-05,
+            "min_time": 0.0025582630005374085,
+            "max_time": 0.0026120669999727397
+          },
+          "backward": {
+            "median_time": 0.0008653790000607842,
+            "mean_time": 0.0008604267998938061,
+            "std_dev": 1.9046500562673407e-05,
+            "min_time": 0.0008275919999505277,
+            "max_time": 0.0009056729995791102
+          },
+          "throughput_backproj_per_sec": 3092.553077910654,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.00018064600044453982,
+            "mean_time": 0.00018119700016541173,
+            "std_dev": 3.858808331889896e-06,
+            "min_time": 0.0001742390004437766,
+            "max_time": 0.00019002099998033373
+          },
+          "backward": {
+            "median_time": 0.00025327700041088974,
+            "mean_time": 0.00025699086660703566,
+            "std_dev": 1.1511836677853089e-05,
+            "min_time": 0.0002436279992252821,
+            "max_time": 0.0002813040000546607
+          },
+          "throughput_backproj_per_sec": 44150.841309165895,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 14.276502358043423,
+          "backward_speedup": 3.348083187755787,
+          "total_speedup": 7.867142067208105,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=8)"
+        },
+        "gpu_peak_memory_mb": 113.212928
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch1_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.008922143999370746,
+            "mean_time": 0.008921137199892352,
+            "std_dev": 1.955306939921535e-05,
+            "min_time": 0.00888727499932429,
+            "max_time": 0.008962613000221609
+          },
+          "backward": {
+            "median_time": 0.0016838800002005883,
+            "mean_time": 0.0016816943332742084,
+            "std_dev": 1.2542777591648673e-05,
+            "min_time": 0.0016593400005149306,
+            "max_time": 0.0017009260000122595
+          },
+          "throughput_backproj_per_sec": 14347.946582588656,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0003052160000152071,
+            "mean_time": 0.0003058501331906882,
+            "std_dev": 4.417563556899444e-06,
+            "min_time": 0.0002975549996335758,
+            "max_time": 0.00031595300060871523
+          },
+          "backward": {
+            "median_time": 0.0002651739996508695,
+            "mean_time": 0.00026511159994697665,
+            "std_dev": 1.3079601613382755e-05,
+            "min_time": 0.00024814300013531465,
+            "max_time": 0.0002980519993798225
+          },
+          "throughput_backproj_per_sec": 418505.62124880916,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 29.168328641303205,
+          "backward_speedup": 6.343344967215897,
+          "total_speedup": 18.570126363635136,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=128)"
+        },
+        "gpu_peak_memory_mb": 889.252864
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch1_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.11349732700000459,
+            "mean_time": 0.11353420499987503,
+            "std_dev": 6.944344908715805e-05,
+            "min_time": 0.11346153799968306,
+            "max_time": 0.11364057599985244
+          },
+          "backward": {
+            "median_time": 0.019007915000656794,
+            "mean_time": 0.019014465200052656,
+            "std_dev": 4.414863797052889e-05,
+            "min_time": 0.018932869999844115,
+            "max_time": 0.019093918000180565
+          },
+          "throughput_backproj_per_sec": 18038.616644228532,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.003673805000289576,
+            "mean_time": 0.003676806466804313,
+            "std_dev": 2.130832686068025e-05,
+            "min_time": 0.0036386230003699893,
+            "max_time": 0.0037229300005492405
+          },
+          "backward": {
+            "median_time": 0.0007328570000026957,
+            "mean_time": 0.0007328371333035951,
+            "std_dev": 1.2556510349838813e-05,
+            "min_time": 0.0007079100005285,
+            "max_time": 0.0007545609996668645
+          },
+          "throughput_backproj_per_sec": 557005.1125861987,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 30.878482733564432,
+          "backward_speedup": 25.946372442040904,
+          "total_speedup": 30.05881704287487,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 13399.123968
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch1_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.003753880999283865,
+            "mean_time": 0.0037563830000484208,
+            "std_dev": 2.883702559697429e-05,
+            "min_time": 0.003717386000062106,
+            "max_time": 0.0038107720001789858
+          },
+          "backward": {
+            "median_time": 0.0012258529995960998,
+            "mean_time": 0.0012246543999329636,
+            "std_dev": 1.7203602793394177e-05,
+            "min_time": 0.0012027859993395396,
+            "max_time": 0.0012692979998973897
+          },
+          "throughput_backproj_per_sec": 2129.708285842226,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0005277410000417149,
+            "mean_time": 0.0005298586667170942,
+            "std_dev": 8.546036132750262e-06,
+            "min_time": 0.000518032000400126,
+            "max_time": 0.0005485400006364216
+          },
+          "backward": {
+            "median_time": 0.0006169660000523436,
+            "mean_time": 0.0006198263333014135,
+            "std_dev": 6.505044350627558e-06,
+            "min_time": 0.0006108130000939127,
+            "max_time": 0.0006349400000544847
+          },
+          "throughput_backproj_per_sec": 15098.365852098848,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 7.089405601916963,
+          "backward_speedup": 1.9758024693949718,
+          "total_speedup": 4.332523604205673,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=8)"
+        },
+        "gpu_peak_memory_mb": 512.04864
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch1_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.031093753000277502,
+            "mean_time": 0.03109054673332139,
+            "std_dev": 9.96499050823953e-06,
+            "min_time": 0.03106789200046478,
+            "max_time": 0.03110171100070147
+          },
+          "backward": {
+            "median_time": 0.005380327999773726,
+            "mean_time": 0.00538204113345273,
+            "std_dev": 8.090056655537777e-06,
+            "min_time": 0.005371408999963023,
+            "max_time": 0.005395033999775478
+          },
+          "throughput_backproj_per_sec": 4117.007047123286,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0010362759994677617,
+            "mean_time": 0.0010368717999275153,
+            "std_dev": 7.073557382940855e-06,
+            "min_time": 0.001027824000630062,
+            "max_time": 0.0010547279998718295
+          },
+          "backward": {
+            "median_time": 0.0006453289997807587,
+            "mean_time": 0.0006463186000473797,
+            "std_dev": 5.811508649569677e-06,
+            "min_time": 0.0006372179996105842,
+            "max_time": 0.0006611960006921436
+          },
+          "throughput_backproj_per_sec": 123448.24115088106,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 29.98494773943591,
+          "backward_speedup": 8.327226128194653,
+          "total_speedup": 21.668723792221076,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=128)"
+        },
+        "gpu_peak_memory_mb": 3534.8352
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch1_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 1,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.44953229899965663,
+            "mean_time": 0.4495336200000262,
+            "std_dev": 4.4221380923820755e-05,
+            "min_time": 0.44944476399996347,
+            "max_time": 0.4496010870007012
+          },
+          "backward": {
+            "median_time": 0.07502498499979993,
+            "mean_time": 0.07502513333329261,
+            "std_dev": 2.5565220128132163e-05,
+            "min_time": 0.07498022999970999,
+            "max_time": 0.07507861999965826
+          },
+          "throughput_backproj_per_sec": 4555.832776200099,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.015159395999944536,
+            "mean_time": 0.015167821466638998,
+            "std_dev": 5.358679200318453e-05,
+            "min_time": 0.015095721999387024,
+            "max_time": 0.015252254000188259
+          },
+          "backward": {
+            "median_time": 0.002796744000079343,
+            "mean_time": 0.0027945345999493536,
+            "std_dev": 1.908182237215128e-05,
+            "min_time": 0.0027680319999490166,
+            "max_time": 0.0028364079998937086
+          },
+          "throughput_backproj_per_sec": 135022.68631685124,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 29.63732273542097,
+          "backward_speedup": 26.84709408666914,
+          "total_speedup": 29.20322653602479,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=1, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 53279.754752
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch8_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.017938605000381358,
+            "mean_time": 0.017946558133371582,
+            "std_dev": 4.491558637322994e-05,
+            "min_time": 0.017879035000078147,
+            "max_time": 0.018034276999969734
+          },
+          "backward": {
+            "median_time": 0.00473088499984442,
+            "mean_time": 0.004734060933211974,
+            "std_dev": 3.4928819060575204e-05,
+            "min_time": 0.004685502999564051,
+            "max_time": 0.004803248999451171
+          },
+          "throughput_backproj_per_sec": 3566.143408913164,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 8.484899990435224e-05,
+            "mean_time": 8.542053334773907e-05,
+            "std_dev": 5.578406097504591e-06,
+            "min_time": 7.859499964979477e-05,
+            "max_time": 9.821299954637652e-05
+          },
+          "backward": {
+            "median_time": 0.00024394100000790786,
+            "mean_time": 0.0002446360667211896,
+            "std_dev": 1.3172934452728648e-05,
+            "min_time": 0.00022736699975212105,
+            "max_time": 0.0002653110004757764
+          },
+          "throughput_backproj_per_sec": 749234.3759955459,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 210.0965356925695,
+          "backward_speedup": 19.35144313208468,
+          "total_speedup": 68.71736260340487,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=8)"
+        },
+        "gpu_peak_memory_mb": 46.551552
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch8_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.019985549999546492,
+            "mean_time": 0.02000552479991408,
+            "std_dev": 7.637057826760576e-05,
+            "min_time": 0.019924826000533358,
+            "max_time": 0.020216756999616337
+          },
+          "backward": {
+            "median_time": 0.0050614909996511415,
+            "mean_time": 0.005063148666583099,
+            "std_dev": 3.4035134206358255e-05,
+            "min_time": 0.005013537999730033,
+            "max_time": 0.005154417000085232
+          },
+          "throughput_backproj_per_sec": 51185.86041813799,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.00020366799981275108,
+            "mean_time": 0.00020539293315475032,
+            "std_dev": 6.061532699845124e-06,
+            "min_time": 0.00019575399983295938,
+            "max_time": 0.00021957199987809872
+          },
+          "backward": {
+            "median_time": 0.00024086099983833265,
+            "mean_time": 0.0002470086666410983,
+            "std_dev": 1.5135902562092706e-05,
+            "min_time": 0.00022904000070411712,
+            "max_time": 0.000274335999165487
+          },
+          "throughput_backproj_per_sec": 4985565.882291004,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 97.40123232400215,
+          "backward_speedup": 20.497858376523343,
+          "total_speedup": 55.41243328451912,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=128)"
+        },
+        "gpu_peak_memory_mb": 216.573952
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_32x32x32_batch8_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          32,
+          32
+        ],
+        "volume_size": [
+          32,
+          32,
+          32
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.10090118699918094,
+            "mean_time": 0.10091002499999983,
+            "std_dev": 0.00011428280397836782,
+            "min_time": 0.10074010900007124,
+            "max_time": 0.1010846990002392
+          },
+          "backward": {
+            "median_time": 0.012624167000467423,
+            "mean_time": 0.012628703400090065,
+            "std_dev": 4.412860445606925e-05,
+            "min_time": 0.012570797000080347,
+            "max_time": 0.012750111000059405
+          },
+          "throughput_backproj_per_sec": 162362.4610141562,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0029185749999669497,
+            "mean_time": 0.002921382199989845,
+            "std_dev": 8.860681865488927e-06,
+            "min_time": 0.0029109269999025855,
+            "max_time": 0.002947231999314681
+          },
+          "backward": {
+            "median_time": 0.0004859139999098261,
+            "mean_time": 0.00048706899985215084,
+            "std_dev": 7.630671257483264e-06,
+            "min_time": 0.0004778929996973602,
+            "max_time": 0.0005023349995099124
+          },
+          "throughput_backproj_per_sec": 5608304.178774332,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 34.541877129377525,
+          "backward_speedup": 25.927955595456684,
+          "total_speedup": 33.31094439766459,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 2896.777216
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch8_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.018809012999554398,
+            "mean_time": 0.01882481499997084,
+            "std_dev": 5.9826582757477785e-05,
+            "min_time": 0.018747926000287407,
+            "max_time": 0.01894649199948617
+          },
+          "backward": {
+            "median_time": 0.005355291000341822,
+            "mean_time": 0.005391641466727984,
+            "std_dev": 0.00010846405889541557,
+            "min_time": 0.005317945000570035,
+            "max_time": 0.005757912000262877
+          },
+          "throughput_backproj_per_sec": 3399.7678064883576,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.00024564900013501756,
+            "mean_time": 0.00024785626665106973,
+            "std_dev": 8.110576665753552e-06,
+            "min_time": 0.00023893399975349894,
+            "max_time": 0.0002688999993551988
+          },
+          "backward": {
+            "median_time": 0.0004377799996291287,
+            "mean_time": 0.000439000666422847,
+            "std_dev": 5.727899078561756e-06,
+            "min_time": 0.0004330259998823749,
+            "max_time": 0.0004504909993556794
+          },
+          "throughput_backproj_per_sec": 258214.1693036099,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 75.95053074236884,
+          "backward_speedup": 12.281624788092545,
+          "total_speedup": 35.25691494198363,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=8)"
+        },
+        "gpu_peak_memory_mb": 430.906368
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch8_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.0697846289995141,
+            "mean_time": 0.06979032799984755,
+            "std_dev": 4.5857253855731234e-05,
+            "min_time": 0.06971287600026699,
+            "max_time": 0.06987740099975781
+          },
+          "backward": {
+            "median_time": 0.01283371099998476,
+            "mean_time": 0.012834059466755813,
+            "std_dev": 4.3538509714439394e-05,
+            "min_time": 0.012774506999448931,
+            "max_time": 0.012904248000268126
+          },
+          "throughput_backproj_per_sec": 14672.520238079936,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0019357090004632482,
+            "mean_time": 0.001935244066771702,
+            "std_dev": 1.1525138357974914e-05,
+            "min_time": 0.001913893000164535,
+            "max_time": 0.001955582999471517
+          },
+          "backward": {
+            "median_time": 0.0006623259996558772,
+            "mean_time": 0.0006624638001691589,
+            "std_dev": 8.1947947666159e-06,
+            "min_time": 0.0006497860003946698,
+            "max_time": 0.0006768559996999102
+          },
+          "throughput_backproj_per_sec": 529132.2255327704,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 36.062804272677106,
+          "backward_speedup": 19.373223810083903,
+          "total_speedup": 31.806650978004058,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=128)"
+        },
+        "gpu_peak_memory_mb": 2893.33504
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_128x128x128_batch8_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          128,
+          128
+        ],
+        "volume_size": [
+          128,
+          128,
+          128
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.9068587439996918,
+            "mean_time": 0.9068730991333723,
+            "std_dev": 7.966321831755418e-05,
+            "min_time": 0.9067678589999559,
+            "max_time": 0.9070828630001415
+          },
+          "backward": {
+            "median_time": 0.16019189399958123,
+            "mean_time": 0.16018055326658215,
+            "std_dev": 3.916288937876063e-05,
+            "min_time": 0.16011540999988938,
+            "max_time": 0.16023103799943783
+          },
+          "throughput_backproj_per_sec": 18066.47480850067,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.02787748399987322,
+            "mean_time": 0.027864019799987243,
+            "std_dev": 7.154788856368891e-05,
+            "min_time": 0.02773774199977197,
+            "max_time": 0.027972313000645954
+          },
+          "backward": {
+            "median_time": 0.0043267539995213156,
+            "mean_time": 0.0043437897999562365,
+            "std_dev": 4.2226985881682503e-05,
+            "min_time": 0.004320570999880147,
+            "max_time": 0.004466852999939874
+          },
+          "throughput_backproj_per_sec": 587998.4337366679,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 32.54638439259893,
+          "backward_speedup": 36.87576071664333,
+          "total_speedup": 33.1302769624491,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 44592.177664
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch8_proj8": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 8,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.027727895999305474,
+            "mean_time": 0.027734106666624334,
+            "std_dev": 2.7696343736382288e-05,
+            "min_time": 0.027692472000126145,
+            "max_time": 0.027797080999334867
+          },
+          "backward": {
+            "median_time": 0.008780733000094187,
+            "mean_time": 0.008884445466658992,
+            "std_dev": 0.00040428370561252676,
+            "min_time": 0.008727312999326386,
+            "max_time": 0.010337929000343138
+          },
+          "throughput_backproj_per_sec": 2307.6279603777043,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.0009180219994959771,
+            "mean_time": 0.0009210974665014267,
+            "std_dev": 1.3599013879520452e-05,
+            "min_time": 0.000904220999473182,
+            "max_time": 0.0009556040004099486
+          },
+          "backward": {
+            "median_time": 0.002344032000110019,
+            "mean_time": 0.0023441386000437586,
+            "std_dev": 8.848216204745332e-06,
+            "min_time": 0.0023319590000028256,
+            "max_time": 0.0023650439998164074
+          },
+          "throughput_backproj_per_sec": 69482.33203060369,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 30.10985012472768,
+          "backward_speedup": 3.790068328934622,
+          "total_speedup": 11.21467219735446,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=8)"
+        },
+        "gpu_peak_memory_mb": 2589.462528
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch8_proj128": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 128,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 0.24837513399961608,
+            "mean_time": 0.24837780220004788,
+            "std_dev": 3.473871527613457e-05,
+            "min_time": 0.24829013199996552,
+            "max_time": 0.2484383920000255
+          },
+          "backward": {
+            "median_time": 0.04449431100056245,
+            "mean_time": 0.04451283953318731,
+            "std_dev": 4.311534278717473e-05,
+            "min_time": 0.044477288000052795,
+            "max_time": 0.04463001600015559
+          },
+          "throughput_backproj_per_sec": 4122.751674786349,
+          "backward_available": true
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.010068879999380442,
+            "mean_time": 0.010062176733238932,
+            "std_dev": 3.542427602514376e-05,
+            "min_time": 0.009995634000006248,
+            "max_time": 0.010123258999556128
+          },
+          "backward": {
+            "median_time": 0.003592179000406759,
+            "mean_time": 0.003585265000037907,
+            "std_dev": 2.1801021468482764e-05,
+            "min_time": 0.0035446589999992284,
+            "max_time": 0.0036115910006628837
+          },
+          "throughput_backproj_per_sec": 101767.24451851113,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 24.684301298303385,
+          "backward_speedup": 12.415494958592092,
+          "total_speedup": 21.461212105348206,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=128)"
+        },
+        "gpu_peak_memory_mb": 11702.678016
+      }
+    },
+    "backward_2d_to_3d_comparison_linear_256x256x256_batch8_proj2048": {
+      "parameters": {
+        "operation": "backward_2d_to_3d_comparison",
+        "batch_size": 8,
+        "image_size": [
+          256,
+          256
+        ],
+        "volume_size": [
+          256,
+          256,
+          256
+        ],
+        "num_projections": 2048,
+        "interpolation": "linear",
+        "comparison_type": "torch-fourier-slice_vs_torch-projectors"
+      },
+      "results": {
+        "raw_times": [],
+        "torch_fourier_slice": {
+          "forward": {
+            "median_time": 3.595967277999989,
+            "mean_time": 3.5959820451999502,
+            "std_dev": 0.00015535324612419888,
+            "min_time": 3.5957154939997054,
+            "max_time": 3.5962667009998768
+          },
+          "backward": {
+            "median_time": null,
+            "mean_time": null,
+            "std_dev": null,
+            "min_time": null,
+            "max_time": null
+          },
+          "throughput_backproj_per_sec": 4556.196275192744,
+          "backward_available": false
+        },
+        "torch_projectors": {
+          "forward": {
+            "median_time": 0.12230449600065185,
+            "mean_time": 0.1222721146000064,
+            "std_dev": 7.759608544692882e-05,
+            "min_time": 0.12213136900027166,
+            "max_time": 0.12240288100019825
+          },
+          "backward": {
+            "median_time": 0.020712819999971543,
+            "mean_time": 0.02071304419993491,
+            "std_dev": 1.534667709992794e-05,
+            "min_time": 0.020691331999842077,
+            "max_time": 0.0207413070002076
+          },
+          "throughput_backproj_per_sec": 133996.21044910874,
+          "backward_available": true
+        },
+        "comparison": {
+          "forward_speedup": 29.40966594847589,
+          "backward_speedup": null,
+          "total_speedup": null,
+          "memory_constraint_note": "Backward pass through torch-fourier-slice only tested when batch=1 and projections=1 (current: batch=8, projections=2048)"
+        },
+        "gpu_peak_memory_mb": 59100.188672
+      }
+    }
+  }
+}
