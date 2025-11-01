@@ -8,7 +8,7 @@
  * Key Concepts:
  * - Forward projection: Sample from 4D Fourier reconstruction [B,D,H,W/2+1] to create 2D projections
  * - Backward projection: Scatter 2D projection gradients into 4D Fourier reconstruction
- * - Central slice projection: 3D rotation maps (r,c,0) → rotated coordinates in 3D volume
+ * - Central slice projection: 3D rotation maps (c,r,0) → rotated coordinates in 3D volume
  * - 3D Friedel symmetry: F(kx,ky,kz) = conj(F(-kx,-ky,-kz)) for real-valued reconstructions
  * - Interpolation: Trilinear (8 neighbors) and tricubic (64 neighbors) with analytical gradients
  */
@@ -23,13 +23,13 @@
  * 
  * Projects 3D Fourier-space volumes to 2D projections using the central slice theorem.
  * Each 2D output pixel (i,j) corresponds to sampling the 3D volume at rotated coordinates
- * derived from the central slice: (proj_r, proj_c, 0) → R * (proj_r, proj_c, 0).
- * 
+ * derived from the central slice: (proj_c, proj_r, 0) → R * (proj_c, proj_r, 0).
+ *
  * Algorithm:
  * 1. For each output pixel (i,j) in the 2D projection
- * 2. Convert to 2D Fourier coordinates (proj_coord_r, proj_coord_c) 
- * 3. Extend to 3D central slice: (proj_coord_r, proj_coord_c, 0)
- * 4. Apply 3x3 rotation matrix to get sampling coordinates in 3D reconstruction
+ * 2. Convert to 2D Fourier coordinates (proj_coord_c, proj_coord_r)
+ * 3. Extend to 3D central slice: (proj_coord_c, proj_coord_r, 0)
+ * 4. Apply 3x3 rotation matrix: [rot_c, rot_r, rot_d] = R * [sample_c, sample_r, sample_d]
  * 5. Apply oversampling scaling if specified
  * 6. Interpolate from 4D reconstruction using trilinear or tricubic interpolation
  * 7. Apply phase shift if translations are provided
