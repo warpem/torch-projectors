@@ -76,7 +76,7 @@ pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
 pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu129
 
 # Install development dependencies
-pip install pytest matplotlib
+pip install pytest matplotlib pybind11
 
 # Install in editable mode (compiles C++ extensions)
 python -m pip install -e . --no-build-isolation
