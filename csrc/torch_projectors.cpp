@@ -3,6 +3,7 @@
 #include "cpu/2d/backprojection_2d_kernels.h"
 #include "cpu/3d/projection_3d_to_2d_kernels.h"
 #include "cpu/3d/backprojection_2d_to_3d_kernels.h"
+#include "cpu/3d/projection_3d_kernels.h"
 
 #ifdef __APPLE__
 #include "mps/2d/projection_2d_kernels.h"
@@ -34,6 +35,10 @@ TORCH_LIBRARY(torch_projectors, m) {
   // 2D->3D back-projection operators (adjoint/transpose operations)
   m.def("backproject_2d_to_3d_forw(Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor)");
   m.def("backproject_2d_to_3d_back(Tensor grad_data_rec, Tensor? grad_weight_rec, Tensor projections, Tensor? weights, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor, Tensor)");
+
+  // 3D->3D projection operators
+  m.def("project_3d_forw(Tensor reconstruction, Tensor rotations, Tensor? shifts, int[] output_shape, str interpolation, float oversampling, float? fourier_radius_cutoff) -> Tensor");
+  m.def("project_3d_back(Tensor grad_projections, Tensor reconstruction, Tensor rotations, Tensor? shifts, str interpolation, float oversampling, float? fourier_radius_cutoff) -> (Tensor, Tensor, Tensor)");
 }
 
 TORCH_LIBRARY_IMPL(torch_projectors, CPU, m) {
@@ -52,6 +57,10 @@ TORCH_LIBRARY_IMPL(torch_projectors, CPU, m) {
   // 2D->3D back-projection implementations
   m.impl("backproject_2d_to_3d_forw", &backproject_2d_to_3d_forw_cpu);
   m.impl("backproject_2d_to_3d_back", &backproject_2d_to_3d_back_cpu);
+
+  // 3D->3D projection implementations
+  m.impl("project_3d_forw", &project_3d_forw_cpu);
+  m.impl("project_3d_back", &project_3d_back_cpu);
 }
 
 #ifdef __APPLE__

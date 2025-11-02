@@ -273,18 +273,18 @@ def backproject_2d_to_3d_back(
 ) -> torch.Tensor:
     """
     Backward project 3D reconstruction to 2D projections (returns only projection gradients)
-    
+
     This function computes only the 2D projection gradients from the unified backward
     projection operation, discarding rotation and shift gradients for convenience.
-    
+
     Args:
         reconstruction: 4D complex tensor [B, D, H, W/2+1] - 3D reconstruction gradients
-        projections: 4D complex tensor [B, P, H, W/2+1] - 2D projections  
+        projections: 4D complex tensor [B, P, H, W/2+1] - 2D projections
         rotations: 4D real tensor [B_rot, P, 3, 3] - 3x3 rotation matrices
         shifts: Optional 3D real tensor [B_shift, P, 2] - 2D translation shifts
         interpolation: 'linear' (trilinear) or 'cubic' (tricubic) interpolation
         oversampling: Coordinate scaling factor (must match forward pass)
-        
+
     Returns:
         4D complex tensor [B, P, H, W/2+1] - gradients w.r.t. 2D projections
     """
@@ -292,8 +292,102 @@ def backproject_2d_to_3d_back(
     grad_projections, _, _ = torch.ops.torch_projectors.backproject_2d_to_3d_back(
         reconstruction, projections, rotations, shifts, interpolation, oversampling, None
     )
-    
+
     return grad_projections
+
+def project_3d_forw(
+    reconstruction: torch.Tensor,
+    rotations: torch.Tensor,
+    shifts: Optional[torch.Tensor] = None,
+    output_shape: Optional[tuple[int, ...]] = None,
+    interpolation: str = 'linear',
+    oversampling: float = 1.0,
+    fourier_radius_cutoff: Optional[float] = None
+) -> torch.Tensor:
+    """
+    Forward project 3D Fourier volume to 3D projections using full 3D rotation.
+
+    This function projects 4D Fourier-space reconstructions [B, D, H, W/2+1] to 3D projections
+    [B, P, D_out, H_out, W_out/2+1] by sampling the 3D volume at rotated coordinates.
+    Unlike 3D->2D projection which uses the central slice theorem, this performs full 3D
+    rotation for each output voxel.
+
+    Args:
+        reconstruction: 4D complex tensor [B, D, H, W/2+1] - 3D Fourier volume in FFTW format
+        rotations: 4D real tensor [B_rot, P, 3, 3] - 3x3 rotation matrices
+        shifts: Optional 3D real tensor [B_shift, P, 3] - 3D translation shifts
+        output_shape: Tuple (D_out, H_out, W_out) for output projection size. Defaults to (D, H, W)
+        interpolation: 'linear' (trilinear) or 'cubic' (tricubic) interpolation
+        oversampling: Coordinate scaling factor (>1 for oversampling)
+        fourier_radius_cutoff: Optional frequency cutoff for low-pass filtering
+
+    Returns:
+        5D complex tensor [B, P, D_out, H_out, W_out/2+1] - the 3D projections
+
+    Note:
+        - Uses full 3D rotation (not limited to central slice)
+        - Supports batch broadcasting: B_rot and B_shift can be 1 or match B
+        - 3D Friedel symmetry is automatically handled for real-valued reconstructions
+    """
+    # Validate reconstruction dimensions
+    if reconstruction.dim() != 4:
+        raise ValueError("Reconstruction must be a 4D tensor (B, D, H, W/2+1)")
+
+    B, D, boxsize, boxsize_half = reconstruction.shape
+
+    # Enforce cubic, even dimensions
+    if boxsize % 2 != 0:
+        raise ValueError(f"Boxsize ({boxsize}) must be even. Only even dimensions are supported.")
+    if boxsize != (boxsize_half - 1) * 2:
+        raise ValueError(f"Reconstruction shape mismatch: expected boxsize {boxsize} to match 2*(boxsize_half-1) = {(boxsize_half - 1) * 2}")
+    if D != boxsize:
+        raise ValueError(f"Reconstruction must be cubic: depth {D} must equal boxsize {boxsize}")
+
+    # Set default output shape to cubic
+    if output_shape is None:
+        output_shape = (D, boxsize, boxsize)
+    else:
+        # Validate output shape is cubic and even
+        if len(output_shape) != 3:
+            raise ValueError(f"Output shape {output_shape} must be 3D (D, H, W)")
+        if output_shape[0] != output_shape[1] or output_shape[1] != output_shape[2]:
+            raise ValueError(f"Output shape {output_shape} must be cubic (D == H == W)")
+        if output_shape[0] % 2 != 0:
+            raise ValueError(f"Output boxsize {output_shape[0]} must be even")
+
+    return _Project3D.apply(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+
+def project_3d_back(
+    projections: torch.Tensor,
+    reconstruction: torch.Tensor,
+    rotations: torch.Tensor,
+    shifts: Optional[torch.Tensor] = None,
+    interpolation: str = 'linear',
+    oversampling: float = 1.0
+) -> torch.Tensor:
+    """
+    Backward project 3D projections to 3D reconstruction (returns only reconstruction gradients)
+
+    This function computes only the 3D reconstruction gradients from the unified backward
+    projection operation, discarding rotation and shift gradients for convenience.
+
+    Args:
+        projections: 5D complex tensor [B, P, D, H, W/2+1] - 3D projections
+        reconstruction: 4D complex tensor [B, D, H, W/2+1] - 3D Fourier volume
+        rotations: 4D real tensor [B_rot, P, 3, 3] - 3x3 rotation matrices
+        shifts: Optional 3D real tensor [B_shift, P, 3] - 3D translation shifts
+        interpolation: 'linear' (trilinear) or 'cubic' (tricubic) interpolation
+        oversampling: Coordinate scaling factor (must match forward pass)
+
+    Returns:
+        4D complex tensor [B, D, H, W/2+1] - gradients w.r.t. 3D reconstruction
+    """
+    # Call the unified backward function and return only reconstruction gradients
+    grad_reconstruction, _, _ = torch.ops.torch_projectors.project_3d_back(
+        projections, reconstruction, rotations, shifts, interpolation, oversampling, None
+    )
+
+    return grad_reconstruction
 
 # --- Autograd Registration ---
 
@@ -475,10 +569,10 @@ class _Backproject2DTo3D(torch.autograd.Function):
         # Let C++ handle batch size mismatches (1 vs N)
         if rotations.size(0) != projections.size(0) and rotations.size(0) != 1:
             raise ValueError("Batch size of rotations must be 1 or match projections")
-        
+
         data_reconstruction, weight_reconstruction = torch.ops.torch_projectors.backproject_2d_to_3d_forw(
             projections, weights, rotations, shifts, interpolation, oversampling, fourier_radius_cutoff)
-        
+
         ctx.save_for_backward(projections, weights, rotations, shifts)
         ctx.interpolation = interpolation
         ctx.oversampling = oversampling
@@ -488,11 +582,11 @@ class _Backproject2DTo3D(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_data_rec, grad_weight_rec):
         projections, weights, rotations, shifts = ctx.saved_tensors
-        
+
         # Handle case where grad_weight_rec is an empty tensor (when weights weren't provided)
         if grad_weight_rec is not None and grad_weight_rec.numel() == 0:
             grad_weight_rec = None
-        
+
         grad_projections, grad_weights, grad_rotations, grad_shifts = torch.ops.torch_projectors.backproject_2d_to_3d_back(
             grad_data_rec.contiguous(),
             grad_weight_rec.contiguous() if grad_weight_rec is not None else None,
@@ -504,14 +598,62 @@ class _Backproject2DTo3D(torch.autograd.Function):
             ctx.oversampling,
             ctx.fourier_radius_cutoff
         )
-        
+
         # If inputs were None in the forward pass, return None for their gradients
         if weights is None:
             grad_weights = None
         if shifts is None:
             grad_shifts = None
-        
+
         return grad_projections, grad_weights, grad_rotations, grad_shifts, None, None, None
+
+class _Project3D(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff):
+        # Unsqueeze if single reconstruction/pose set
+        if reconstruction.dim() == 3:
+            reconstruction = reconstruction.unsqueeze(0)
+        if rotations.dim() == 2:
+            rotations = rotations.unsqueeze(0)
+        if rotations.dim() == 3:
+            rotations = rotations.unsqueeze(0)
+        if shifts is not None:
+            if shifts.dim() == 1:
+                shifts = shifts.unsqueeze(0)
+            if shifts.dim() == 2:
+                shifts = shifts.unsqueeze(0)
+
+        # Let C++ handle batch size mismatches (1 vs N)
+        if rotations.size(0) != reconstruction.size(0) and rotations.size(0) != 1:
+            raise ValueError("Batch size of rotations must be 1 or match reconstruction")
+
+        projection = torch.ops.torch_projectors.project_3d_forw(reconstruction, rotations, shifts, output_shape, interpolation, oversampling, fourier_radius_cutoff)
+
+        ctx.save_for_backward(reconstruction, rotations, shifts)
+        ctx.interpolation = interpolation
+        ctx.oversampling = oversampling
+        ctx.fourier_radius_cutoff = fourier_radius_cutoff
+        return projection
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        reconstruction, rotations, shifts = ctx.saved_tensors
+
+        grad_reconstruction, grad_rotations, grad_shifts = torch.ops.torch_projectors.project_3d_back(
+            grad_output.contiguous(),
+            reconstruction,
+            rotations,
+            shifts,
+            ctx.interpolation,
+            ctx.oversampling,
+            ctx.fourier_radius_cutoff
+        )
+
+        # If shifts was None in the forward pass, return None for its gradient
+        if shifts is None:
+            grad_shifts = None
+
+        return grad_reconstruction, grad_rotations, grad_shifts, None, None, None, None
 
 def _project_2d_back_backward(ctx, grad_output):
     # No-op placeholder
@@ -568,7 +710,17 @@ torch.library.register_autograd(
 )
 
 torch.library.register_autograd(
-    "torch_projectors::backproject_2d_to_3d_back", 
+    "torch_projectors::backproject_2d_to_3d_back",
     _backproject_2d_to_3d_back_backward,
+    setup_context=lambda ctx, inputs, output: None
+)
+
+def _project_3d_back_backward(ctx, grad_output):
+    # No-op placeholder for project_3d_back
+    return None
+
+torch.library.register_autograd(
+    "torch_projectors::project_3d_back",
+    _project_3d_back_backward,
     setup_context=lambda ctx, inputs, output: None
 ) 

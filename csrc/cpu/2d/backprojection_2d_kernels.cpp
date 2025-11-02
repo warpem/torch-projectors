@@ -108,7 +108,7 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_cpu(
     // Use shared validation - projections are the "reconstruction" input, rotations define dimensionality
     TORCH_CHECK(projections.is_complex(), "Projections must be a complex tensor");
     TORCH_CHECK(projections.dim() == 4, "Projections must be (B, P, height, width/2+1)");
-    validate_projection_inputs(interpolation, projections, rotations, shifts, 4, 2);
+    validate_projection_inputs(interpolation, projections, rotations, shifts, 4, 2, 2);
     
     // Validate optional weights
     if (weights.has_value()) {
@@ -302,7 +302,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
     // Validate inputs
     TORCH_CHECK(grad_data_rec.is_complex(), "grad_data_rec must be a complex tensor");
     TORCH_CHECK(grad_data_rec.dim() == 3, "grad_data_rec must be (B, height, width/2+1)");
-    validate_projection_inputs(interpolation, projections, rotations, shifts, 4, 2);
+    validate_projection_inputs(interpolation, projections, rotations, shifts, 4, 2, 2);
     
     if (grad_weight_rec.has_value()) {
         TORCH_CHECK(grad_weight_rec->is_floating_point(), "grad_weight_rec must be a real-valued tensor");
