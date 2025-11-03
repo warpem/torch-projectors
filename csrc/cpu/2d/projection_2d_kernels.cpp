@@ -103,7 +103,7 @@ at::Tensor project_2d_forw_cpu(
     const c10::optional<double>& fourier_radius_cutoff
 ) {
     // Use shared validation
-    validate_projection_inputs(interpolation, reconstruction, rotations, shifts, 3, 2);
+    validate_projection_inputs(interpolation, reconstruction, rotations, shifts, 3, 2, 2);
 
     // Extract tensor dimensions
     const auto B = reconstruction.size(0);
@@ -216,7 +216,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_2d_back_cpu(
     const c10::optional<double>& fourier_radius_cutoff
 ) {
     // Use shared validation
-    validate_projection_inputs(interpolation, reconstruction, rotations, shifts, 3, 2);
+    validate_projection_inputs(interpolation, reconstruction, rotations, shifts, 3, 2, 2);
     TORCH_CHECK(grad_projections.is_complex(), "Projections must be a complex tensor");
     TORCH_CHECK(grad_projections.dim() == 4, "Projections must be a 4D tensor (B, P, boxsize, boxsize/2+1)");
 
