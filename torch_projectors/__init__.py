@@ -28,6 +28,8 @@ from .ops import (
     backproject_2d_to_3d_back,
     project_3d_forw,
     project_3d_back,
+    backproject_3d_forw,
+    backproject_3d_back,
 )
 
 __all__ = [
@@ -39,5 +41,7 @@ __all__ = [
     "backproject_2d_to_3d_forw",
     "backproject_2d_to_3d_back",
     "project_3d_forw",
-    "project_3d_back"
+    "project_3d_back",
+    "backproject_3d_forw",
+    "backproject_3d_back"
 ]
