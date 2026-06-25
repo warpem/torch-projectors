@@ -26,23 +26,26 @@ inline void validate_projection_inputs(
     const at::Tensor& rotations,
     const c10::optional<at::Tensor>& shifts,
     int expected_rec_dims,
-    int expected_rotation_size
+    int expected_rotation_size,
+    int expected_shift_dims  // Must be explicit: 2 for 2D output, 3 for 3D output
 ) {
-    TORCH_CHECK(interpolation == "linear" || interpolation == "cubic", 
+    TORCH_CHECK(interpolation == "linear" || interpolation == "cubic",
                 "Supported interpolation methods: 'linear', 'cubic'");
     TORCH_CHECK(reconstruction.is_complex(), "Reconstruction must be a complex tensor");
-    TORCH_CHECK(reconstruction.dim() == expected_rec_dims, 
+    TORCH_CHECK(reconstruction.dim() == expected_rec_dims,
                 "Reconstruction must have " + std::to_string(expected_rec_dims) + " dimensions");
-    TORCH_CHECK(rotations.dim() == 4 && 
-                rotations.size(2) == expected_rotation_size && 
-                rotations.size(3) == expected_rotation_size, 
-                "Rotations must be (B_rot, P, " + std::to_string(expected_rotation_size) + 
+    TORCH_CHECK(rotations.dim() == 4 &&
+                rotations.size(2) == expected_rotation_size &&
+                rotations.size(3) == expected_rotation_size,
+                "Rotations must be (B_rot, P, " + std::to_string(expected_rotation_size) +
                 ", " + std::to_string(expected_rotation_size) + ")");
-    
+
     if (shifts.has_value()) {
-        TORCH_CHECK(shifts->dim() == 3, "Shifts must be (B_shift, P, 2)");
-        TORCH_CHECK(shifts->size(2) == 2, "Shifts must have 2 components (x, y)");
-        TORCH_CHECK(shifts->scalar_type() == rotations.scalar_type(), 
+        TORCH_CHECK(shifts->dim() == 3,
+                    "Shifts must be (B_shift, P, " + std::to_string(expected_shift_dims) + ")");
+        TORCH_CHECK(shifts->size(2) == expected_shift_dims,
+                    "Shifts must have " + std::to_string(expected_shift_dims) + " components");
+        TORCH_CHECK(shifts->scalar_type() == rotations.scalar_type(),
                     "Shifts and rotations must have the same dtype");
     }
 }
