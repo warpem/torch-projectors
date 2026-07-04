@@ -6,6 +6,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuComplex.h>
+#include <type_traits>
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
 #include "../../cpu/3d/backprojection_2d_to_3d_kernels.h"
@@ -547,25 +548,24 @@ __device__ __forceinline__ void tricubic_interpolate_with_gradients(
     }
 }
 
-// Forward backproject 2D->3D kernel - accumulates 2D projections into 3D reconstructions
+// Forward backproject 2D->3D kernel - accumulates 2D projections into 3D reconstructions.
+// COARSEN: compile-time number of pixels each thread processes per block; the loop is
+// fully unrolled, exposing ILP across consecutive pixel loads and scatter operations.
+// Grid: (P, num_chunks, B), Block: (512, 1, 1)
+template <int COARSEN>
 __global__ void backproject_2d_to_3d_forw_kernel(
-    const cuFloatComplex* projections,
-    const float* weights,
-    const float* rotations,
-    const float* shifts,
+    const cuFloatComplex* __restrict__ projections,
+    const float* __restrict__ weights,
+    const float* __restrict__ rotations,
+    const float* __restrict__ shifts,
     cuFloatComplex* data_reconstruction,
     float* weight_reconstruction,
     CudaParams3D params
 ) {
-    // Thread organization: each block handles one entire projection
-    // Grid: (P, B, 1), Block: (256, 1, 1)
     int p = blockIdx.x;  // Pose index
-    int b = blockIdx.y;  // Batch index
-    
-    // Check bounds for batch and pose
-    if (p >= params.P || b >= params.B) {
-        return;
-    }
+    int b = blockIdx.z;  // Batch index
+
+    if (p >= params.P || b >= params.B) return;
     
     // Pre-compute shared parameters for this projection (pose p, batch b)
     
@@ -604,13 +604,19 @@ __global__ void backproject_2d_to_3d_forw_kernel(
     int rec_row_stride = params.boxsize_half;
     
     float fourier_cutoff_sq = params.fourier_radius_cutoff * params.fourier_radius_cutoff;
-    
+
     bool has_weights = (weights != nullptr);
-    
-    // Loop over all pixels in this projection
+
+    // blockIdx.y selects the pixel chunk.  Within each iteration k, thread t accesses
+    //   block_base + k * blockDim.x + t  → consecutive threads → coalesced loads.
+    int block_base = blockIdx.y * blockDim.x * COARSEN;
     int total_pixels = params.proj_boxsize * params.proj_boxsize_half;
-    
-    for (int pixel_idx = threadIdx.x; pixel_idx < total_pixels; pixel_idx += blockDim.x) {
+
+    #pragma unroll
+    for (int k = 0; k < COARSEN; ++k) {
+        int pixel_idx = block_base + k * blockDim.x + threadIdx.x;
+        if (pixel_idx >= total_pixels) continue;
+
         // Convert linear pixel index to (i, j) coordinates
         int i = pixel_idx / params.proj_boxsize_half;  // Row
         int j = pixel_idx % params.proj_boxsize_half;  // Column
@@ -1086,10 +1092,38 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_to_3d_forw_cuda(
         static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0))
     };
 
-    // Launch CUDA kernel
-    // Grid: (P, B, 1), Block: (256, 1, 1) - each block handles one projection
-    dim3 gridDim(P, B, 1);
-    dim3 blockDim(256, 1, 1);
+    // Block size for the forward kernel.  512 threads gives the warp scheduler more
+    // in-flight warps to hide atomic-scatter latency; the kernel has no shared memory
+    // so occupancy is register-limited, not shared-memory-limited.
+    constexpr int BLOCK_SIZE = 512;
+
+    // Adaptive coarsening: choose the smallest COARSEN in {1,2,4,8} such that the
+    // total block count across all projections reaches TARGET_BLOCKS.  This keeps
+    // SM utilisation high for small batches without over-launching for large ones.
+    constexpr int TARGET_BLOCKS = 2048;
+    const int total_pixels = static_cast<int>(proj_boxsize * proj_boxsize_half);
+    const int chunks_per_proj_c1 = (total_pixels + BLOCK_SIZE * 1 - 1) / (BLOCK_SIZE * 1);
+    const int chunks_per_proj_c2 = (total_pixels + BLOCK_SIZE * 2 - 1) / (BLOCK_SIZE * 2);
+    const int chunks_per_proj_c4 = (total_pixels + BLOCK_SIZE * 4 - 1) / (BLOCK_SIZE * 4);
+    const int chunks_per_proj_c8 = (total_pixels + BLOCK_SIZE * 8 - 1) / (BLOCK_SIZE * 8);
+    const long total_blocks_c1 = (long)P * B * chunks_per_proj_c1;
+    const long total_blocks_c2 = (long)P * B * chunks_per_proj_c2;
+    const long total_blocks_c4 = (long)P * B * chunks_per_proj_c4;
+
+    int coarsen, chunks_per_proj;
+    if (total_blocks_c1 <= TARGET_BLOCKS) {
+        coarsen = 1; chunks_per_proj = chunks_per_proj_c1;
+    } else if (total_blocks_c2 <= TARGET_BLOCKS) {
+        coarsen = 2; chunks_per_proj = chunks_per_proj_c2;
+    } else if (total_blocks_c4 <= TARGET_BLOCKS) {
+        coarsen = 4; chunks_per_proj = chunks_per_proj_c4;
+    } else {
+        coarsen = 8; chunks_per_proj = chunks_per_proj_c8;
+    }
+
+    // Grid: (P, num_chunks, B) — blockIdx.x=pose, blockIdx.y=chunk, blockIdx.z=batch
+    dim3 gridDim(P, chunks_per_proj, B);
+    dim3 blockDim(BLOCK_SIZE, 1, 1);
 
     // Check if we need double precision - fall back to CPU for gradcheck
     if (projections.scalar_type() == at::kComplexDouble) {
@@ -1126,9 +1160,18 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_to_3d_forw_cuda(
     cuFloatComplex* data_rec_ptr = reinterpret_cast<cuFloatComplex*>(data_rec_contiguous.data_ptr<c10::complex<float>>());
     float* weight_rec_ptr = has_weights ? weight_rec_contiguous->data_ptr<float>() : nullptr;
 
-    backproject_2d_to_3d_forw_kernel<<<gridDim, blockDim, 0, stream>>>(
-        proj_ptr, weights_ptr, rot_ptr, shift_ptr, data_rec_ptr, weight_rec_ptr, params
-    );
+    auto launch_forw = [&](auto coarsen_tag) {
+        constexpr int C = decltype(coarsen_tag)::value;
+        backproject_2d_to_3d_forw_kernel<C><<<gridDim, blockDim, 0, stream>>>(
+            proj_ptr, weights_ptr, rot_ptr, shift_ptr, data_rec_ptr, weight_rec_ptr, params
+        );
+    };
+    switch (coarsen) {
+        case 1: launch_forw(std::integral_constant<int, 1>{}); break;
+        case 2: launch_forw(std::integral_constant<int, 2>{}); break;
+        case 4: launch_forw(std::integral_constant<int, 4>{}); break;
+        default: launch_forw(std::integral_constant<int, 8>{}); break;
+    }
 
     // Check for kernel launch errors
     C10_CUDA_KERNEL_LAUNCH_CHECK();
