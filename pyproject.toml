@@ -45,8 +45,9 @@ source /opt/rh/gcc-toolset-13/enable
 if [[ "$TORCH_PROJECTORS_BUILD_BACKEND" == cu* ]]; then
     case "$TORCH_PROJECTORS_CUDA_VERSION" in
         "12.6") CUDA_PKG="cuda-toolkit-12-6" ;;
-        "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;  
+        "12.8") CUDA_PKG="cuda-toolkit-12-8" ;;
         "12.9") CUDA_PKG="cuda-toolkit-12-9" ;;
+        "13.0") CUDA_PKG="cuda-toolkit-13-0" ;;
         *) CUDA_PKG="cuda-toolkit-12-6" ;;
     esac
     echo "Installing CUDA toolkit: $CUDA_PKG"

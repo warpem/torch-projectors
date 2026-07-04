@@ -49,6 +49,9 @@ pip install torch-projectors --index-url https://warpem.github.io/torch-projecto
 
 # CUDA 12.9 on Linux (requires torch==2.8.0)
 pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu129/simple/
+
+# CUDA 13.0 on Linux (requires torch==2.10.0)
+pip install torch-projectors --index-url https://warpem.github.io/torch-projectors/cu130/simple/
 ```
 
 **Note**: Ensure you have the correct PyTorch version installed for your chosen CUDA version.
@@ -74,6 +77,9 @@ pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
 
 # For CUDA 12.9:
 pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu129
+
+# For CUDA 13.0:
+pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cu130
 
 # Install development dependencies
 pip install pytest matplotlib pybind11

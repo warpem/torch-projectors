@@ -191,7 +191,7 @@ class CustomBuildExt(BuildExtension):
 
 # Version management following PyTorch pattern
 package_name = os.environ.get("TORCH_PROJECTORS_PACKAGE_NAME", "torch-projectors")
-build_version = os.environ.get("TORCH_PROJECTORS_BUILD_VERSION", "0.1.0")
+build_version = os.environ.get("TORCH_PROJECTORS_BUILD_VERSION", "0.13.0")
 build_number = os.environ.get("TORCH_PROJECTORS_BUILD_NUMBER", "1")
 
 
