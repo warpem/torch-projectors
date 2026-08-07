@@ -1,45 +1,40 @@
-/**
- * Atomic Operations for Thread-Safe Complex Number Accumulation
- * 
- * This header provides thread-safe atomic operations for accumulating complex
- * and real numbers during parallel projection operations. Since std::atomic<std::complex<T>>
- * is not available, we treat complex numbers as pairs of atomic floats.
- */
-
 #pragma once
 
-#include <atomic>
-#include <complex>
+#include <c10/util/complex.h>
 
 namespace torch_projectors {
 namespace cpu {
 namespace common {
 
-/**
- * Atomic accumulation for complex numbers using separate real/imaginary parts
- * 
- * Since std::atomic<std::complex<T>> is not available, we treat complex numbers
- * as pairs of atomic floats and accumulate real/imaginary parts separately.
- * This avoids race conditions when multiple threads write to the same location.
- */
-template <typename scalar_t, typename real_t = typename scalar_t::value_type>
-inline void atomic_add_complex(scalar_t* target, const scalar_t& value) {
-    // Cast to atomic real types for thread-safe accumulation
-    std::atomic<real_t>* real_ptr = reinterpret_cast<std::atomic<real_t>*>(target);
-    std::atomic<real_t>* imag_ptr = real_ptr + 1;
-    
-    // Atomically add real and imaginary parts
-    real_ptr->fetch_add(value.real(), std::memory_order_relaxed);
-    imag_ptr->fetch_add(value.imag(), std::memory_order_relaxed);
+// Helper to extract the real type from a complex type
+template <typename T>
+struct real_type { using type = T; };
+
+template <typename T>
+struct real_type<c10::complex<T>> { using type = T; };
+
+template <typename T>
+using real_type_t = typename real_type<T>::type;
+
+// Atomic add for real types using OpenMP
+template <typename T>
+inline void atomic_add_real(T* ptr, T value) {
+    #pragma omp atomic
+    *ptr += value;
 }
 
-/**
- * Atomic accumulation for real numbers
- */
-template <typename real_t>
-inline void atomic_add_real(real_t* target, const real_t& value) {
-    std::atomic<real_t>* atomic_ptr = reinterpret_cast<std::atomic<real_t>*>(target);
-    atomic_ptr->fetch_add(value, std::memory_order_relaxed);
+// Atomic add for complex types using OpenMP
+template <typename ComplexT>
+inline void atomic_add_complex(ComplexT* ptr, ComplexT value) {
+    using RealT = real_type_t<ComplexT>;
+    auto* real_ptr = reinterpret_cast<RealT*>(ptr);
+    auto* imag_ptr = real_ptr + 1;
+
+    #pragma omp atomic
+    *real_ptr += value.real();
+
+    #pragma omp atomic
+    *imag_ptr += value.imag();
 }
 
 } // namespace common
