@@ -163,7 +163,9 @@ def test_cpu_cuda_identical_comprehensive():
         # Check loss values are identical
         loss_diff = torch.abs(loss_cpu - loss_cuda.cpu()).item()
         print(f"Loss difference: {loss_diff:.2e}")
-        assert loss_diff < 1e-5, f"Loss differs too much: {loss_diff}"
+        # FP32 FFT/reduction rounding scales with the loss magnitude. At a
+        # loss around 50, three ULPs already exceed a fixed 1e-5 threshold.
+        torch.testing.assert_close(loss_cuda.cpu(), loss_cpu, rtol=1e-6, atol=1e-6)
         
         # Check reconstruction gradients
         rec_grad_diff = torch.abs(rec_grad_cpu - rec_grad_cuda)

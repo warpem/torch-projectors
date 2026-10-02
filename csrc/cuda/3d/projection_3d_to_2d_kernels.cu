@@ -527,10 +527,10 @@ __device__ __forceinline__ void distribute_trilinear_gradient(
             needs_conj = true;          // Need to conjugate the value
         }
         
-        // Bounds checking
-        if (grid_c >= boxsize_half) return;  // Beyond stored frequency range
-        if (grid_r > boxsize / 2 || grid_r < -boxsize / 2 + 1) return;  // Beyond valid row range
-        if (grid_d > boxsize / 2 || grid_d < -boxsize / 2 + 1) return;  // Beyond valid depth range
+        // Match the forward FFTW sampler after Friedel folding.
+        grid_c = min(grid_c, boxsize_half - 1);
+        grid_r = min(boxsize / 2, max(grid_r, -boxsize / 2 + 1));
+        grid_d = min(boxsize / 2, max(grid_d, -boxsize / 2 + 1));
 
         // Convert negative row indices to positive (FFTW wrapping)
         int r_eff = grid_r < 0 ? boxsize + grid_r : grid_r;
@@ -571,6 +571,11 @@ __device__ __forceinline__ void distribute_tricubic_gradient(
     
     // Same 3D Friedel symmetry handling function
     auto accumulate_grad = [&](int grid_d, int grid_r, int grid_c, cuFloatComplex weight_grad) {
+        // Cubic sampling also clamps signed neighbors before Friedel folding.
+        if (abs(grid_c) >= boxsize_half)
+            grid_c = grid_c < 0 ? -(boxsize_half - 1) : boxsize_half - 1;
+        grid_r = max(-boxsize / 2 + 1, min(grid_r, boxsize / 2));
+        grid_d = max(-boxsize / 2 + 1, min(grid_d, boxsize / 2));
         bool needs_conj = false;
         
         if (grid_c < 0) { 
@@ -580,9 +585,10 @@ __device__ __forceinline__ void distribute_tricubic_gradient(
             needs_conj = true;
         }
         
-        if (grid_c >= boxsize_half) return;
-        if (grid_r > boxsize / 2 || grid_r < -boxsize / 2 + 1) return;
-        if (grid_d > boxsize / 2 || grid_d < -boxsize / 2 + 1) return;
+        // Match the forward FFTW sampler after Friedel folding.
+        grid_c = min(grid_c, boxsize_half - 1);
+        grid_r = min(boxsize / 2, max(grid_r, -boxsize / 2 + 1));
+        grid_d = min(boxsize / 2, max(grid_d, -boxsize / 2 + 1));
 
         int r_eff = grid_r < 0 ? boxsize + grid_r : grid_r;
         int d_eff = grid_d < 0 ? boxsize + grid_d : grid_d;
@@ -683,10 +689,9 @@ __global__ void project_3d_to_2d_back_kernel(
         int i = pixel_idx / params.proj_boxsize_half;
         int j = pixel_idx % params.proj_boxsize_half;
 
-        if (j == 0 && i >= params.proj_boxsize / 2) {
-            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
-            continue;
-        }
+        // Differentiate every stored forward output, including both halves of x=0.
+        // The incoming gradient already carries the loss/irfft Hermitian weights.
+        // Unlike reconstruction insertion, gradient scatter does not duplicate x=0.
         
         // Convert to Fourier coordinates
         float proj_coord_c = float(j);

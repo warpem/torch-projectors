@@ -348,9 +348,9 @@ inline void accumulate_2d_gradient(
         needs_conj = true;
     }
     
-    // Bounds checking
-    if (c >= rec_boxsize_half) return;
-    if (r > rec_boxsize / 2 || r < -rec_boxsize / 2 + 1) return;
+    // Match the forward FFTW sampler: clamp after Friedel folding.
+    c = std::min(c, rec_boxsize_half - 1);
+    r = std::min(rec_boxsize / 2, std::max(r, -rec_boxsize / 2 + 1));
 
     // Convert negative row indices to positive (FFTW wrapping)
     int64_t r_eff = r < 0 ? rec_boxsize + r : r;
@@ -427,10 +427,10 @@ inline void accumulate_3d_gradient(
         needs_conj = true;
     }
     
-    // Bounds checking
-    if (c >= rec_boxsize_half) return;
-    if (r > boxsize / 2 || r < -boxsize / 2 + 1) return;
-    if (d > boxsize / 2 || d < -boxsize / 2 + 1) return;
+    // Match the forward FFTW sampler: clamp after Friedel folding.
+    c = std::min(c, rec_boxsize_half - 1);
+    r = std::min(boxsize / 2, std::max(r, -boxsize / 2 + 1));
+    d = std::min(boxsize / 2, std::max(d, -boxsize / 2 + 1));
 
     // Convert negative indices to positive (FFTW wrapping)
     int64_t r_eff = r < 0 ? boxsize + r : r;

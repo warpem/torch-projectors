@@ -455,8 +455,10 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             for i in range(num_reconstructions):
                 volume = volume_tfs[i]  # Single volume (D, H, W_half)
                 rotations = rotations_tfs[i]  # Rotations for this volume (num_projections_per_rec, 3, 3)
-                # Use Fourier space API with image_shape parameter
-                projections = extract_central_slices_rfft_3d(volume, (D, H, W), rotations)
+                # The volume shape is inferred from its RFFT layout.
+                projections = extract_central_slices_rfft_3d(
+                    volume_rfft=volume, rotation_matrices=rotations
+                )
                 all_projections.append(projections)
             continue
             # Stack all projections for loss calculation
@@ -477,8 +479,10 @@ def test_benchmark_torch_fourier_slice_3d_to_2d(device):
             for i in range(num_reconstructions):
                 volume = volume_tfs[i]  # Single volume (D, H, W_half)
                 rotations = rotations_tfs[i]  # Rotations for this volume (num_projections_per_rec, 3, 3)
-                # Use Fourier space API with image_shape parameter
-                projections = extract_central_slices_rfft_3d(volume, (D, H, W), rotations)
+                # The volume shape is inferred from its RFFT layout.
+                projections = extract_central_slices_rfft_3d(
+                    volume_rfft=volume, rotation_matrices=rotations
+                )
                 all_projections.append(projections)
             
             # Stack all projections

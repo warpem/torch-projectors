@@ -1,3 +1,4 @@
+#include "../../backprojection_adjoint.h"
 #include "backprojection_2d_to_3d_kernels.h"
 
 #ifdef USE_CUDA
@@ -313,10 +314,9 @@ __device__ __forceinline__ cuFloatComplex sample_3d_fftw_with_conjugate(
         need_conjugate = !need_conjugate;
     }
     
-    // Clamp coordinates to valid array bounds
-    c = min(c, boxsize_half - 1);
-    d = min(boxsize / 2, max(d, -boxsize / 2 + 1));
-    r = min(boxsize / 2, max(r, -boxsize / 2 + 1));
+    // Backprojection drops out-of-bounds insertion taps; its adjoint does too.
+    if (c >= boxsize_half || r > boxsize / 2 || r < -boxsize / 2 + 1 ||
+        d > boxsize / 2 || d < -boxsize / 2 + 1) return make_cuFloatComplex(0.0f, 0.0f);
     
     // Convert negative indices to positive (FFTW wrapping)
     if (d < 0) {
@@ -438,13 +438,7 @@ __device__ __forceinline__ cuFloatComplex sample_3d_with_edge_clamping(
     int rec_batch_stride, int rec_depth_stride, int rec_row_stride,
     int d, int r, int c
 ) {
-    // Clamp coordinates to valid ranges
-    if (abs(c) >= boxsize_half) {
-        c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
-    }
-    d = max(-boxsize / 2 + 1, min(d, boxsize / 2));
-    r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
-    
+    // Match the zero-bounded insertion operator, including cubic taps.
     return sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d, r, c);
 }
 
@@ -842,57 +836,65 @@ __global__ void backproject_2d_to_3d_back_kernel(
         
         grad_projections[proj_base_idx + pixel_idx] = rec_val;
         
-        // 2. Compute grad_weights if needed
+        // Differentiate the positive weight stencil used by insertion, including its pose dependence.
+        float weight_coordinate_grad[3] = {};
         if (need_weight_grads && has_weights) {
-            // Use trilinear interpolation for 3D real-valued gradient
-            int c_floor = floorf(rot_c);
-            int r_floor = floorf(rot_r);
-            int d_floor = floorf(rot_d);
-            float c_frac = rot_c - c_floor;
-            float r_frac = rot_r - r_floor;
-            float d_frac = rot_d - d_floor;
-            
-            // Sample 2x2x2 grid from grad_weight_rec with bounds checking
-            const float p000 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor, c_floor);
-            const float p001 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor, c_floor + 1);
-            const float p010 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor + 1, c_floor);
-            const float p011 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor + 1, c_floor + 1);
-            const float p100 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor, c_floor);
-            const float p101 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor, c_floor + 1);
-            const float p110 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor + 1, c_floor);
-            const float p111 = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor + 1, c_floor + 1);
-            
-            // Trilinear interpolation
-            const float p00 = p000 + (p001 - p000) * c_frac;
-            const float p01 = p010 + (p011 - p010) * c_frac;
-            const float p10 = p100 + (p101 - p100) * c_frac;
-            const float p11 = p110 + (p111 - p110) * c_frac;
-            
-            const float p0 = p00 + (p01 - p00) * r_frac;
-            const float p1 = p10 + (p11 - p10) * r_frac;
-            const float weight_grad = p0 + (p1 - p0) * d_frac;
-            
+            const bool weight_cubic = interpolation_method != 0;
+            const int width = weight_cubic ? 4 : 2;
+            const float coordinates[3] = {rot_c, rot_r, rot_d};
+            int base[3];
+            float factors[3][4], derivatives[3][4];
+            int tap_count = 1;
+            for (int axis = 0; axis < 3; ++axis) {
+                const int lower = (int)floorf(coordinates[axis]);
+                base[axis] = lower - (weight_cubic ? 1 : 0);
+                const float fraction = coordinates[axis] - lower;
+                for (int tap = 0; tap < width; ++tap) {
+                    const float delta = coordinates[axis] - (base[axis] + tap);
+                    factors[axis][tap] = weight_cubic ? bicubic_kernel(delta) : (tap ? fraction : 1 - fraction);
+                    derivatives[axis][tap] = weight_cubic ? bicubic_kernel_derivative(delta) : (tap ? 1 : -1);
+                }
+                tap_count *= width;
+            }
+            float weight_grad = 0;
+            for (int flat = 0; flat < tap_count; ++flat) {
+                int remaining = flat;
+                int tap[3], point[3];
+                float coefficient = 1;
+                for (int axis = 0; axis < 3; ++axis) {
+                    tap[axis] = remaining % width; remaining /= width;
+                    point[axis] = base[axis] + tap[axis];
+                    coefficient *= factors[axis][tap[axis]];
+                }
+                const float sampled = sample_3d_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, point[2], point[1], point[0]);
+                weight_grad += sampled * fabsf(coefficient);
+                if (need_rotation_grads) {
+                    // Cubic insertion uses abs(K); linear coefficients are nonnegative.
+                    const float sign = weight_cubic ? (coefficient > 0 ? 1 : (coefficient < 0 ? -1 : 0)) : 1;
+                    for (int axis = 0; axis < 3; ++axis) {
+                        float derivative = sign;
+                        for (int other = 0; other < 3; ++other)
+                            derivative *= other == axis ? derivatives[other][tap[other]] : factors[other][tap[other]];
+                        weight_coordinate_grad[axis] += sampled * derivative;
+                    }
+                }
+            }
             grad_weights[proj_base_idx + pixel_idx] = weight_grad;
+            for (int axis = 0; axis < 3; ++axis)
+                weight_coordinate_grad[axis] *= weights[proj_base_idx + pixel_idx];
         }
-        
+
         // 3. Compute 3x3 rotation gradients if needed
         if (need_rotation_grads) {
+            local_rot_grad[tid][0] += weight_coordinate_grad[0] * sample_c;
+            local_rot_grad[tid][1] += weight_coordinate_grad[0] * sample_r;
+            local_rot_grad[tid][2] += weight_coordinate_grad[0] * sample_d;
+            local_rot_grad[tid][3] += weight_coordinate_grad[1] * sample_c;
+            local_rot_grad[tid][4] += weight_coordinate_grad[1] * sample_r;
+            local_rot_grad[tid][5] += weight_coordinate_grad[1] * sample_d;
+            local_rot_grad[tid][6] += weight_coordinate_grad[2] * sample_c;
+            local_rot_grad[tid][7] += weight_coordinate_grad[2] * sample_r;
+            local_rot_grad[tid][8] += weight_coordinate_grad[2] * sample_d;
             cuFloatComplex _unused, grad_d, grad_r, grad_c;
             if (interpolation_method == 0) {  // linear
                 trilinear_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
@@ -1287,7 +1289,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_to_3d_
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
     // Ensure tensors are contiguous
-    auto grad_data_rec_contiguous = grad_data_rec.is_contiguous() ? grad_data_rec : grad_data_rec.contiguous();
+    auto grad_data_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(grad_data_rec);
     auto proj_contiguous = projections.is_contiguous() ? projections : projections.contiguous();
     auto rot_contiguous = rotations.is_contiguous() ? rotations : rotations.contiguous();
     auto grad_proj_contiguous = grad_projections.is_contiguous() ? grad_projections : grad_projections.contiguous();
@@ -1300,7 +1302,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_to_3d_
     c10::optional<at::Tensor> grad_rot_contiguous;
 
     if (grad_weight_rec.has_value()) {
-        grad_weight_rec_contiguous = grad_weight_rec->is_contiguous() ? *grad_weight_rec : grad_weight_rec->contiguous();
+        grad_weight_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(*grad_weight_rec);
     }
     if (has_weights) {
         weights_contiguous = weights->is_contiguous() ? *weights : weights->contiguous();

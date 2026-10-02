@@ -65,8 +65,9 @@ kernel void backproject_2d_back_kernel(
     // Gradient computation flags (packed in interpolation_method)
     bool need_rotation_grads = (params.interpolation_method & 0x10) != 0;
     bool need_shift_grads = (params.interpolation_method & 0x20) != 0;
-    bool has_weights = (weights != 0);
-    bool need_weight_grads = (grad_weight_rec != 0);
+    // Optional buffers are represented by explicit flags, not pointer values.
+    bool has_weights = (params.interpolation_method & 0x40) != 0;
+    bool need_weight_grads = (params.interpolation_method & 0x80) != 0;
     int interpolation_method = params.interpolation_method & 0x0F;
     
     // Loop over all pixels in this projection
@@ -103,10 +104,10 @@ kernel void backproject_2d_back_kernel(
         float2 rec_val;
         if (interpolation_method == 0) {  // linear
             rec_val = bilinear_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
-                                         rec_batch_stride, rec_row_stride, rot_r, rot_c);
+                                         rec_batch_stride, rec_row_stride, rot_r, rot_c, true);
         } else {  // cubic
             rec_val = bicubic_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
-                                        rec_batch_stride, rec_row_stride, rot_r, rot_c);
+                                        rec_batch_stride, rec_row_stride, rot_r, rot_c, true);
         }
         
         // Apply conjugate phase shift (opposite of back-projection)
@@ -119,43 +120,69 @@ kernel void backproject_2d_back_kernel(
         
         grad_projections[proj_base_idx + pixel_idx] = rec_val;
         
-        // 2. Compute grad_weights if needed
+        // Differentiate the positive weight stencil used by insertion, including its pose dependence.
+        float weight_coordinate_grad[2] = {};
         if (need_weight_grads && has_weights) {
-            // Use linear interpolation for real-valued gradient
-            int32_t c_floor = (int32_t)floor(rot_c);
-            int32_t r_floor = (int32_t)floor(rot_r);
-            float c_frac = rot_c - c_floor;
-            float r_frac = rot_r - r_floor;
-            
-            // Sample 2x2 grid from grad_weight_rec with bounds checking
-            const float p00 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor, c_floor);
-            const float p01 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor, c_floor + 1);
-            const float p10 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor + 1, c_floor);
-            const float p11 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1);
-            
-            // Bilinear interpolation
-            const float p0 = p00 + (p01 - p00) * c_frac;
-            const float p1 = p10 + (p11 - p10) * c_frac;
-            const float weight_grad = p0 + (p1 - p0) * r_frac;
-            
+            const bool weight_cubic = interpolation_method != 0;
+            const int width = weight_cubic ? 4 : 2;
+            const float coordinates[2] = {rot_c, rot_r};
+            int base[2];
+            float factors[2][4], derivatives[2][4];
+            int tap_count = 1;
+            for (int axis = 0; axis < 2; ++axis) {
+                const int lower = (int)floor(coordinates[axis]);
+                base[axis] = lower - (weight_cubic ? 1 : 0);
+                const float fraction = coordinates[axis] - lower;
+                for (int tap = 0; tap < width; ++tap) {
+                    const float delta = coordinates[axis] - (base[axis] + tap);
+                    factors[axis][tap] = weight_cubic ? bicubic_kernel(delta) : (tap ? fraction : 1 - fraction);
+                    derivatives[axis][tap] = weight_cubic ? bicubic_kernel_derivative(delta) : (tap ? 1 : -1);
+                }
+                tap_count *= width;
+            }
+            float weight_grad = 0;
+            for (int flat = 0; flat < tap_count; ++flat) {
+                int remaining = flat;
+                int tap[2], point[2];
+                float coefficient = 1;
+                for (int axis = 0; axis < 2; ++axis) {
+                    tap[axis] = remaining % width; remaining /= width;
+                    point[axis] = base[axis] + tap[axis];
+                    coefficient *= factors[axis][tap[axis]];
+                }
+                const float sampled = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, rec_batch_stride, rec_row_stride, point[1], point[0]);
+                weight_grad += sampled * abs(coefficient);
+                if (need_rotation_grads) {
+                    // Cubic insertion uses abs(K); linear coefficients are nonnegative.
+                    const float sign = weight_cubic ? (coefficient > 0 ? 1 : (coefficient < 0 ? -1 : 0)) : 1;
+                    for (int axis = 0; axis < 2; ++axis) {
+                        float derivative = sign;
+                        for (int other = 0; other < 2; ++other)
+                            derivative *= other == axis ? derivatives[other][tap[other]] : factors[other][tap[other]];
+                        weight_coordinate_grad[axis] += sampled * derivative;
+                    }
+                }
+            }
             grad_weights[proj_base_idx + pixel_idx] = weight_grad;
+            for (int axis = 0; axis < 2; ++axis)
+                weight_coordinate_grad[axis] *= weights[proj_base_idx + pixel_idx];
         }
-        
+
         // 3. Compute rotation gradients if needed
         if (need_rotation_grads) {
+            local_rot_grad[tid][0] += weight_coordinate_grad[0] * sample_c;
+            local_rot_grad[tid][1] += weight_coordinate_grad[0] * sample_r;
+            local_rot_grad[tid][2] += weight_coordinate_grad[1] * sample_c;
+            local_rot_grad[tid][3] += weight_coordinate_grad[1] * sample_r;
             float2 _unused, grad_r, grad_c;
             if (interpolation_method == 0) {  // linear
                 bilinear_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                   rec_batch_stride, rec_row_stride, rot_r, rot_c,
-                                                  &_unused, &grad_r, &grad_c);
+                                                  &_unused, &grad_r, &grad_c, true);
             } else {  // cubic
                 bicubic_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                  rec_batch_stride, rec_row_stride, rot_r, rot_c,
-                                                 &_unused, &grad_r, &grad_c);
+                                                 &_unused, &grad_r, &grad_c, true);
             }
             
             float2 proj_val = projections[proj_base_idx + pixel_idx];
@@ -180,10 +207,10 @@ kernel void backproject_2d_back_kernel(
             float2 rec_val_for_shift;
             if (interpolation_method == 0) {  // linear
                 rec_val_for_shift = bilinear_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
-                                                       rec_batch_stride, rec_row_stride, rot_r, rot_c);
+                                                       rec_batch_stride, rec_row_stride, rot_r, rot_c, true);
             } else {  // cubic
                 rec_val_for_shift = bicubic_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
-                                                      rec_batch_stride, rec_row_stride, rot_r, rot_c);
+                                                      rec_batch_stride, rec_row_stride, rot_r, rot_c, true);
             }
             
             float2 proj_val = projections[proj_base_idx + pixel_idx];

@@ -31,6 +31,25 @@ The library provides four main high-level functions:
 ### 2D-to-3D Operations
 - `backproject_2d_to_3d_forw()`: Back-project 2D projections into 3D reconstructions (adjoint operation)
 
+### Autograd and Hermitian boundaries
+
+Autograd differentiates the actual stored tensor operation. Forward projection
+returns both stored halves of the `kx=0` boundary, so its backward pass includes
+both; `irfft` supplies the appropriate loss gradients. Reconstruction
+backprojection instead retains its nonredundant-input convention and explicitly
+inserts conjugate partners on the destination `kx=0` plane. Its backward pass
+sums the gradients from both writes, counting self-conjugate bins only once.
+
+These conventions also apply to pose gradients and accumulated weights. Cubic
+weight insertion uses absolute interpolation coefficients; its derivatives
+include that convention and the weight reconstruction's dependence on pose.
+The boundary regression tests use real inputs and real-space losses after
+`irfft`, without excluding boundary frequencies:
+
+```bash
+python -m pytest tests/test_hermitian_gradients.py tests/test_backprojection_weight_gradients.py
+```
+
 ## Installation
 
 ### User Installation

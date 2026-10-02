@@ -1,3 +1,4 @@
+#include "../../backprojection_adjoint.h"
 #include "backprojection_2d_kernels.h"
 
 #ifdef USE_CUDA
@@ -265,9 +266,8 @@ __device__ __forceinline__ cuFloatComplex sample_fftw_with_conjugate(
         need_conjugate = !need_conjugate;
     }
     
-    // Clamp coordinates to valid array bounds
-    c = min(c, boxsize_half - 1);
-    r = min(boxsize / 2, max(r, -boxsize / 2 + 1));
+    // Backprojection drops out-of-bounds insertion taps; its adjoint does too.
+    if (c >= boxsize_half || r > boxsize / 2 || r < -boxsize / 2 + 1) return make_cuFloatComplex(0.0f, 0.0f);
     
     // Convert negative row indices to positive (FFTW wrapping)
     if (r < 0) {
@@ -347,12 +347,7 @@ __device__ __forceinline__ cuFloatComplex sample_with_edge_clamping(
     int rec_batch_stride, int rec_row_stride,
     int r, int c
 ) {
-    // Clamp coordinates to valid ranges
-    if (abs(c) >= boxsize_half) {
-        c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
-    }
-    r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
-    
+    // Match the zero-bounded insertion operator, including cubic taps.
     return sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r, c);
 }
 
@@ -699,34 +694,60 @@ __global__ void backproject_2d_back_kernel(
         
         grad_projections[proj_base_idx + pixel_idx] = rec_val;
         
-        // 2. Compute grad_weights if needed
+        // Differentiate the positive weight stencil used by insertion, including its pose dependence.
+        float weight_coordinate_grad[2] = {};
         if (need_weight_grads && has_weights) {
-            // Use linear interpolation for real-valued gradient
-            int c_floor = floorf(rot_c);
-            int r_floor = floorf(rot_r);
-            float c_frac = rot_c - c_floor;
-            float r_frac = rot_r - r_floor;
-            
-            // Sample 2x2 grid from grad_weight_rec with bounds checking
-            const float p00 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor, c_floor);
-            const float p01 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor, c_floor + 1);
-            const float p10 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor + 1, c_floor);
-            const float p11 = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                    rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1);
-            
-            // Bilinear interpolation
-            const float p0 = p00 + (p01 - p00) * c_frac;
-            const float p1 = p10 + (p11 - p10) * c_frac;
-            const float weight_grad = p0 + (p1 - p0) * r_frac;
-            
+            const bool weight_cubic = interpolation_method != 0;
+            const int width = weight_cubic ? 4 : 2;
+            const float coordinates[2] = {rot_c, rot_r};
+            int base[2];
+            float factors[2][4], derivatives[2][4];
+            int tap_count = 1;
+            for (int axis = 0; axis < 2; ++axis) {
+                const int lower = (int)floorf(coordinates[axis]);
+                base[axis] = lower - (weight_cubic ? 1 : 0);
+                const float fraction = coordinates[axis] - lower;
+                for (int tap = 0; tap < width; ++tap) {
+                    const float delta = coordinates[axis] - (base[axis] + tap);
+                    factors[axis][tap] = weight_cubic ? bicubic_kernel(delta) : (tap ? fraction : 1 - fraction);
+                    derivatives[axis][tap] = weight_cubic ? bicubic_kernel_derivative(delta) : (tap ? 1 : -1);
+                }
+                tap_count *= width;
+            }
+            float weight_grad = 0;
+            for (int flat = 0; flat < tap_count; ++flat) {
+                int remaining = flat;
+                int tap[2], point[2];
+                float coefficient = 1;
+                for (int axis = 0; axis < 2; ++axis) {
+                    tap[axis] = remaining % width; remaining /= width;
+                    point[axis] = base[axis] + tap[axis];
+                    coefficient *= factors[axis][tap[axis]];
+                }
+                const float sampled = sample_weight_gradient(grad_weight_rec, b, params.boxsize, params.boxsize_half, rec_batch_stride, rec_row_stride, point[1], point[0]);
+                weight_grad += sampled * fabsf(coefficient);
+                if (need_rotation_grads) {
+                    // Cubic insertion uses abs(K); linear coefficients are nonnegative.
+                    const float sign = weight_cubic ? (coefficient > 0 ? 1 : (coefficient < 0 ? -1 : 0)) : 1;
+                    for (int axis = 0; axis < 2; ++axis) {
+                        float derivative = sign;
+                        for (int other = 0; other < 2; ++other)
+                            derivative *= other == axis ? derivatives[other][tap[other]] : factors[other][tap[other]];
+                        weight_coordinate_grad[axis] += sampled * derivative;
+                    }
+                }
+            }
             grad_weights[proj_base_idx + pixel_idx] = weight_grad;
+            for (int axis = 0; axis < 2; ++axis)
+                weight_coordinate_grad[axis] *= weights[proj_base_idx + pixel_idx];
         }
-        
+
         // 3. Compute rotation gradients if needed
         if (need_rotation_grads) {
+            local_rot_grad[tid][0] += weight_coordinate_grad[0] * sample_c;
+            local_rot_grad[tid][1] += weight_coordinate_grad[0] * sample_r;
+            local_rot_grad[tid][2] += weight_coordinate_grad[1] * sample_c;
+            local_rot_grad[tid][3] += weight_coordinate_grad[1] * sample_r;
             cuFloatComplex _unused, grad_r, grad_c;
             if (interpolation_method == 0) {  // linear
                 bilinear_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
@@ -1073,7 +1094,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
     // Ensure tensors are contiguous
-    auto grad_data_rec_contiguous = grad_data_rec.is_contiguous() ? grad_data_rec : grad_data_rec.contiguous();
+    auto grad_data_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(grad_data_rec);
     auto proj_contiguous = projections.is_contiguous() ? projections : projections.contiguous();
     auto rot_contiguous = rotations.is_contiguous() ? rotations : rotations.contiguous();
     auto grad_proj_contiguous = grad_projections.is_contiguous() ? grad_projections : grad_projections.contiguous();
@@ -1086,7 +1107,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
     c10::optional<at::Tensor> grad_rot_contiguous;
 
     if (grad_weight_rec.has_value()) {
-        grad_weight_rec_contiguous = grad_weight_rec->is_contiguous() ? *grad_weight_rec : grad_weight_rec->contiguous();
+        grad_weight_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(*grad_weight_rec);
     }
     if (has_weights) {
         weights_contiguous = weights->is_contiguous() ? *weights : weights->contiguous();

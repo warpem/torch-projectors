@@ -21,7 +21,8 @@ inline float2 sample_3d_fftw_with_conjugate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
-    int32_t d, int32_t r, int32_t c
+    int32_t d, int32_t r, int32_t c,
+    bool zero_boundary = false
 ) {
     bool need_conjugate = false;
     
@@ -34,6 +35,10 @@ inline float2 sample_3d_fftw_with_conjugate(
         need_conjugate = !need_conjugate;
     }
     
+    // Backprojection insertion rejects these taps instead of clamping.
+    if (zero_boundary && (c >= boxsize_half || r > boxsize / 2 || r < -boxsize / 2 + 1 ||
+                          d > boxsize / 2 || d < -boxsize / 2 + 1)) return float2(0.0);
+
     // Clamp coordinates to valid array bounds
     c = min(c, (int32_t)boxsize_half - 1);  // Column: [0, boxsize/2]
     
@@ -62,7 +67,8 @@ inline float2 trilinear_interpolate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
-    float d, float r, float c
+    float d, float r, float c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts of coordinates
     int32_t d_floor = (int32_t)floor(d);
@@ -74,14 +80,14 @@ inline float2 trilinear_interpolate(
 
     // Sample 2x2x2 = 8 neighboring voxels
     // Using systematic naming: pDRC where D,R,C ∈ {0,1} indicate the offset
-    float2 p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor);
-    float2 p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1);
-    float2 p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor);
-    float2 p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1);
-    float2 p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor);
-    float2 p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1);
-    float2 p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor);
-    float2 p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1);
+    float2 p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor, zero_boundary);
+    float2 p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1, zero_boundary);
+    float2 p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor, zero_boundary);
+    float2 p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1, zero_boundary);
+    float2 p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor, zero_boundary);
+    float2 p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1, zero_boundary);
+    float2 p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor, zero_boundary);
+    float2 p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1, zero_boundary);
 
     // Trilinear interpolation: interpolate in each dimension sequentially
     // First, interpolate along the c dimension (4 edge interpolations)
@@ -117,18 +123,22 @@ inline float2 sample_3d_with_edge_clamping(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
-    int32_t d, int32_t r, int32_t c
+    int32_t d, int32_t r, int32_t c,
+    bool zero_boundary = false
 ) {
-    // For c: after Friedel symmetry, clamp |c| to valid range [0, boxsize_half-1]
-    if (abs(c) >= boxsize_half) {
-        c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
+    if (!zero_boundary) {
+        // For c: after Friedel symmetry, clamp |c| to valid range [0, boxsize_half-1]
+        if (abs(c) >= boxsize_half) {
+            c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
+        }
+    
+        // For r and d: clamp to valid range [-boxsize/2 + 1, boxsize/2]
+        r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
+        d = max(-boxsize / 2 + 1, min(d, boxsize / 2));
+    
     }
-    
-    // For r and d: clamp to valid range [-boxsize/2 + 1, boxsize/2]
-    r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
-    d = max(-boxsize / 2 + 1, min(d, boxsize / 2));
-    
-    return sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d, r, c);
+
+    return sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d, r, c, zero_boundary);
 }
 
 // Tricubic interpolation kernel
@@ -136,7 +146,8 @@ inline float2 tricubic_interpolate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
-    float d, float r, float c
+    float d, float r, float c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts
     int32_t d_floor = (int32_t)floor(d);
@@ -158,7 +169,7 @@ inline float2 tricubic_interpolate(
 
             for (int j = -1; j <= 2; ++j) {  // Column offset: covers 4 columns
                 float2 sample = sample_3d_with_edge_clamping(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride,
-                                                            d_floor + k, r_floor + i, c_floor + j);
+                                                            d_floor + k, r_floor + i, c_floor + j, zero_boundary);
                 // Compute tricubic weights for this grid position (separable)
                 float weight_c = tricubic_kernel(c_frac - j);
                 // Accumulate weighted contribution
@@ -176,7 +187,8 @@ inline void trilinear_interpolate_with_gradients(
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
     float d, float r, float c,
-    thread float2* val, thread float2* grad_d, thread float2* grad_r, thread float2* grad_c
+    thread float2* val, thread float2* grad_d, thread float2* grad_r, thread float2* grad_c,
+    bool zero_boundary = false
 ) {
     int32_t d_floor = (int32_t)floor(d);
     int32_t r_floor = (int32_t)floor(r);
@@ -187,14 +199,14 @@ inline void trilinear_interpolate_with_gradients(
     float c_frac = c - c_floor;
 
     // Sample 2x2x2 grid
-    float2 p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor);
-    float2 p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1);
-    float2 p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor);
-    float2 p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1);
-    float2 p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor);
-    float2 p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1);
-    float2 p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor);
-    float2 p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1);
+    float2 p000 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor, zero_boundary);
+    float2 p001 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor,     c_floor + 1, zero_boundary);
+    float2 p010 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor, zero_boundary);
+    float2 p011 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor,     r_floor + 1, c_floor + 1, zero_boundary);
+    float2 p100 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor, zero_boundary);
+    float2 p101 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor,     c_floor + 1, zero_boundary);
+    float2 p110 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor, zero_boundary);
+    float2 p111 = sample_3d_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, d_floor + 1, r_floor + 1, c_floor + 1, zero_boundary);
 
     // Value computation (same as interpolate method)
     float2 p00 = complex_add(p000, complex_scale(complex_add(p001, -p000), c_frac));
@@ -238,7 +250,8 @@ inline void tricubic_interpolate_with_gradients(
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_depth_stride, int32_t rec_row_stride,
     float d, float r, float c,
-    thread float2* val, thread float2* grad_d, thread float2* grad_r, thread float2* grad_c
+    thread float2* val, thread float2* grad_d, thread float2* grad_r, thread float2* grad_c,
+    bool zero_boundary = false
 ) {
     int32_t d_floor = (int32_t)floor(d);
     int32_t r_floor = (int32_t)floor(r);
@@ -264,7 +277,7 @@ inline void tricubic_interpolate_with_gradients(
             
             for (int j = -1; j <= 2; ++j) {
                 float2 sample = sample_3d_with_edge_clamping(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride,
-                                                            d_floor + k, r_floor + i, c_floor + j);
+                                                            d_floor + k, r_floor + i, c_floor + j, zero_boundary);
                 
                 // Compute weights and their derivatives for this grid position
                 float weight_c = tricubic_kernel(c_frac - j);

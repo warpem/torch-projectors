@@ -13,11 +13,13 @@
  * - Follows the Projection-Slice Theorem in Fourier space
  */
 
+#include "../../backprojection_adjoint.h"
 #include "backprojection_2d_kernels.h"
 #include "../common/atomic_ops.h"
 #include "../common/cubic_kernels.h"
 #include "../common/fftw_sampling.h" 
 #include "../common/interpolation_kernels.h"
+#include "../common/backprojection_sampling.h"
 #include "../common/projection_utils.h"
 #include <torch/extension.h>
 #include <ATen/ParallelOpenMP.h>
@@ -68,7 +70,7 @@ private:
 
 public:
     Interpolation2DKernel(const std::string& interpolation) 
-        : kernel_(get_interpolation_kernel<2, scalar_t, real_t>(interpolation)) {}
+        : kernel_(std::make_unique<BackprojectionSamplingKernel<2, scalar_t, real_t>>(interpolation)) {}
     
     scalar_t interpolate(
         const torch::PackedTensorAccessor32<scalar_t, 3, torch::DefaultPtrTraits>& rec,
@@ -357,11 +359,13 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
 
         AT_DISPATCH_COMPLEX_TYPES(projections.scalar_type(), "backward_back_project_2d_cpu", ([&] {
             using real_t = typename scalar_t::value_type;
-            auto grad_data_rec_acc = grad_data_rec.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
+            auto grad_data_rec_adjoint = torch_projectors::fold_backprojection_boundary_gradient(grad_data_rec);
+            auto grad_data_rec_acc = grad_data_rec_adjoint.packed_accessor32<scalar_t, 3, torch::DefaultPtrTraits>();
             auto grad_proj_acc = grad_projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
             auto proj_acc = projections.packed_accessor32<scalar_t, 4, torch::DefaultPtrTraits>();
 
             // Optional weight accessors
+            at::Tensor grad_weight_rec_adjoint;
             c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> weights_acc;
             c10::optional<torch::PackedTensorAccessor32<rot_real_t, 4, torch::DefaultPtrTraits>> grad_weights_acc;
             c10::optional<torch::PackedTensorAccessor32<rot_real_t, 3, torch::DefaultPtrTraits>> grad_weight_rec_acc;
@@ -371,7 +375,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                 grad_weights_acc.emplace(grad_weights.packed_accessor32<rot_real_t, 4, torch::DefaultPtrTraits>());
             }
             if (grad_weight_rec.has_value()) {
-                grad_weight_rec_acc.emplace(grad_weight_rec->packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
+                grad_weight_rec_adjoint = torch_projectors::fold_backprojection_boundary_gradient(*grad_weight_rec);
+                grad_weight_rec_acc.emplace(grad_weight_rec_adjoint.packed_accessor32<rot_real_t, 3, torch::DefaultPtrTraits>());
             }
 
             const real_t default_radius = proj_boxsize / 2.0;
@@ -431,15 +436,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                             
                             grad_proj_acc[b][p][i][j] = rec_val;
 
-                            // Compute grad_weights if needed
-                            if (grad_weight_rec_acc.has_value() && grad_weights_acc.has_value()) {
-                                // Use linear interpolation for real-valued gradient
-                                const int64_t c_floor = floor(rot_c);
-                                const int64_t r_floor = floor(rot_r);
-                                const real_t c_frac = rot_c - c_floor;
-                                const real_t r_frac = rot_r - r_floor;
-
-                                // Sample 2x2 grid from grad_weight_rec with bounds checking
+                            // Differentiate the positive weight stencil used by insertion, including its pose dependence.
+                            rot_real_t weight_coordinate_grad[2] = {};
+                            if (grad_weight_rec_acc.has_value() && weights_acc.has_value()) {
                                 auto sample_weight_grad = [&](int64_t r, int64_t c) -> rot_real_t {
                                     // Handle Friedel symmetry and bounds
                                     if (c < 0) { 
@@ -454,22 +453,57 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_c
                                     
                                     return (*grad_weight_rec_acc)[b][r_eff][c];
                                 };
-
-                                const rot_real_t p00 = sample_weight_grad(r_floor, c_floor);
-                                const rot_real_t p01 = sample_weight_grad(r_floor, c_floor + 1);
-                                const rot_real_t p10 = sample_weight_grad(r_floor + 1, c_floor);
-                                const rot_real_t p11 = sample_weight_grad(r_floor + 1, c_floor + 1);
-
-                                // Bilinear interpolation
-                                const rot_real_t p0 = p00 + (p01 - p00) * c_frac;
-                                const rot_real_t p1 = p10 + (p11 - p10) * c_frac;
-                                const rot_real_t weight_grad = p0 + (p1 - p0) * r_frac;
-                                
-                                (*grad_weights_acc)[b][p][i][j] = weight_grad;
+                                const bool weight_cubic = interpolation == "cubic";
+                                const int width = weight_cubic ? 4 : 2;
+                                const real_t coordinates[2] = {rot_c, rot_r};
+                                int base[2];
+                                real_t factors[2][4], derivatives[2][4];
+                                int tap_count = 1;
+                                for (int axis = 0; axis < 2; ++axis) {
+                                    const int lower = (int)std::floor(coordinates[axis]);
+                                    base[axis] = lower - (weight_cubic ? 1 : 0);
+                                    const real_t fraction = coordinates[axis] - lower;
+                                    for (int tap = 0; tap < width; ++tap) {
+                                        const real_t delta = coordinates[axis] - (base[axis] + tap);
+                                        factors[axis][tap] = weight_cubic ? cubic_kernel(delta) : (tap ? fraction : 1 - fraction);
+                                        derivatives[axis][tap] = weight_cubic ? cubic_kernel_derivative(delta) : (tap ? 1 : -1);
+                                    }
+                                    tap_count *= width;
+                                }
+                                rot_real_t weight_grad = 0;
+                                for (int flat = 0; flat < tap_count; ++flat) {
+                                    int remaining = flat;
+                                    int tap[2], point[2];
+                                    real_t coefficient = 1;
+                                    for (int axis = 0; axis < 2; ++axis) {
+                                        tap[axis] = remaining % width; remaining /= width;
+                                        point[axis] = base[axis] + tap[axis];
+                                        coefficient *= factors[axis][tap[axis]];
+                                    }
+                                    const rot_real_t sampled = sample_weight_grad(point[1], point[0]);
+                                    weight_grad += sampled * std::abs(coefficient);
+                                    if (grad_tensors.need_rotation_grads) {
+                                        // Cubic insertion uses abs(K); linear coefficients are nonnegative.
+                                        const rot_real_t sign = weight_cubic ? (coefficient > 0 ? 1 : (coefficient < 0 ? -1 : 0)) : 1;
+                                        for (int axis = 0; axis < 2; ++axis) {
+                                            real_t derivative = sign;
+                                            for (int other = 0; other < 2; ++other)
+                                                derivative *= other == axis ? derivatives[other][tap[other]] : factors[other][tap[other]];
+                                            weight_coordinate_grad[axis] += sampled * derivative;
+                                        }
+                                    }
+                                }
+                                if (grad_weights_acc.has_value()) (*grad_weights_acc)[b][p][i][j] = weight_grad;
+                                for (int axis = 0; axis < 2; ++axis)
+                                    weight_coordinate_grad[axis] *= (*weights_acc)[b][p][i][j];
                             }
 
                             // Compute rotation gradients if needed
                             if (grad_tensors.need_rotation_grads) {
+                                local_rot_grad[0][0] += weight_coordinate_grad[0] * sample_c;
+                                local_rot_grad[0][1] += weight_coordinate_grad[0] * sample_r;
+                                local_rot_grad[1][0] += weight_coordinate_grad[1] * sample_c;
+                                local_rot_grad[1][1] += weight_coordinate_grad[1] * sample_r;
                                 auto [rec_val_unused, grad_r, grad_c] = kernel_grad.interpolate_with_gradients(
                                     grad_data_rec_acc, b, rec_boxsize, rec_boxsize_half, rot_r, rot_c);
                                 

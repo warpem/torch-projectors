@@ -71,11 +71,8 @@ def test_backproject_2d_to_3d_gradcheck_projections_only(device, interpolation):
     """
     Tests the 2D->3D back-projection's backward pass using gradcheck for projections only.
     
-    Note: This test masks out elements on the c=0 line that have Friedel symmetric counterparts
-    to avoid gradcheck failures due to the inherent asymmetry between forward and backward passes
-    in Friedel symmetry handling. The forward pass must insert contributions at both locations
-    to maintain physical correctness, but the backward pass correctly computes gradients for
-    optimization purposes.
+    All stored Fourier entries are tested, including the Hermitian boundary.
+    This complements the end-to-end real-space loss regression tests.
     """
 
     torch.manual_seed(42)
@@ -90,18 +87,9 @@ def test_backproject_2d_to_3d_gradcheck_projections_only(device, interpolation):
     projections = torch.randn(B, P, H, W_half, dtype=torch.complex128, requires_grad=True, device=device)
     rotations = torch.eye(3, dtype=torch.float64, device=device).unsqueeze(0).unsqueeze(0)
 
-    # Create a mask to zero out problematic elements on c=0 line that have Friedel counterparts
-    # This avoids gradcheck failures due to the asymmetry in Friedel symmetry handling
-    mask = torch.ones_like(projections)
-    for i in range(1, H//2):  # Skip DC (i=0) and elements >= H//2 
-        mask[0, 0, i, 0] = 0  # Zero out [i, 0] elements that have distinct Friedel counterparts
-
     def func(projections):
-        # Apply mask to zero out problematic elements
-        projections_masked = projections * mask
-        
         reconstruction, _ = torch_projectors.backproject_2d_to_3d_forw(
-            projections_masked,
+            projections,
             rotations=rotations,
             interpolation=interpolation
         )
@@ -517,12 +505,12 @@ def _test_backproject_2d_to_3d_rotation_optimization_convergence(device, interpo
             pred_reconstruction, _ = torch_projectors.backproject_2d_to_3d_forw(projections, rotations=learned_rot, interpolation=interpolation)
             loss = torch.sum((pred_reconstruction - target_reconstruction).abs().pow(2))  # Manual MSE for complex tensors
             loss.backward()
-            optimizer.step()
-            
-            # Track best result
+
+            # Associate the loss with the angle at which it was evaluated.
             if loss.item() < best_loss:
                 best_loss = loss.item()
                 best_angle = learned_angle.item()
+            optimizer.step()
             
             # Check for convergence
             if step % 25 == 0:

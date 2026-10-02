@@ -69,10 +69,8 @@ def test_forward_project_3d_to_2d_backward_gradcheck_rec_only(device, interpolat
     """
     Tests the 3D->2D forward projection's backward pass using gradcheck for reconstruction only.
     
-    Note: This test masks out elements on the c=0 line that have Friedel symmetric counterparts
-    to avoid gradcheck failures due to the inherent asymmetry between forward and backward passes
-    in Friedel symmetry handling. The forward pass must sample from both locations to maintain
-    physical correctness, but the backward pass correctly computes gradients for optimization purposes.
+    All stored Fourier entries are tested, including the Hermitian boundary.
+    This complements the end-to-end real-space loss regression tests.
     """
 
     torch.manual_seed(42)
@@ -88,20 +86,9 @@ def test_forward_project_3d_to_2d_backward_gradcheck_rec_only(device, interpolat
     rotations = torch.eye(3, dtype=torch.float64, device=device).unsqueeze(0).unsqueeze(0)
     output_shape = (H, W)
 
-    # Create a mask to zero out problematic elements on c=0 line that have Friedel counterparts
-    # This avoids gradcheck failures due to the asymmetry in Friedel symmetry handling
-    # For 3D->2D forward projection, the issue is with elements i >= H//2 on c=0 line 
-    # For 3D volumes, we mask across all depth slices
-    mask = torch.ones_like(rec_fourier)
-    for i in range(H//2, H):  # Zero out elements >= H//2 on c=0 line
-        mask[0, :, i, 0] = 0  # These elements don't get gradients in backward pass but contribute to forward pass
-
     def func(reconstruction):
-        # Apply mask to zero out problematic elements
-        reconstruction_masked = reconstruction * mask
-        
         return torch_projectors.project_3d_to_2d_forw(
-            reconstruction_masked,
+            reconstruction,
             rotations,
             output_shape=output_shape,
             interpolation=interpolation

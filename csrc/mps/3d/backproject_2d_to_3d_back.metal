@@ -73,8 +73,9 @@ kernel void backproject_2d_to_3d_back_kernel(
     // Gradient computation flags (packed in interpolation_method)
     bool need_rotation_grads = (params.interpolation_method & 0x10) != 0;
     bool need_shift_grads = (params.interpolation_method & 0x20) != 0;
-    bool has_weights = (weights != 0);
-    bool need_weight_grads = (grad_weight_rec != 0);
+    // Optional buffers are represented by explicit flags, not pointer values.
+    bool has_weights = (params.interpolation_method & 0x40) != 0;
+    bool need_weight_grads = (params.interpolation_method & 0x80) != 0;
     int interpolation_method = params.interpolation_method & 0x0F;
     
     // Loop over all pixels in this projection
@@ -114,11 +115,11 @@ kernel void backproject_2d_to_3d_back_kernel(
         if (interpolation_method == 0) {  // linear
             rec_val = trilinear_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                           rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                          rot_d, rot_r, rot_c);
+                                          rot_d, rot_r, rot_c, true);
         } else {  // cubic
             rec_val = tricubic_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                          rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                         rot_d, rot_r, rot_c);
+                                         rot_d, rot_r, rot_c, true);
         }
         
         // Apply phase shift (opposite of back-projection conjugate)
@@ -131,68 +132,76 @@ kernel void backproject_2d_to_3d_back_kernel(
         
         grad_projections[proj_base_idx + pixel_idx] = rec_val;
         
-        // 2. Compute grad_weights if needed
+        // Differentiate the positive weight stencil used by insertion, including its pose dependence.
+        float weight_coordinate_grad[3] = {};
         if (need_weight_grads && has_weights) {
-            // Use trilinear interpolation for 3D real-valued gradient
-            int32_t c_floor = (int32_t)floor(rot_c);
-            int32_t r_floor = (int32_t)floor(rot_r);
-            int32_t d_floor = (int32_t)floor(rot_d);
-            float c_frac = rot_c - c_floor;
-            float r_frac = rot_r - r_floor;
-            float d_frac = rot_d - d_floor;
-            
-            // Sample 2x2x2 grid from grad_weight_rec with bounds checking
-            const float p000 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor, c_floor);
-            const float p001 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor, c_floor + 1);
-            const float p010 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor + 1, c_floor);
-            const float p011 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor, r_floor + 1, c_floor + 1);
-            const float p100 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor, c_floor);
-            const float p101 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor, c_floor + 1);
-            const float p110 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor + 1, c_floor);
-            const float p111 = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, 
-                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        d_floor + 1, r_floor + 1, c_floor + 1);
-            
-            // Trilinear interpolation
-            const float p00 = p000 + (p001 - p000) * c_frac;
-            const float p01 = p010 + (p011 - p010) * c_frac;
-            const float p10 = p100 + (p101 - p100) * c_frac;
-            const float p11 = p110 + (p111 - p110) * c_frac;
-            
-            const float p0 = p00 + (p01 - p00) * r_frac;
-            const float p1 = p10 + (p11 - p10) * r_frac;
-            const float weight_grad = p0 + (p1 - p0) * d_frac;
-            
+            const bool weight_cubic = interpolation_method != 0;
+            const int width = weight_cubic ? 4 : 2;
+            const float coordinates[3] = {rot_c, rot_r, rot_d};
+            int base[3];
+            float factors[3][4], derivatives[3][4];
+            int tap_count = 1;
+            for (int axis = 0; axis < 3; ++axis) {
+                const int lower = (int)floor(coordinates[axis]);
+                base[axis] = lower - (weight_cubic ? 1 : 0);
+                const float fraction = coordinates[axis] - lower;
+                for (int tap = 0; tap < width; ++tap) {
+                    const float delta = coordinates[axis] - (base[axis] + tap);
+                    factors[axis][tap] = weight_cubic ? tricubic_kernel(delta) : (tap ? fraction : 1 - fraction);
+                    derivatives[axis][tap] = weight_cubic ? tricubic_kernel_derivative(delta) : (tap ? 1 : -1);
+                }
+                tap_count *= width;
+            }
+            float weight_grad = 0;
+            for (int flat = 0; flat < tap_count; ++flat) {
+                int remaining = flat;
+                int tap[3], point[3];
+                float coefficient = 1;
+                for (int axis = 0; axis < 3; ++axis) {
+                    tap[axis] = remaining % width; remaining /= width;
+                    point[axis] = base[axis] + tap[axis];
+                    coefficient *= factors[axis][tap[axis]];
+                }
+                const float sampled = sample_weight_gradient_3d(grad_weight_rec, b, params.boxsize, params.boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride, point[2], point[1], point[0]);
+                weight_grad += sampled * abs(coefficient);
+                if (need_rotation_grads) {
+                    // Cubic insertion uses abs(K); linear coefficients are nonnegative.
+                    const float sign = weight_cubic ? (coefficient > 0 ? 1 : (coefficient < 0 ? -1 : 0)) : 1;
+                    for (int axis = 0; axis < 3; ++axis) {
+                        float derivative = sign;
+                        for (int other = 0; other < 3; ++other)
+                            derivative *= other == axis ? derivatives[other][tap[other]] : factors[other][tap[other]];
+                        weight_coordinate_grad[axis] += sampled * derivative;
+                    }
+                }
+            }
             grad_weights[proj_base_idx + pixel_idx] = weight_grad;
+            for (int axis = 0; axis < 3; ++axis)
+                weight_coordinate_grad[axis] *= weights[proj_base_idx + pixel_idx];
         }
-        
+
         // 3. Compute 3x3 rotation gradients if needed
         if (need_rotation_grads) {
+            local_rot_grad[tid][0] += weight_coordinate_grad[0] * sample_c;
+            local_rot_grad[tid][1] += weight_coordinate_grad[0] * sample_r;
+            local_rot_grad[tid][2] += weight_coordinate_grad[0] * sample_d;
+            local_rot_grad[tid][3] += weight_coordinate_grad[1] * sample_c;
+            local_rot_grad[tid][4] += weight_coordinate_grad[1] * sample_r;
+            local_rot_grad[tid][5] += weight_coordinate_grad[1] * sample_d;
+            local_rot_grad[tid][6] += weight_coordinate_grad[2] * sample_c;
+            local_rot_grad[tid][7] += weight_coordinate_grad[2] * sample_r;
+            local_rot_grad[tid][8] += weight_coordinate_grad[2] * sample_d;
             float2 _unused, grad_d, grad_r, grad_c;
             if (interpolation_method == 0) {  // linear
                 trilinear_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                    rec_batch_stride, rec_depth_stride, rec_row_stride, 
                                                    rot_d, rot_r, rot_c,
-                                                   &_unused, &grad_d, &grad_r, &grad_c);
+                                                   &_unused, &grad_d, &grad_r, &grad_c, true);
             } else {  // cubic
                 tricubic_interpolate_with_gradients(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                   rec_batch_stride, rec_depth_stride, rec_row_stride, 
                                                   rot_d, rot_r, rot_c,
-                                                  &_unused, &grad_d, &grad_r, &grad_c);
+                                                  &_unused, &grad_d, &grad_r, &grad_c, true);
             }
             
             float2 proj_val = projections[proj_base_idx + pixel_idx];
@@ -224,11 +233,11 @@ kernel void backproject_2d_to_3d_back_kernel(
             if (interpolation_method == 0) {  // linear
                 rec_val_for_shift = trilinear_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                         rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                        rot_d, rot_r, rot_c);
+                                                        rot_d, rot_r, rot_c, true);
             } else {  // cubic
                 rec_val_for_shift = tricubic_interpolate(grad_data_rec, b, params.boxsize, params.boxsize_half,
                                                        rec_batch_stride, rec_depth_stride, rec_row_stride, 
-                                                       rot_d, rot_r, rot_c);
+                                                       rot_d, rot_r, rot_c, true);
             }
             
             float2 proj_val = projections[proj_base_idx + pixel_idx];

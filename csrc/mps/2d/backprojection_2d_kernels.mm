@@ -1,3 +1,4 @@
+#include "../../backprojection_adjoint.h"
 #include "backprojection_2d_kernels.h"
 
 #ifdef __APPLE__
@@ -174,7 +175,7 @@ std::tuple<at::Tensor, at::Tensor> backproject_2d_forw_mps(
     } params = {
       (int)B, (int)P, (int)rec_boxsize, (int)rec_boxsize_half,
       (int)proj_boxsize, (int)proj_boxsize_half, (int)B_rot, (int)B_shift,
-      (int)(shifts.has_value()), (interpolation == "linear") ? 0 : 1,
+      (int)(shifts.has_value()), ((interpolation == "linear") ? 0 : 1) | (has_weights ? 0x40 : 0),
       static_cast<float>(oversampling),
       static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0f))
     };
@@ -368,7 +369,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_m
     }
 
     // -------- Ensure contiguity --------
-    auto grad_data_rec_contiguous = grad_data_rec.is_contiguous() ? grad_data_rec : grad_data_rec.contiguous();
+    auto grad_data_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(grad_data_rec);
     auto proj_contiguous = projections.is_contiguous() ? projections : projections.contiguous();
     auto rot_contiguous = rotations.is_contiguous() ? rotations : rotations.contiguous();
     auto grad_proj_contiguous = grad_projections.is_contiguous() ? grad_projections : grad_projections.contiguous();
@@ -381,7 +382,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_m
     c10::optional<at::Tensor> grad_rot_contiguous;
 
     if (grad_weight_rec.has_value()) {
-        grad_weight_rec_contiguous = grad_weight_rec->is_contiguous() ? *grad_weight_rec : grad_weight_rec->contiguous();
+        grad_weight_rec_contiguous = torch_projectors::fold_backprojection_boundary_gradient(*grad_weight_rec);
     }
     if (has_weights) {
         weights_contiguous = weights->is_contiguous() ? *weights : weights->contiguous();
@@ -422,7 +423,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> backproject_2d_back_m
       (int)(shifts.has_value()),
       (interpolation == "linear" ? 0 : 1) | 
       (need_rotation_grads ? 0x10 : 0) | 
-      (need_shift_grads ? 0x20 : 0),  // Pack flags into upper bits
+      (need_shift_grads ? 0x20 : 0) |
+      (has_weights ? 0x40 : 0) |
+      (grad_weight_rec.has_value() ? 0x80 : 0),  // Optional buffers need explicit flags
       static_cast<float>(oversampling),
       static_cast<float>(fourier_radius_cutoff.value_or(proj_boxsize / 2.0))
     };

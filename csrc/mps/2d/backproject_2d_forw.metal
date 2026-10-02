@@ -50,7 +50,8 @@ kernel void backproject_2d_forw_kernel(
     
     float fourier_cutoff_sq = params.fourier_radius_cutoff * params.fourier_radius_cutoff;
     
-    bool has_weights = (weights != 0);
+    // setBytes binds a non-null buffer even when its contents are zero.
+    bool has_weights = (params.interpolation_method & 0x40) != 0;
     
     // Loop over all pixels in this projection
     int32_t total_pixels = params.proj_boxsize * params.proj_boxsize_half;
@@ -95,7 +96,7 @@ kernel void backproject_2d_forw_kernel(
         }
         
         // Distribute projection data to reconstruction 
-        if (params.interpolation_method == 0) {  // linear
+        if ((params.interpolation_method & 0x0F) == 0) {  // linear
             distribute_bilinear_data(data_reconstruction, b, params.boxsize, params.boxsize_half,
                                    rec_batch_stride, rec_row_stride, proj_val, rot_r, rot_c);
         } else {  // cubic
@@ -107,7 +108,7 @@ kernel void backproject_2d_forw_kernel(
         if (has_weights) {
             float weight_val = weights[proj_base_idx + pixel_idx];
             
-            if (params.interpolation_method == 0) {  // linear
+            if ((params.interpolation_method & 0x0F) == 0) {  // linear
                 distribute_bilinear_weights(weight_reconstruction, b, params.boxsize, params.boxsize_half,
                                           rec_batch_stride, rec_row_stride, weight_val, rot_r, rot_c);
             } else {  // cubic  

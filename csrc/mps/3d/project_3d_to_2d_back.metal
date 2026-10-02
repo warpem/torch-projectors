@@ -15,10 +15,10 @@ inline void accumulate_3d_gradient_with_symmetry(
         needs_conj = true;    // Need to conjugate the value
     }
     
-    // Bounds checking
-    if (col >= boxsize_half) return;  // Beyond stored frequency range
-    if (row > boxsize / 2 || row < -boxsize / 2 + 1) return;  // Beyond valid row range
-    if (depth > boxsize / 2 || depth < -boxsize / 2 + 1) return;  // Beyond valid depth range
+    // Match the forward FFTW sampler after Friedel folding.
+    col = min(col, boxsize_half - 1);
+    row = min(boxsize / 2, max(row, -boxsize / 2 + 1));
+    depth = min(boxsize / 2, max(depth, -boxsize / 2 + 1));
 
     // Convert negative indices to positive (FFTW wrapping)
     int32_t r_eff = row < 0 ? boxsize + row : row;
@@ -95,8 +95,14 @@ inline void distribute_tricubic_gradient(
                 
                 // Only distribute if weight is non-zero (tricubic has finite support)
                 if (total_weight != 0.0) {
+                    // Match cubic sampling's clamp before Friedel folding.
+                    int32_t grid_d = max(-boxsize / 2 + 1, min(d_floor + k, boxsize / 2));
+                    int32_t grid_r = max(-boxsize / 2 + 1, min(r_floor + i, boxsize / 2));
+                    int32_t grid_c = c_floor + j;
+                    if (abs(grid_c) >= boxsize_half)
+                        grid_c = grid_c < 0 ? -(boxsize_half - 1) : boxsize_half - 1;
                     accumulate_3d_gradient_with_symmetry(grad_rec, b, boxsize, boxsize_half, rec_batch_stride, rec_depth_stride, rec_row_stride,
-                                                        d_floor + k, r_floor + i, c_floor + j, complex_scale(grad_val, total_weight));
+                                                        grid_d, grid_r, grid_c, complex_scale(grad_val, total_weight));
                 }
             }
         }
@@ -188,10 +194,9 @@ kernel void project_3d_to_2d_back_kernel(
         int32_t i = pixel_idx / params.proj_boxsize_half;
         int32_t j = pixel_idx % params.proj_boxsize_half;
 
-        if (j == 0 && i >= params.proj_boxsize / 2) {
-            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
-            continue;
-        }
+        // Differentiate every stored forward output, including both halves of x=0.
+        // The incoming gradient already carries the loss/irfft Hermitian weights.
+        // Unlike reconstruction insertion, gradient scatter does not duplicate x=0.
         
         // Convert array indices to Fourier coordinates
         float proj_coord_c = float(j);

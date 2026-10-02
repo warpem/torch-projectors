@@ -21,7 +21,8 @@ inline float2 sample_fftw_with_conjugate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
-    int32_t r, int32_t c
+    int32_t r, int32_t c,
+    bool zero_boundary = false
 ) {
     bool need_conjugate = false;
     
@@ -32,6 +33,9 @@ inline float2 sample_fftw_with_conjugate(
         need_conjugate = !need_conjugate;
     }
     
+    // Backprojection insertion rejects these taps instead of clamping.
+    if (zero_boundary && (c >= boxsize_half || r > boxsize / 2 || r < -boxsize / 2 + 1)) return float2(0.0);
+
     // Clamp coordinates to valid array bounds
     c = min(c, (int32_t)boxsize_half - 1);
     r = min((int32_t)boxsize / 2, max(r, -(int32_t)boxsize / 2 + 1));
@@ -55,7 +59,8 @@ inline float2 bilinear_interpolate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
-    float r, float c
+    float r, float c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts
     int32_t c_floor = (int32_t)floor(c);
@@ -64,10 +69,10 @@ inline float2 bilinear_interpolate(
     float r_frac = r - r_floor;
     
     // Sample 2x2 grid of neighboring pixels
-    float2 p00 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor);
-    float2 p01 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor + 1);
-    float2 p10 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor);
-    float2 p11 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1);
+    float2 p00 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor, zero_boundary);
+    float2 p01 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor + 1, zero_boundary);
+    float2 p10 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor, zero_boundary);
+    float2 p11 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1, zero_boundary);
     
     // Bilinear interpolation
     float2 p0 = complex_add(p00, complex_scale(complex_add(p01, -p00), c_frac));
@@ -94,15 +99,19 @@ inline float2 sample_with_edge_clamping(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
-    int32_t r, int32_t c
+    int32_t r, int32_t c,
+    bool zero_boundary = false
 ) {
-    // Clamp coordinates to valid ranges
-    if (abs(c) >= boxsize_half) {
-        c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
-    }
-    r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
+    if (!zero_boundary) {
+        // Clamp coordinates to valid ranges
+        if (abs(c) >= boxsize_half) {
+            c = (c < 0) ? -(boxsize_half - 1) : (boxsize_half - 1);
+        }
+        r = max(-boxsize / 2 + 1, min(r, boxsize / 2));
     
-    return sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r, c);
+    }
+
+    return sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r, c, zero_boundary);
 }
 
 // Bicubic interpolation kernel
@@ -110,7 +119,8 @@ inline float2 bicubic_interpolate(
     device const float2* rec,
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
-    float r, float c
+    float r, float c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts
     int32_t c_floor = (int32_t)floor(c);
@@ -127,7 +137,7 @@ inline float2 bicubic_interpolate(
         for (int j = -1; j <= 2; ++j) {
             float2 sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
                                                     rec_batch_stride, rec_row_stride,
-                                                    r_floor + i, c_floor + j);
+                                                    r_floor + i, c_floor + j, zero_boundary);
             float weight_c = bicubic_kernel(c_frac - j);
             result = complex_add(result, complex_scale(sample, weight_r * weight_c));
         }
@@ -142,7 +152,8 @@ inline void bilinear_interpolate_with_gradients(
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
     float r, float c,
-    thread float2* val, thread float2* grad_r, thread float2* grad_c
+    thread float2* val, thread float2* grad_r, thread float2* grad_c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts
     int32_t c_floor = (int32_t)floor(c);
@@ -151,10 +162,10 @@ inline void bilinear_interpolate_with_gradients(
     float r_frac = r - r_floor;
     
     // Sample 2x2 grid of neighboring pixels
-    float2 p00 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor);
-    float2 p01 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor + 1);
-    float2 p10 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor);
-    float2 p11 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1);
+    float2 p00 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor, zero_boundary);
+    float2 p01 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor, c_floor + 1, zero_boundary);
+    float2 p10 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor, zero_boundary);
+    float2 p11 = sample_fftw_with_conjugate(rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride, r_floor + 1, c_floor + 1, zero_boundary);
     
     // Value computation (same as interpolate method)
     float2 p0 = complex_add(p00, complex_scale(complex_add(p01, -p00), c_frac));
@@ -189,7 +200,8 @@ inline void bicubic_interpolate_with_gradients(
     int32_t b, int32_t boxsize, int32_t boxsize_half,
     int32_t rec_batch_stride, int32_t rec_row_stride,
     float r, float c,
-    thread float2* val, thread float2* grad_r, thread float2* grad_c
+    thread float2* val, thread float2* grad_r, thread float2* grad_c,
+    bool zero_boundary = false
 ) {
     // Extract integer and fractional parts
     int32_t c_floor = (int32_t)floor(c);
@@ -209,7 +221,7 @@ inline void bicubic_interpolate_with_gradients(
         for (int j = -1; j <= 2; ++j) {
             float2 sample = sample_with_edge_clamping(rec, b, boxsize, boxsize_half, 
                                                     rec_batch_stride, rec_row_stride,
-                                                    r_floor + i, c_floor + j);
+                                                    r_floor + i, c_floor + j, zero_boundary);
             
             float weight_c = bicubic_kernel(c_frac - j);
             float dweight_c = bicubic_kernel_derivative(c_frac - j);

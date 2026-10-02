@@ -301,10 +301,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_cpu(
                                 continue;
                             }
 
-                            if (j == 0 && i >= proj_boxsize / 2) {
-                                // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
-                                continue;
-                            }
+                            // Differentiate every stored forward output, including both halves of x=0.
+                            // The incoming gradient already carries the loss/irfft Hermitian weights.
+                            // Unlike reconstruction insertion, gradient scatter does not duplicate x=0.
 
                             real_t sample_c = proj_coord_c * oversampling;
                             real_t sample_r = proj_coord_r * oversampling;
@@ -336,6 +335,13 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> project_3d_to_2d_back_cpu(
 
                             // Distribute gradients using shared 3D backward kernel and accumulator
                             auto accumulate_func = [&](int64_t d, int64_t r, int64_t c, scalar_t grad) {
+                                // Cubic sampling clamps signed neighbors before FFTW folding.
+                                if (interpolation == "cubic") {
+                                    if (std::abs(c) >= rec_boxsize_half)
+                                        c = c < 0 ? -(rec_boxsize_half - 1) : rec_boxsize_half - 1;
+                                    r = std::max(-rec_boxsize / 2 + 1, std::min(r, rec_boxsize / 2));
+                                    d = std::max(-rec_boxsize / 2 + 1, std::min(d, rec_boxsize / 2));
+                                }
                                 accumulate_3d_gradient(grad_rec_acc, b, boxsize, rec_boxsize_half, d, r, c, grad);
                             };
                             backward_kernel.distribute_gradient(accumulate_func, grad_proj, rot_d, rot_r, rot_c);

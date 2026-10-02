@@ -14,9 +14,9 @@ inline void accumulate_gradient_with_symmetry(
         needs_conj = true;
     }
     
-    // Bounds checking
-    if (col >= boxsize_half) return;
-    if (row > boxsize / 2 || row < -boxsize / 2 + 1) return;
+    // Match the forward FFTW sampler after Friedel folding.
+    col = min(col, boxsize_half - 1);
+    row = min(boxsize / 2, max(row, -boxsize / 2 + 1));
     
     // Convert negative row indices to positive (FFTW wrapping)
     int32_t r_eff = row < 0 ? boxsize + row : row;
@@ -75,8 +75,13 @@ inline void distribute_bicubic_gradient(
             
             // Only distribute if weight is non-zero
             if (total_weight != 0.0) {
+                // Match cubic sampling's clamp before Friedel folding.
+                int32_t grid_r = max(-boxsize / 2 + 1, min(r_floor + i, boxsize / 2));
+                int32_t grid_c = c_floor + j;
+                if (abs(grid_c) >= boxsize_half)
+                    grid_c = grid_c < 0 ? -(boxsize_half - 1) : boxsize_half - 1;
                 accumulate_gradient_with_symmetry(grad_rec, b, boxsize, boxsize_half, rec_batch_stride, rec_row_stride,
-                                                 r_floor + i, c_floor + j, complex_scale(grad_val, total_weight));
+                                                 grid_r, grid_c, complex_scale(grad_val, total_weight));
             }
         }
     }
@@ -159,10 +164,9 @@ kernel void project_2d_back_kernel(
         float proj_coord_c = float(j);
         float proj_coord_r = (i <= params.proj_boxsize / 2) ? float(i) : float(i) - float(params.proj_boxsize);
 
-        if (j == 0 && i >= params.proj_boxsize / 2) {
-            // Skip Friedel-symmetric half of the x = 0 line (handled by other half)
-            continue;
-        }
+        // Differentiate every stored forward output, including both halves of x=0.
+        // The incoming gradient already carries the loss/irfft Hermitian weights.
+        // Unlike reconstruction insertion, gradient scatter does not duplicate x=0.
         
         // Apply Fourier space filtering
         float radius_sq = proj_coord_c * proj_coord_c + proj_coord_r * proj_coord_r;
